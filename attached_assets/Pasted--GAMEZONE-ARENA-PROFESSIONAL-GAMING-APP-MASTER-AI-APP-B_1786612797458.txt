@@ -1,0 +1,1730 @@
+🎮 GAMEZONE ARENA — PROFESSIONAL GAMING APP
+
+MASTER AI APP BUILDER PROMPT
+
+You are an expert product architect, UI/UX designer, Flutter developer, backend engineer, database architect, security engineer, and QA engineer.
+
+Build a professional, production-ready mobile gaming application called:
+
+GAMEZONE ARENA
+
+The application should feel like a modern, premium gaming platform rather than a simple demo app.
+
+The primary target platform is Android mobile. The architecture should be scalable so iOS can be supported later.
+
+---
+
+1. PRODUCT VISION
+
+Create an all-in-one gaming platform where users can:
+
+- Create an account
+- Create a gaming profile
+- Discover and play multiple skill-based mini-games
+- Earn XP
+- Level up
+- Earn virtual non-cash coins
+- Complete daily challenges
+- Unlock achievements and badges
+- Compete on leaderboards
+- Track game statistics
+- Add friends
+- View other player profiles
+- Receive notifications
+- Participate in non-cash competitions/tournaments
+- Customize their profile
+- Maintain a gaming history
+
+IMPORTANT:
+
+This application must NOT involve real-money gambling, betting, casino mechanics, cash wagering, or withdrawal of virtual coins.
+
+Virtual coins are only an in-app progression/reward system and have no monetary value.
+
+---
+
+2. TECHNOLOGY STACK
+
+Prefer:
+
+Frontend:
+
+- Flutter
+- Dart
+- Material 3
+- Responsive mobile UI
+- Clean Architecture
+- Feature-based project structure
+
+Backend:
+
+- Firebase or another scalable backend
+- Firebase Authentication
+- Cloud Firestore
+- Firebase Storage
+- Firebase Cloud Messaging
+- Cloud Functions where required
+- Firebase Analytics
+- Crash reporting
+
+If the platform cannot use Firebase, create a clean abstraction layer so another backend can be connected later.
+
+Use:
+
+- Repository pattern
+- Service layer
+- State management
+- Dependency injection
+- Strong error handling
+- Secure API communication
+- Offline-friendly caching where appropriate
+
+Do not put business logic directly inside UI widgets.
+
+---
+
+3. BRANDING
+
+App name:
+
+GAMEZONE ARENA
+
+Brand personality:
+
+- Modern
+- Competitive
+- Fast
+- Premium
+- Energetic
+- Friendly
+- Professional
+
+Suggested visual direction:
+
+- Dark gaming-inspired interface
+- High contrast
+- Neon-style accents
+- Smooth gradients
+- Glowing cards
+- Rounded corners
+- Modern typography
+- Subtle animations
+- Clean spacing
+
+Do not make the interface look childish.
+
+The UI should feel similar in quality to a professional gaming/social platform.
+
+Create a consistent design system containing:
+
+- Primary colors
+- Secondary colors
+- Background colors
+- Card colors
+- Text colors
+- Error/success colors
+- Typography scale
+- Button styles
+- Card styles
+- Input styles
+- Icon system
+- Spacing system
+- Border radius system
+- Shadow/elevation system
+
+Make colors configurable from one central theme file.
+
+---
+
+4. ONBOARDING
+
+Create a professional onboarding flow.
+
+Screens:
+
+1. Splash Screen
+2. Welcome Screen
+3. Feature Introduction
+4. Choose Username
+5. Select Avatar
+6. Choose Gaming Interests
+7. Create Account / Login
+8. Notification Permission
+9. Main Home Screen
+
+Splash screen should contain:
+
+GAMEZONE ARENA
+
+with a professional animated logo.
+
+Use smooth animations but keep startup performance fast.
+
+---
+
+5. AUTHENTICATION
+
+Support:
+
+- Email/password registration
+- Email/password login
+- Password reset
+- Logout
+- Session persistence
+- Account verification where supported
+
+Optional:
+
+- Google Sign-In
+- Apple Sign-In for future iOS support
+
+Registration fields:
+
+- Display name
+- Username
+- Email
+- Password
+- Confirm password
+
+Username requirements:
+
+- Unique
+- Reasonable character limit
+- No offensive words
+- No duplicate usernames
+
+Implement proper validation.
+
+Never store plain-text passwords.
+
+---
+
+6. HOME SCREEN
+
+Create a premium gaming dashboard.
+
+Top section:
+
+- User avatar
+- Username
+- Current level
+- XP progress
+- Notification icon
+- Settings icon
+
+Main sections:
+
+Continue Playing
+
+Show recently played games.
+
+Featured Games
+
+Large attractive game cards.
+
+Daily Challenge
+
+Show:
+
+- Challenge title
+- Progress
+- Reward
+- Time remaining
+
+Your Progress
+
+Show:
+
+- Level
+- XP
+- Coins
+- Games played
+- Wins
+- Best score
+
+Leaderboard Preview
+
+Show top players.
+
+Achievements
+
+Show recently unlocked badges.
+
+Use horizontal scrolling cards where appropriate.
+
+---
+
+7. GAME LIBRARY
+
+Create a dedicated Games screen.
+
+Categories:
+
+- All
+- Puzzle
+- Quiz
+- Memory
+- Reaction
+- Word
+- Math
+- Arcade-style skill games
+
+Each game card should show:
+
+- Game icon
+- Game name
+- Short description
+- Difficulty
+- Best score
+- XP reward
+- Coin reward
+- Play button
+
+Include:
+
+- Search
+- Category filter
+- Sorting
+- Featured section
+- Recently played
+
+---
+
+8. INITIAL MINI-GAMES
+
+Build the application architecture so new games can easily be added.
+
+Include at least these initial games:
+
+GAME 1 — QUICK QUIZ
+
+Features:
+
+- Multiple-choice questions
+- Timer
+- Score
+- Correct/incorrect feedback
+- Difficulty levels
+- XP reward
+- Coin reward
+- End-game summary
+
+Question structure should support:
+
+- Question
+- Four options
+- Correct answer
+- Category
+- Difficulty
+- Explanation
+
+---
+
+GAME 2 — MEMORY MATCH
+
+Create a card-matching memory game.
+
+Features:
+
+- Different board sizes
+- Card flip animation
+- Move counter
+- Timer
+- Score
+- Difficulty
+- XP reward
+- Coins
+- Best score
+
+---
+
+GAME 3 — REACTION TEST
+
+Player must react as quickly as possible.
+
+Features:
+
+- Start countdown
+- Random reaction event
+- Reaction time measurement
+- False-start detection
+- Score calculation
+- Personal best
+- Leaderboard
+
+---
+
+GAME 4 — MATH RUSH
+
+Timed mathematical challenge.
+
+Include:
+
+- Addition
+- Subtraction
+- Multiplication
+- Division
+- Increasing difficulty
+- Timer
+- Combo system
+- Score
+- XP
+- Coins
+
+---
+
+GAME 5 — WORD CHALLENGE
+
+Create a word-based skill game.
+
+Features:
+
+- Word questions
+- Timer
+- Score
+- Difficulty
+- Streaks
+- XP
+- Coins
+- Personal best
+
+---
+
+9. GAME ENGINE ARCHITECTURE
+
+Do NOT hard-code every game into one huge file.
+
+Create a scalable game architecture.
+
+Each game should have:
+
+- Game ID
+- Game name
+- Game category
+- Game configuration
+- Difficulty
+- Game state
+- Score system
+- Reward system
+- Result screen
+- Statistics
+- Leaderboard integration
+
+Create reusable components for:
+
+- Countdown timer
+- Score display
+- XP reward
+- Coin reward
+- Game pause
+- Game restart
+- Game completion
+- Result screen
+- Leaderboard submission
+
+Adding a new game should require minimal changes to existing code.
+
+---
+
+10. GAME RESULT SCREEN
+
+After every game show:
+
+- Final score
+- Correct answers
+- Wrong answers where applicable
+- Accuracy
+- Best score
+- XP earned
+- Coins earned
+- Level progress
+- New achievement if unlocked
+- Rank change if applicable
+
+Buttons:
+
+- Play Again
+- Next Game
+- View Leaderboard
+- Home
+
+Use a satisfying but lightweight success animation.
+
+---
+
+11. XP AND LEVEL SYSTEM
+
+Create a progression system.
+
+Example:
+
+Level 1 → Level 2 → Level 3 → etc.
+
+XP can be earned by:
+
+- Playing games
+- Completing challenges
+- Winning competitions
+- Unlocking achievements
+- Maintaining streaks
+
+Create configurable XP requirements.
+
+Example:
+
+Level 1:
+0 XP
+
+Level 2:
+100 XP
+
+Level 3:
+250 XP
+
+Level 4:
+450 XP
+
+Do NOT hard-code progression values throughout the app.
+
+Store them in a configurable system.
+
+---
+
+12. VIRTUAL COIN SYSTEM
+
+Create a virtual coin economy.
+
+Users can earn coins through:
+
+- Game completion
+- Daily challenges
+- Achievements
+- Streaks
+- Events
+
+Coins have:
+
+- No real-world monetary value
+- No cash withdrawal
+- No gambling function
+
+Create a transaction history.
+
+Every coin transaction should contain:
+
+- Transaction ID
+- User ID
+- Amount
+- Type
+- Source
+- Timestamp
+- Balance after transaction
+
+Never allow the client to arbitrarily increase a user's coin balance.
+
+Validate rewards server-side where possible.
+
+---
+
+13. DAILY CHALLENGES
+
+Create a Daily Challenge system.
+
+Examples:
+
+- Play 3 games
+- Score 500 points
+- Get 10 correct answers
+- Complete one memory game
+- Achieve a reaction time under a configurable threshold
+
+Display:
+
+- Challenge
+- Progress
+- Reward
+- Completion state
+- Reset time
+
+Challenges should automatically reset according to server time.
+
+Prevent users from repeatedly claiming the same reward.
+
+---
+
+14. STREAK SYSTEM
+
+Create daily login/play streaks.
+
+Show:
+
+- Current streak
+- Best streak
+- Daily progress
+- Streak reward
+
+Prevent obvious abuse such as repeatedly changing the device clock.
+
+Use server timestamps.
+
+---
+
+15. ACHIEVEMENT SYSTEM
+
+Create achievements such as:
+
+- First Game
+- Quiz Master
+- Memory Expert
+- Speed Demon
+- 10 Games Played
+- 50 Games Played
+- 100 Games Played
+- 7-Day Streak
+- High Scorer
+- Perfect Score
+
+Each achievement should contain:
+
+- ID
+- Name
+- Description
+- Icon
+- Requirement
+- Reward
+- Unlock status
+
+Make achievements configurable.
+
+---
+
+16. LEADERBOARDS
+
+Create:
+
+Global Leaderboard
+
+Rank all players.
+
+Weekly Leaderboard
+
+Reset weekly.
+
+Monthly Leaderboard
+
+Reset monthly.
+
+Game-Specific Leaderboard
+
+Rank players for individual games.
+
+Leaderboard item:
+
+- Rank
+- Avatar
+- Username
+- Score
+- Level
+
+Highlight the current user.
+
+Prevent obvious leaderboard manipulation.
+
+Only validated game results should affect rankings.
+
+---
+
+17. PLAYER PROFILE
+
+Create a professional profile page.
+
+Display:
+
+- Avatar
+- Username
+- Level
+- XP
+- Coins
+- Total games
+- Wins
+- Best scores
+- Achievements
+- Current streak
+- Favorite games
+- Recent activity
+
+Allow:
+
+- Edit profile
+- Change avatar
+- Change display name
+- Update preferences
+
+Username changes should be controlled and rate-limited.
+
+---
+
+18. AVATAR SYSTEM
+
+Provide selectable avatars.
+
+Categories:
+
+- Gaming
+- Animals
+- Robots
+- Fantasy
+- Abstract
+
+Initially use placeholder/generated assets if necessary.
+
+Structure the system so additional avatar packs can be added later.
+
+Do not use copyrighted characters without permission.
+
+---
+
+19. FRIEND SYSTEM
+
+Create:
+
+- Search users
+- Send friend request
+- Accept request
+- Reject request
+- Remove friend
+- Friend list
+- Friend profile
+
+Optional future features:
+
+- Friend challenges
+- Friend leaderboard
+- Multiplayer games
+
+---
+
+20. NOTIFICATION SYSTEM
+
+Use push notifications.
+
+Notifications can include:
+
+- Daily challenge available
+- Streak reminder
+- Achievement unlocked
+- Friend request
+- Competition starting
+- New game released
+
+Provide notification settings.
+
+Allow users to disable categories.
+
+Do not spam users.
+
+---
+
+21. SEARCH
+
+Global search should support:
+
+- Games
+- Users
+- Challenges
+
+Provide:
+
+- Search input
+- Recent searches
+- Empty state
+- Loading state
+- Error state
+
+Use debouncing.
+
+---
+
+22. SETTINGS
+
+Create:
+
+Account
+
+- Profile
+- Email
+- Password
+- Logout
+- Delete account
+
+Gameplay
+
+- Sound
+- Music
+- Vibration
+- Game preferences
+
+Notifications
+
+- Push notifications
+- Daily reminders
+- Friend notifications
+- Achievement notifications
+
+Appearance
+
+- Dark mode
+- Light mode
+- System theme
+
+Privacy
+
+- Profile visibility
+- Leaderboard visibility
+- Friend requests
+
+Support
+
+- Help Center
+- Report a problem
+- Contact support
+- Terms
+- Privacy Policy
+
+---
+
+23. BOTTOM NAVIGATION
+
+Use a professional bottom navigation bar:
+
+1. Home
+2. Games
+3. Leaderboard
+4. Friends
+5. Profile
+
+Keep navigation consistent throughout the app.
+
+---
+
+24. ADMIN PANEL
+
+Create an admin architecture/dashboard.
+
+Admin capabilities:
+
+User Management
+
+- Search users
+- View profile
+- Suspend user
+- Unsuspend user
+- View activity
+
+Game Management
+
+- Add game
+- Edit game
+- Disable game
+- Enable game
+- Configure rewards
+
+Quiz Management
+
+- Add question
+- Edit question
+- Delete question
+- Set category
+- Set difficulty
+- Set correct answer
+
+Challenge Management
+
+- Create challenge
+- Edit challenge
+- Activate/deactivate challenge
+
+Achievement Management
+
+- Create achievement
+- Configure requirement
+- Configure reward
+
+Leaderboard Management
+
+- Review suspicious scores
+- Flag score
+- Remove invalid score
+
+Analytics
+
+Show:
+
+- Daily active users
+- Monthly active users
+- Games played
+- Most popular games
+- Average session
+- Retention
+- New users
+- Challenge completion
+- Achievement unlocks
+
+Admin actions must require proper authorization.
+
+Never rely only on hiding admin buttons in the client.
+
+---
+
+25. DATABASE DESIGN
+
+Create a scalable database structure.
+
+Suggested collections/tables:
+
+users
+
+profiles
+
+games
+
+game_results
+
+game_sessions
+
+leaderboards
+
+achievements
+
+user_achievements
+
+daily_challenges
+
+user_challenges
+
+coin_transactions
+
+xp_transactions
+
+friend_requests
+
+friends
+
+notifications
+
+reports
+
+admin_logs
+
+settings
+
+quiz_questions
+
+quiz_categories
+
+Use appropriate indexes.
+
+Avoid unnecessary duplicated data.
+
+Use server timestamps.
+
+---
+
+26. SECURITY
+
+Implement strong security.
+
+Requirements:
+
+- Authentication
+- Authorization
+- Firestore/database security rules
+- Server-side validation
+- Input validation
+- Rate limiting where appropriate
+- Secure admin access
+- Anti-cheat validation
+- Secure reward calculation
+- Prevent unauthorized score submissions
+- Prevent duplicate reward claims
+- Prevent users modifying other users' profiles
+- Protect private data
+
+Never trust client-side scores or rewards blindly.
+
+---
+
+27. ANTI-CHEAT SYSTEM
+
+Create a basic anti-cheat architecture.
+
+Track:
+
+- Game session ID
+- Start time
+- End time
+- Score
+- Difficulty
+- Device/session metadata where appropriate
+- Suspicious submission patterns
+
+Reject impossible results.
+
+Flag suspicious scores for admin review.
+
+Do not permanently ban users automatically based on one suspicious event.
+
+---
+
+28. ERROR HANDLING
+
+Every screen must handle:
+
+- Loading
+- Success
+- Empty state
+- Network error
+- Authentication error
+- Permission error
+- Server error
+
+Show friendly error messages.
+
+Never expose raw technical exceptions to users.
+
+Provide retry actions.
+
+---
+
+29. OFFLINE SUPPORT
+
+Where practical:
+
+Allow:
+
+- Cached game metadata
+- Cached profile
+- Local preferences
+
+If an online connection is required for secure score submission, clearly tell the user.
+
+Do not award server-validated rewards offline unless the architecture securely supports reconciliation.
+
+---
+
+30. PERFORMANCE
+
+Optimize for mid-range Android devices.
+
+Requirements:
+
+- Fast startup
+- Lazy loading
+- Efficient lists
+- Image caching
+- Minimal unnecessary rebuilds
+- Avoid memory leaks
+- Dispose controllers properly
+- Optimize animations
+- Compress assets
+- Paginate large datasets
+
+Do not create unnecessarily heavy animations.
+
+---
+
+31. RESPONSIVE UI
+
+Support different Android screen sizes.
+
+Handle:
+
+- Small phones
+- Large phones
+- Different aspect ratios
+- System font scaling
+- Safe areas
+- Portrait orientation
+
+Make layouts responsive.
+
+---
+
+32. ACCESSIBILITY
+
+Include:
+
+- Good text contrast
+- Semantic labels
+- Large enough tap targets
+- Screen-reader-friendly controls
+- Avoid relying only on color
+- Respect system font scaling where possible
+
+---
+
+33. ANIMATIONS
+
+Use subtle professional animations:
+
+- Page transitions
+- Card entrance
+- Button feedback
+- XP progress
+- Level-up animation
+- Achievement unlock
+- Coin reward
+- Game countdown
+- Card flip
+
+Animations must not reduce performance.
+
+---
+
+34. SOUND
+
+Create a centralized audio manager.
+
+Support:
+
+- Background music
+- Button sound
+- Correct answer
+- Wrong answer
+- Achievement sound
+- Level-up sound
+
+Settings:
+
+Music ON/OFF
+
+Sound effects ON/OFF
+
+Vibration ON/OFF
+
+Use placeholder assets where necessary.
+
+---
+
+35. ANALYTICS
+
+Track useful events such as:
+
+- App opened
+- Registration completed
+- Login
+- Game opened
+- Game started
+- Game completed
+- Challenge completed
+- Achievement unlocked
+- Friend request sent
+- Leaderboard viewed
+
+Do not collect unnecessary personal information.
+
+Respect applicable privacy requirements.
+
+---
+
+36. PRIVACY
+
+Design the application around privacy by default.
+
+Collect only necessary information.
+
+Include:
+
+- Privacy Policy
+- Terms of Service
+- Account deletion
+- Data handling explanation
+- Notification controls
+
+Do not expose email addresses or private information publicly.
+
+---
+
+37. UI SCREENS TO BUILD
+
+Create these screens:
+
+1. Splash
+2. Onboarding
+3. Login
+4. Register
+5. Forgot Password
+6. Home
+7. Games
+8. Game Details
+9. Quiz Game
+10. Memory Game
+11. Reaction Game
+12. Math Rush
+13. Word Challenge
+14. Game Result
+15. Leaderboard
+16. Daily Challenges
+17. Achievements
+18. Friends
+19. Friend Requests
+20. User Profile
+21. Edit Profile
+22. Notifications
+23. Settings
+24. Privacy Settings
+25. Support
+26. About
+27. Admin Login
+28. Admin Dashboard
+29. User Management
+30. Game Management
+31. Quiz Management
+32. Challenge Management
+33. Achievement Management
+34. Analytics
+
+---
+
+38. EMPTY STATES
+
+Create attractive empty states.
+
+Examples:
+
+"No games found"
+
+"No friends yet"
+
+"No achievements unlocked"
+
+"No notifications"
+
+"No leaderboard data"
+
+Each should include:
+
+- Icon/illustration
+- Short message
+- Useful action button
+
+---
+
+39. LOADING STATES
+
+Use skeleton loaders instead of blank screens where appropriate.
+
+Do not show a spinner unnecessarily for very short operations.
+
+---
+
+40. DESIGN SYSTEM
+
+Create reusable components:
+
+AppButton
+
+PrimaryButton
+
+SecondaryButton
+
+GameCard
+
+ProfileCard
+
+LeaderboardItem
+
+AchievementCard
+
+ChallengeCard
+
+XPProgressBar
+
+CoinBalance
+
+LevelBadge
+
+AvatarWidget
+
+SearchBar
+
+CustomTextField
+
+LoadingSkeleton
+
+EmptyState
+
+ErrorState
+
+BottomNavigation
+
+TopAppBar
+
+Dialog
+
+BottomSheet
+
+Use reusable components throughout the application.
+
+---
+
+41. CODE QUALITY
+
+Follow professional coding standards.
+
+Requirements:
+
+- Clean Architecture
+- SOLID principles
+- Separation of concerns
+- Reusable widgets
+- Strong typing
+- Meaningful variable names
+- No unnecessary duplicate code
+- No huge files
+- No hard-coded business rules
+- No API keys committed to source code
+- Environment configuration
+- Comments only where useful
+
+---
+
+42. PROJECT STRUCTURE
+
+Use a scalable structure similar to:
+
+lib/
+
+core/
+
+config/
+
+constants/
+
+theme/
+
+routing/
+
+network/
+
+storage/
+
+services/
+
+utils/
+
+features/
+
+auth/
+
+home/
+
+games/
+
+leaderboard/
+
+profile/
+
+friends/
+
+achievements/
+
+challenges/
+
+notifications/
+
+settings/
+
+admin/
+
+shared/
+
+widgets/
+
+models/
+
+repositories/
+
+providers_or_state_management/
+
+Do not put the entire application inside main.dart.
+
+---
+
+43. STATE MANAGEMENT
+
+Use one consistent state-management approach.
+
+Prefer a scalable solution such as:
+
+Riverpod
+
+or another professional equivalent supported by the environment.
+
+Do not mix multiple state-management frameworks unnecessarily.
+
+---
+
+44. NAVIGATION
+
+Implement centralized navigation.
+
+Support:
+
+- Authentication routes
+- Main application routes
+- Game routes
+- Profile routes
+- Admin routes
+
+Handle authentication state correctly.
+
+Prevent unauthorized access to protected screens.
+
+---
+
+45. DATA VALIDATION
+
+Validate:
+
+- Username
+- Email
+- Password
+- Game submissions
+- Scores
+- Rewards
+- Profile updates
+- Friend requests
+- Admin actions
+
+Show user-friendly validation messages.
+
+---
+
+46. TESTING
+
+Create tests for:
+
+Unit Tests
+
+- XP calculation
+- Level calculation
+- Score calculation
+- Reward calculation
+- Challenge completion
+- Achievement unlocking
+
+Widget Tests
+
+- Login
+- Home
+- Game card
+- Leaderboard
+- Profile
+
+Integration Tests
+
+- Register
+- Login
+- Start game
+- Finish game
+- Receive reward
+- View leaderboard
+
+---
+
+47. SAMPLE GAME SCORING
+
+Create a configurable scoring system.
+
+For example:
+
+Base score
+
++ correct answer bonus
+
++ speed bonus
+
++ streak bonus
+
++ difficulty multiplier
+
+Do not hard-code these values inside UI code.
+
+Keep scoring logic in game services.
+
+---
+
+48. REWARD SECURITY
+
+Important:
+
+Never let the client decide:
+
+"Give me 1000 coins."
+
+The server should determine whether a completed game legitimately qualifies for a reward.
+
+Use transaction-safe updates for:
+
+- Coins
+- XP
+- Achievements
+- Leaderboards
+
+Prevent duplicate submissions.
+
+---
+
+49. APP STORE / PLAY STORE READINESS
+
+Prepare the application for production release.
+
+Include:
+
+- Proper app icon
+- Splash screen
+- Application name
+- Versioning
+- Release configuration
+- Privacy policy integration
+- Terms of service
+- Crash reporting
+- Analytics
+- Secure production configuration
+
+Do not use debug settings in production.
+
+---
+
+50. FUTURE SCALABILITY
+
+Architect the app so future features can be added:
+
+- Multiplayer
+- Real-time matches
+- Team system
+- Guilds
+- Seasons
+- Battle Pass using non-cash progression
+- More mini-games
+- Custom tournaments
+- Game events
+- Cosmetic avatar items
+- Cloud saves
+- Cross-platform support
+
+Do not implement complex future features unless requested.
+
+Create extension points instead.
+
+---
+
+51. IMPORTANT LEGAL / SAFETY REQUIREMENTS
+
+The application must be a skill-based entertainment platform.
+
+Do NOT implement:
+
+- Real-money betting
+- Gambling
+- Casino games
+- Cash wagering
+- Cash prizes
+- Money withdrawal
+- Illegal gambling mechanics
+
+Virtual coins must have no monetary value.
+
+If any future feature involves payments or prizes, design it separately and require appropriate legal/compliance review before implementation.
+
+---
+
+52. FINAL QUALITY REQUIREMENT
+
+The final result must NOT look like an AI-generated prototype.
+
+It should look like a real commercial gaming application.
+
+Prioritize:
+
+1. Excellent UX
+2. Clean architecture
+3. Smooth performance
+4. Secure backend
+5. Scalable game architecture
+6. Professional visual design
+7. Reliable data handling
+8. Good error handling
+9. Maintainable code
+10. Production readiness
+
+---
+
+53. DEVELOPMENT METHOD
+
+Do NOT generate the entire application as one giant response or one giant file.
+
+Build it in phases.
+
+PHASE 1
+
+Create:
+
+- Project structure
+- Theme
+- Routing
+- Authentication
+- Splash
+- Onboarding
+- Login
+- Register
+
+Then verify compilation.
+
+PHASE 2
+
+Create:
+
+- Home
+- Games library
+- Game cards
+- Profile
+- Navigation
+
+Then verify compilation.
+
+PHASE 3
+
+Implement:
+
+- Quick Quiz
+- Game engine architecture
+- Score system
+- Result screen
+
+Then test.
+
+PHASE 4
+
+Implement:
+
+- Memory Match
+- Reaction Test
+- Math Rush
+- Word Challenge
+
+Then test each game separately.
+
+PHASE 5
+
+Implement:
+
+- XP
+- Levels
+- Coins
+- Daily challenges
+- Streaks
+- Achievements
+
+Then test reward calculations.
+
+PHASE 6
+
+Implement:
+
+- Leaderboards
+- Friends
+- Notifications
+- Search
+
+Then test backend integration.
+
+PHASE 7
+
+Implement:
+
+- Admin dashboard
+- User management
+- Game management
+- Quiz management
+- Analytics
+
+Then test admin authorization.
+
+PHASE 8
+
+Perform:
+
+- Security audit
+- Performance optimization
+- UI polish
+- Accessibility testing
+- Unit tests
+- Widget tests
+- Integration tests
+- Production build preparation
+
+---
+
+54. AI AGENT RULES
+
+You are responsible for making reasonable technical decisions.
+
+When requirements are ambiguous:
+
+- Choose the simplest professional solution.
+- Do not ask unnecessary questions.
+- Do not remove requested features.
+- Do not replace working architecture with shortcuts.
+- Keep the code modular.
+- Explain important architectural decisions briefly.
+
+When generating code:
+
+- Generate complete working files.
+- Clearly identify file paths.
+- Do not provide pseudo-code where working code is expected.
+- Do not leave unexplained TODO placeholders.
+- Ensure imports are correct.
+- Ensure dependencies are declared.
+- Ensure generated code compiles.
+
+After each development phase:
+
+1. Check for errors.
+2. Fix compile errors.
+3. Check navigation.
+4. Check state management.
+5. Check database interactions.
+6. Check security rules.
+7. Check responsive UI.
+8. Continue only after the current phase is stable.
+
+---
+
+55. FIRST TASK
+
+Start by creating the Phase 1 foundation of GAMEZONE ARENA.
+
+First produce:
+
+1. Complete project architecture
+2. Required dependencies
+3. Theme/design system
+4. Routing system
+5. Splash screen
+6. Onboarding
+7. Login screen
+8. Registration screen
+9. Authentication architecture
+10. Basic Firebase/backend configuration
+11. Error handling
+12. Loading states
+13. Responsive UI
+
+Then verify the architecture and code before proceeding to Phase 2.
+
+Do not skip directly to random features.
+
+The goal is to build GAMEZONE ARENA as a professional, scalable, secure Android gaming application from the foundation upward.
