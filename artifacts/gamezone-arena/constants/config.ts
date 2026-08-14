@@ -53,6 +53,16 @@ export const games = [
     color: '#7CF2B2',
     icon: 'divide-circle' as const,
   },
+  {
+    id: 'word-challenge',
+    title: 'Word Challenge',
+    category: 'Puzzle',
+    description: 'Build words, spot patterns, and keep your streak alive.',
+    difficulty: 'Medium',
+    reward: '+110 XP',
+    color: '#FF7AB6',
+    icon: 'type' as const,
+  },
 ] as const;
 
 export type Game = (typeof games)[number];

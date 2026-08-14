@@ -8,11 +8,17 @@ import { Screen, SectionHeader } from '@/components/Screen';
 import { GameCard } from '@/components/GameCard';
 import colors from '@/constants/colors';
 import { games } from '@/constants/config';
+import { useAppSession } from '@/context/AppSessionContext';
 
 export default function HomeScreen() {
   const { user } = useUser();
   const router = useRouter();
+  const { progress } = useAppSession();
   const displayName = user?.firstName || 'Alex';
+  const level = progress.xp >= 700 ? 5 : progress.xp >= 450 ? 4 : progress.xp >= 250 ? 3 : progress.xp >= 100 ? 2 : 1;
+  const levelStart = [0, 100, 250, 450, 700][level - 1];
+  const nextLevel = [100, 250, 450, 700, 1000][level - 1];
+  const levelPercent = Math.min(100, Math.round(((progress.xp - levelStart) / (nextLevel - levelStart)) * 100));
 
   return (
     <Screen>
@@ -27,15 +33,15 @@ export default function HomeScreen() {
         </View>
       </View>
       <LinearGradient colors={['#152C4D', '#16162F']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
-        <View><Text style={styles.heroEyebrow}>PLAYER LEVEL 07</Text><Text style={styles.heroTitle}>Ready for your next run?</Text><Text style={styles.heroMeta}>2,480 / 3,000 XP to level 08</Text></View>
-        <View style={styles.levelOrb}><Text style={styles.levelNumber}>07</Text><Text style={styles.levelLabel}>LVL</Text></View>
-        <View style={styles.progressTrack}><View style={styles.progressFill} /></View>
+        <View><Text style={styles.heroEyebrow}>PLAYER LEVEL {String(level).padStart(2, '0')}</Text><Text style={styles.heroTitle}>Ready for your next run?</Text><Text style={styles.heroMeta}>{progress.xp.toLocaleString()} / {nextLevel.toLocaleString()} XP to level {String(Math.min(level + 1, 6)).padStart(2, '0')}</Text></View>
+        <View style={styles.levelOrb}><Text style={styles.levelNumber}>{String(level).padStart(2, '0')}</Text><Text style={styles.levelLabel}>LVL</Text></View>
+        <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${levelPercent}%` }]} /></View>
       </LinearGradient>
-      <View style={styles.stats}><Stat icon="zap" value="2,480" label="TOTAL XP" color={colors.light.primary} /><Stat icon="circle" value="860" label="COINS" color={colors.light.accent} /><Stat icon="award" value="18" label="WINS" color="#7CF2B2" /></View>
+      <View style={styles.stats}><Stat icon="zap" value={progress.xp.toLocaleString()} label="TOTAL XP" color={colors.light.primary} /><Stat icon="circle" value={progress.coins.toLocaleString()} label="COINS" color={colors.light.accent} /><Stat icon="award" value={progress.wins.toString()} label="WINS" color="#7CF2B2" /></View>
       <SectionHeader title="Continue playing" action="See all" />
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontal}><GameCard game={games[0]} onPress={() => router.push('/games' as Href)} /><GameCard game={games[2]} onPress={() => router.push('/games' as Href)} /></ScrollView>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontal}><GameCard game={games[0]} onPress={() => router.push('/games/quick-quiz' as Href)} /><GameCard game={games[2]} available={false} /></ScrollView>
       <SectionHeader title="Daily challenge" action="18h left" />
-      <View style={styles.challenge}><View style={styles.challengeIcon}><Feather name="target" size={20} color={colors.light.primary} /></View><View style={styles.challengeCopy}><Text style={styles.challengeTitle}>Stack your streak</Text><Text style={styles.challengeText}>Play 3 games today</Text><View style={styles.challengeProgress}><View style={styles.challengeFill} /></View><Text style={styles.challengeMeta}>2 of 3 completed</Text></View><View style={styles.reward}><Feather name="circle" size={13} color={colors.light.accent} /><Text style={styles.rewardText}>+80</Text></View></View>
+      <View style={styles.challenge}><View style={styles.challengeIcon}><Feather name="target" size={20} color={colors.light.primary} /></View><View style={styles.challengeCopy}><Text style={styles.challengeTitle}>Stack your streak</Text><Text style={styles.challengeText}>Play 3 games today</Text><View style={styles.challengeProgress}><View style={[styles.challengeFill, { width: `${Math.round((progress.dailyChallengeGames / 3) * 100)}%` }]} /></View><Text style={styles.challengeMeta}>{progress.dailyChallengeGames} of 3 completed</Text></View><View style={styles.reward}><Feather name="circle" size={13} color={colors.light.accent} /><Text style={styles.rewardText}>+80</Text></View></View>
       <SectionHeader title="Arena pulse" action="View leaderboard" />
       <View style={styles.rankCard}><View style={styles.rankPosition}><Text style={styles.rankNumber}>#04</Text><Text style={styles.rankCaption}>THIS WEEK</Text></View><View style={styles.rankLine}><View style={[styles.miniAvatar, { backgroundColor: '#FFB45E' }]} /><View style={[styles.miniAvatar, { backgroundColor: colors.light.accent, marginLeft: -8 }]} /><View style={[styles.miniAvatar, { backgroundColor: colors.light.primary, marginLeft: -8 }]} /><Text style={styles.rankCopy}>You’re 120 XP from the podium.</Text></View><Feather name="chevron-right" size={20} color={colors.light.mutedForeground} /></View>
     </Screen>
