@@ -63,6 +63,16 @@ export const games = [
     color: '#FF7AB6',
     icon: 'type' as const,
   },
+  {
+    id: 'ludo',
+    title: 'Ludo',
+    category: 'Puzzle',
+    description: 'Roll the dice, move your tokens, and race to victory.',
+    difficulty: 'Medium',
+    reward: '+200 XP',
+    color: '#FF5A5F',
+    icon: 'target' as const,
+  },
 ] as const;
 
 export type Game = (typeof games)[number];

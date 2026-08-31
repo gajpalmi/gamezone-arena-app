@@ -1,0 +1,37 @@
+URGENT: Fix the signup/profile creation flow in my GAMEZONE ARENA app.
+
+Problem:
+On the Create Your Profile screen, the user enters:
+- Display Name
+- Email Address
+- Password (8+ characters)
+
+When the user presses "Build my profile", the app does NOT create the account or continue to the next screen. It goes back to the (auth) route/screen.
+
+Please inspect the entire authentication flow and FIX the actual code. Do not just explain the problem.
+
+Requirements:
+1. Keep the existing GAMEZONE ARENA UI/design.
+2. Keep the existing navigation structure.
+3. The "Build my profile" button must actually submit the signup form.
+4. Validate display name, email and password properly.
+5. Show a visible error message if signup fails instead of silently going back.
+6. Do not call router.back() or navigate away when signup fails.
+7. Check the Clerk Expo authentication integration because the project uses:
+   import { useAuth } from '@clerk/expo';
+8. Verify that ClerkProvider is correctly configured and that the required Clerk publishable key/environment variable exists.
+9. Check the signup code for correct Clerk Expo APIs such as signUp.create().
+10. After successful signup, handle email verification if required by Clerk.
+11. After successful verification/creation, save the user's display name/profile information and navigate to the correct home/game screen.
+12. Check all related files, not only index.tsx.
+13. Fix TypeScript errors and Expo Router navigation errors.
+14. Do NOT replace the existing app with a new project.
+15. Do NOT remove Quick Quiz, Ludo, or any existing games.
+16. Do NOT add any paid service.
+17. Run the project after making the changes and verify that the signup flow works.
+18. If Clerk is not correctly configured, tell me exactly which environment variable is missing and where it must be added.
+19. Add loading state to the "Build my profile" button so it cannot be pressed repeatedly.
+20. Display the actual authentication error on the screen for debugging.
+
+Most important:
+Do not stop after analyzing. Inspect the files, make the code changes, run the app, and fix all errors you find.

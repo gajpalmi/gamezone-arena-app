@@ -1,0 +1,149 @@
+FIX THE AUTHENTICATION BUG IN THE EXISTING GAMEZONE ARENA PROJECT.
+
+Do NOT rebuild the app.
+Do NOT delete the existing UI.
+Do NOT change the visual design unnecessarily.
+
+PROBLEM:
+The registration/auth screen accepts the Display Name, Email Address and Password, but after pressing the submit button the loading spinner continues indefinitely. The account/profile is not created and the user cannot continue into the app.
+
+The authentication flow must be fully functional.
+
+FIRST, inspect the existing code and identify why the submit action never completes.
+
+Check all of these:
+
+1. Registration submit handler
+2. Login submit handler
+3. Authentication service
+4. Backend/API configuration
+5. Database connection
+6. User/profile creation
+7. Session persistence
+8. Error handling
+9. Loading state
+10. Navigation after successful authentication
+
+IMPORTANT:
+If the project currently uses a mock/local authentication system, make it work correctly with that existing architecture.
+
+If a backend authentication provider is already configured, use the existing provider rather than creating a second authentication system.
+
+Do NOT expose secrets or API keys in client-side code.
+
+REGISTRATION FLOW:
+
+When the user submits:
+
+Display Name
+Email
+Password
+
+the app should:
+
+1. Validate all fields.
+2. Show loading state.
+3. Create the authentication account.
+4. Create the corresponding player profile.
+5. Save the profile using the authenticated user's unique ID.
+6. Initialize:
+   - username/display name
+   - XP = 0
+   - level = 1
+   - virtual coins = 0
+   - games played = 0
+   - wins = 0
+   - current streak = 0
+7. Persist the authenticated session.
+8. Navigate to the Home screen.
+9. Stop the loading spinner.
+
+LOGIN FLOW:
+
+When an existing user enters valid credentials:
+
+1. Validate fields.
+2. Show loading.
+3. Authenticate the user.
+4. Restore the player's profile.
+5. Persist the session.
+6. Navigate to Home.
+7. Stop loading.
+
+ERROR HANDLING:
+
+The loading spinner MUST NEVER remain active indefinitely.
+
+Every failed request must:
+
+- stop loading
+- show a clear user-friendly error
+- allow the user to try again
+
+Handle at least:
+
+- Invalid email
+- Weak password
+- Email already registered
+- Incorrect password
+- User not found
+- Network error
+- Backend unavailable
+- Profile creation failure
+- Unknown error
+
+IMPORTANT:
+
+Use a timeout/failure path for requests that do not respond.
+
+Never leave the submit button permanently disabled.
+
+PROFILE:
+
+Create the player profile only after authentication succeeds.
+
+Use the authenticated user's unique ID as the profile ID.
+
+Do not use email as the primary database document ID.
+
+SECURITY:
+
+- Never store plain-text passwords in the database.
+- Never log passwords.
+- Never expose authentication secrets.
+- Never trust client-provided user IDs.
+- Validate authenticated user ownership before modifying profiles.
+
+AFTER FIXING:
+
+Test the complete flow:
+
+NEW USER:
+Register → Account Created → Profile Created → Home
+
+EXISTING USER:
+Login → Session Restored → Profile Loaded → Home
+
+INVALID LOGIN:
+Login → Error Message → Loading Stops
+
+REGISTRATION ERROR:
+Register → Error Message → Loading Stops
+
+Also test:
+
+- Logout
+- Login again
+- App reload
+- Session persistence
+
+Before finishing, run the project and fix all compile/runtime errors.
+
+Do not just explain the problem. ACTUALLY FIX THE CODE.
+
+After fixing, tell me:
+
+1. What caused the infinite loading.
+2. Which files were changed.
+3. How authentication now works.
+4. Whether registration and login were tested successfully.

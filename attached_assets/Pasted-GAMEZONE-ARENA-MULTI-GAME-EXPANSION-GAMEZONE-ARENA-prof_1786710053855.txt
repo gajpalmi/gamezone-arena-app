@@ -1,0 +1,494 @@
+GAMEZONE ARENA — MULTI-GAME EXPANSION
+
+मेरे मौजूदा GAMEZONE ARENA ऐप को एक professional multi-game platform में बदलो। मौजूदा UI, login/signup, player profile, XP, virtual coins, levels, leaderboard और navigation को हटाना नहीं है। उसी design system को आगे बढ़ाना है।
+
+1. सबसे जरूरी बदलाव
+
+ऐप में एक नया Games Arena बनाओ जहाँ अलग-अलग games cards के रूप में दिखाई दें।
+
+पहले ये games पूरी तरह playable बनाओ:
+
+1. Ludo
+2. Quick Quiz
+3. Tic Tac Toe
+4. Snake
+5. Memory Match
+6. Number Challenge
+7. Reaction Test
+8. Rock Paper Scissors
+9. 2048
+10. Word Challenge
+
+हर game वास्तव में playable होना चाहिए। केवल दिखावटी screen या static buttons नहीं चाहिए।
+
+---
+
+2. LUDO GAME — FULL PLAYABLE
+
+सबसे पहले Ludo को पूरी तरह functional बनाओ।
+
+Game modes
+
+- 2 Players
+- 3 Players
+- 4 Players
+- Player vs Computer
+- Local multiplayer
+
+Ludo features
+
+- पूरा Ludo board
+- 4 रंगों के tokens
+- Dice roll
+- सही dice animation
+- Token movement animation
+- Safe positions
+- Opponent token काटना
+- Token को घर वापस भेजना
+- सभी tokens को home तक पहुँचाना
+- Turn system
+- Current player's indicator
+- Dice result
+- Valid token highlighting
+- Extra turn rules
+- Winner detection
+- Game restart
+- Exit game
+- Pause/resume
+- Game result screen
+
+Important
+
+Ludo में कोई fake result नहीं होना चाहिए।
+
+Dice का result random और fair होना चाहिए।
+
+अगर Computer mode है तो computer को legal moves के अनुसार token चुनना चाहिए।
+
+---
+
+3. QUIZ GAME
+
+मौजूदा Quick Quiz को सुधारो।
+
+Timer
+
+Practice Mode:
+
+- No timer
+
+Normal Mode:
+
+- 30 seconds per question
+
+Challenge Mode:
+
+- 10 seconds per question
+
+Timer खत्म होने पर:
+
+- answer को automatically गलत mark मत करो
+- उसे "Skipped" दिखाओ
+- अगले सवाल पर जाओ
+
+Quiz features
+
+- Science
+- Nature
+- History
+- Geography
+- Sports
+- Technology
+- General Knowledge
+- India
+- Entertainment
+
+कम से कम 100 अच्छी-quality questions का local question bank बनाओ।
+
+हर question में:
+
+- question
+- 4 options
+- correct answer
+- explanation
+- category
+- difficulty
+
+---
+
+4. TIC TAC TOE
+
+Features:
+
+- Player vs Player
+- Player vs Computer
+- Easy AI
+- Medium AI
+- Hard AI
+- X/O selection
+- Winner detection
+- Draw detection
+- Restart
+- Score tracking
+
+---
+
+5. SNAKE
+
+Features:
+
+- Classic snake
+- Food
+- Increasing speed
+- Score
+- High score
+- Game over
+- Restart
+- Pause
+- Touch controls
+
+मोबाइल screen पर swipe controls अच्छे से काम करें।
+
+---
+
+6. MEMORY MATCH
+
+Cards को उल्टा दिखाओ।
+
+Player cards पर tap करके pair बनाए।
+
+Features:
+
+- Multiple levels
+- Moves counter
+- Timer
+- Score
+- Win screen
+- Restart
+
+---
+
+7. NUMBER CHALLENGE
+
+Number-based fast game बनाओ।
+
+Features:
+
+- Random questions
+- Multiple difficulty levels
+- Timer
+- Score
+- XP rewards
+- Coins rewards
+
+---
+
+8. REACTION TEST
+
+Player को सही समय पर button tap करना होगा।
+
+Features:
+
+- Random delay
+- False start detection
+- Reaction time in milliseconds
+- Best score
+- Average reaction time
+- XP reward
+
+---
+
+9. ROCK PAPER SCISSORS
+
+Features:
+
+- Player vs Computer
+- Best of 3
+- Best of 5
+- Score
+- Win/loss tracking
+- Animations
+- Result screen
+
+---
+
+10. 2048
+
+Complete playable 2048 game बनाओ।
+
+Features:
+
+- Swipe controls
+- Tile merging
+- Score
+- Best score
+- Game over
+- New game
+- Continue after winning
+
+---
+
+11. WORD CHALLENGE
+
+Features:
+
+- Word scramble
+- Guess the word
+- Multiple categories
+- Difficulty
+- Timer
+- Hints
+- Score
+- XP
+- Coins
+
+---
+
+12. COMMON GAME SYSTEM
+
+हर game में common system होना चाहिए।
+
+Game पूरा होने पर:
+
+- Score calculate हो
+- XP मिले
+- Virtual coins मिलें
+- Win/loss update हो
+- Player statistics update हों
+- Game history save हो
+- Leaderboard update हो
+
+Coins केवल virtual हों। किसी भी वास्तविक पैसे या gambling system को implement न करें।
+
+---
+
+13. PLAYER PROFILE
+
+Profile में दिखाओ:
+
+- Display name
+- Avatar
+- Level
+- XP
+- Coins
+- Total games
+- Total wins
+- Total losses
+- Best scores
+- Favorite game
+- Game-wise statistics
+- Badges
+- Achievements
+
+---
+
+14. ACHIEVEMENTS
+
+Achievements जोड़ो, जैसे:
+
+- First Win
+- 10 Games Played
+- 10 Wins
+- Quiz Master
+- Ludo Champion
+- Snake Master
+- Perfect Quiz
+- Fast Reaction
+- 1000 XP
+- 5000 XP
+
+Achievement मिलने पर animation दिखाओ।
+
+---
+
+15. LEADERBOARD
+
+Leaderboard में:
+
+- Global ranking
+- Weekly ranking
+- Monthly ranking
+- Friends ranking
+
+दिखाओ:
+
+- Rank
+- Player
+- Level
+- XP
+- Wins
+- Score
+
+---
+
+16. HOME SCREEN
+
+मौजूदा Home screen को बेहतर बनाओ।
+
+Sections:
+
+- Player greeting
+- Current level
+- XP progress
+- Coins
+- Wins
+- Continue Playing
+- Popular Games
+- New Games
+- Daily Challenge
+- Leaderboard preview
+
+Games के बड़े attractive cards बनाओ।
+
+---
+
+17. NAVIGATION
+
+Bottom navigation:
+
+Home | Games | Leaderboard | Profile
+
+Games screen में सभी games की सूची हो।
+
+Game card में:
+
+- Game icon
+- Game name
+- Category
+- Difficulty
+- Best score
+- Play button
+
+---
+
+18. DESIGN
+
+मौजूदा GAMEZONE ARENA की dark futuristic gaming design को बनाए रखो।
+
+Use:
+
+- Dark background
+- Cyan/blue highlights
+- Purple/pink accents
+- Rounded cards
+- Smooth animations
+- Glow effects
+- Professional typography
+- Responsive mobile layout
+
+UI mobile-first होना चाहिए।
+
+Android phone पर बिना horizontal scrolling के सही दिखाई देना चाहिए।
+
+---
+
+19. DATA STORAGE
+
+मौजूदा authentication और profile system को न तोड़ें।
+
+जहाँ backend उपलब्ध है वहाँ player data persist करें।
+
+Save करें:
+
+- User profile
+- XP
+- Coins
+- Level
+- Game history
+- Scores
+- Wins/losses
+- Achievements
+- Leaderboard data
+
+अगर backend अभी configured नहीं है तो पहले local persistence के साथ architecture बनाओ और बाद में backend से जोड़ने योग्य रखो।
+
+---
+
+20. IMPORTANT MOBILE REQUIREMENTS
+
+ऐप mobile browser में अच्छी तरह चले।
+
+Touch buttons बड़े और आसानी से दबाने योग्य हों।
+
+Ludo और बाकी games में:
+
+- accidental double tap रोकें
+- buttons responsive रखें
+- animations smooth रखें
+- screen resize होने पर layout न टूटे
+- browser back से game state खराब न हो
+
+---
+
+21. TIMER PROBLEM FIX
+
+मौजूदा Quiz में जो समस्या है उसे ठीक करो।
+
+User को screenshot लेने या दूसरे app में जाने की जरूरत नहीं होनी चाहिए।
+
+हर game में उचित:
+
+- Pause
+- Resume
+- Restart
+- Exit
+
+controls दें।
+
+Quiz में Practice Mode में timer पूरी तरह बंद रखें।
+
+---
+
+22. GAME RESULT SCREEN
+
+हर game के बाद एक professional result screen हो।
+
+उदाहरण:
+
+GAME COMPLETE
+
+Score: 850
+
+XP Earned: +50
+
+Coins Earned: +20
+
+Wins: +1
+
+Best Score: 850
+
+Buttons:
+
+Play Again
+Back to Games
+Go Home
+
+---
+
+23. QUALITY REQUIREMENT
+
+सिर्फ UI mockup मत बनाना।
+
+हर game का actual game logic implement करो।
+
+कोई button dead नहीं होना चाहिए।
+
+कोई broken route नहीं होना चाहिए।
+
+कोई placeholder "Coming Soon" नहीं चाहिए जहाँ game पहले से सूची में दिखाया गया है।
+
+सभी games को mobile browser में test करो।
+
+Existing authentication, profile, XP, coins और navigation को break मत करो।
+
+पहले मौजूदा project structure को inspect करो, फिर existing architecture के अनुसार implementation करो।
+
+अंत में सभी routes और games को test करके console/runtime errors ठीक करो।
+
+FINAL GOAL
+
+GAMEZONE ARENA को ऐसा polished multi-game platform बनाओ जहाँ user एक ही account से:
+
+Sign Up → Profile → Home → Games → Ludo/Quiz/Other Games → Earn XP/Coins → Level Up → Achievements → Leaderboard
+
+का पूरा अनुभव ले सके।
