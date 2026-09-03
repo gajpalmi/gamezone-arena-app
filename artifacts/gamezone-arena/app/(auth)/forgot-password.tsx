@@ -64,7 +64,10 @@ export default function ForgotPasswordScreen() {
       });
 
       if (createError) {
-        console.log('Create reset error:', createError);
+        setLocalError(
+          createError.message ||
+            'No account was found for this email address.',
+        );
         return;
       }
 
@@ -72,7 +75,10 @@ export default function ForgotPasswordScreen() {
         await signIn.resetPasswordEmailCode.sendCode();
 
       if (sendCodeError) {
-        console.log('Send OTP error:', sendCodeError);
+        setLocalError(
+          sendCodeError.message ||
+            'Unable to send the verification code.',
+        );
         return;
       }
 
@@ -105,7 +111,10 @@ export default function ForgotPasswordScreen() {
         });
 
       if (error) {
-        console.log('OTP verification error:', error);
+        setLocalError(
+          error.message ||
+            'Invalid or expired OTP. Please try again.',
+        );
         return;
       }
     } catch (error) {
@@ -144,7 +153,10 @@ export default function ForgotPasswordScreen() {
         });
 
       if (error) {
-        console.log('New password error:', error);
+        setLocalError(
+          error.message ||
+            'Could not update your password.',
+        );
         return;
       }
 
@@ -166,7 +178,10 @@ export default function ForgotPasswordScreen() {
         });
 
         if (finalizeError) {
-          console.log('Finalize error:', finalizeError);
+          setLocalError(
+            finalizeError.message ||
+              'Password changed, but sign-in could not be completed.',
+          );
           return;
         }
       }

@@ -59,69 +59,77 @@ export default function SignInScreen() {
 
     setLocalError('');
 
-    const { error } =
-      await signIn.password({
-        emailAddress:
-          email.trim(),
-        password,
-      });
-
-    if (error) {
-      setLocalError(
-        error.message ||
-          'Incorrect email or password.',
-      );
-      return;
-    }
-
-    if (
-      signIn.status ===
-      'complete'
-    ) {
-      const { error: finalizeError } =
-        await signIn.finalize({
-          navigate: ({
-            decorateUrl,
-          }) => {
-            router.replace(
-              decorateUrl('/') as Href,
-            );
-          },
+    try {
+      const { error } =
+        await signIn.password({
+          emailAddress:
+            email.trim().toLowerCase(),
+          password,
         });
 
-      if (finalizeError) {
+      if (error) {
         setLocalError(
-          finalizeError.message ||
-            'Unable to complete sign in.',
+          error.message ||
+            'Incorrect email or password.',
         );
+        return;
       }
 
-      return;
-    }
+      if (
+        signIn.status ===
+        'complete'
+      ) {
+        const { error: finalizeError } =
+          await signIn.finalize({
+            navigate: ({
+              decorateUrl,
+            }) => {
+              router.replace(
+                decorateUrl('/') as Href,
+              );
+            },
+          });
 
-    if (
-      signIn.status ===
-      'needs_second_factor'
-    ) {
+        if (finalizeError) {
+          setLocalError(
+            finalizeError.message ||
+              'Unable to complete sign in.',
+          );
+        }
+
+        return;
+      }
+
+      if (
+        signIn.status ===
+        'needs_second_factor'
+      ) {
+        setLocalError(
+          'Additional verification is required for this account.',
+        );
+        return;
+      }
+
+      if (
+        signIn.status ===
+        'needs_client_trust'
+      ) {
+        setLocalError(
+          'Additional device verification is required.',
+        );
+        return;
+      }
+
       setLocalError(
-        'Additional verification is required for this account.',
+        'Sign-in could not be completed. Please try again.',
       );
-      return;
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Unable to sign in. Please try again.';
+      setLocalError(message);
     }
-
-    if (
-      signIn.status ===
-      'needs_client_trust'
-    ) {
-      setLocalError(
-        'Additional device verification is required.',
-      );
-      return;
-    }
-
-    setLocalError(
-      'Sign-in could not be completed. Please try again.',
-    );
   }
 
   return (

@@ -322,7 +322,13 @@ export default function Ludo() {
   const roomChannel = useRef<any>(null);
   const pendingTimers = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
   const rollGeneration = useRef(0);
-  const nativeAudioOptions = { downloadFirst: true };
+  // Bundle local effects directly instead of copying them through Expo's
+  // temporary asset cache. This avoids Android/Expo Go cache misses and keeps
+  // the audio session alive between short game effects.
+  const nativeAudioOptions = {
+    downloadFirst: false,
+    keepAudioSessionActive: true,
+  };
   const diceAudio = useAudioPlayer(
     Platform.OS === "web" ? null : SOUND_FILES.dice,
     nativeAudioOptions
@@ -395,6 +401,10 @@ export default function Ludo() {
 
     void setAudioModeAsync({
       playsInSilentMode: true,
+      interruptionMode: "mixWithOthers",
+      allowsRecording: false,
+      shouldPlayInBackground: false,
+      shouldRouteThroughEarpiece: false,
     }).catch((error) => {
       console.warn("Ludo audio mode could not be configured.", error);
     });
@@ -480,23 +490,26 @@ export default function Ludo() {
     } as const;
 
     const audio = map[type];
-    try {
-      audio.volume = 1.0;
-      void (async () => {
-        try {
-          await audio.seekTo(0);
-        } catch (error) {
-          console.warn(`Ludo ${type} sound could not rewind; playing from its current position.`, error);
-        }
-        try {
-          audio.play();
-        } catch (error) {
-          console.warn(`Ludo ${type} sound could not be played.`, error);
-        }
-      })();
-    } catch (error) {
-      console.warn(`Ludo ${type} sound could not be prepared.`, error);
-    }
+    void (async () => {
+      // A first tap can arrive while Metro is still handing the bundled WAV to
+      // the native player. Wait briefly rather than silently dropping it.
+      for (let attempt = 0; attempt < 20 && !audio.isLoaded; attempt += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      }
+
+      if (!audio.isLoaded) {
+        console.warn(`Ludo ${type} sound did not finish loading.`);
+        return;
+      }
+
+      try {
+        audio.volume = 1;
+        await audio.seekTo(0);
+        audio.play();
+      } catch (error) {
+        console.warn(`Ludo ${type} sound could not be played.`, error);
+      }
+    })();
   }
 
   // Vibration is intentionally independent from the sound switch.
