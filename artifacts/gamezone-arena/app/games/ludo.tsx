@@ -330,7 +330,19 @@ export default function Ludo() {
   const nativeDiceSound = useAudioPlayer(
     Platform.OS === "web" ? null : SOUND_FILES.dice,
   );
+  const nativeDiceSoundAlt = useAudioPlayer(
+    Platform.OS === "web" ? null : SOUND_FILES.dice,
+  );
   const nativeMoveSound = useAudioPlayer(
+    Platform.OS === "web" ? null : SOUND_FILES.move,
+  );
+  const nativeMoveSoundAlt = useAudioPlayer(
+    Platform.OS === "web" ? null : SOUND_FILES.move,
+  );
+  const nativeMoveSoundThird = useAudioPlayer(
+    Platform.OS === "web" ? null : SOUND_FILES.move,
+  );
+  const nativeMoveSoundFourth = useAudioPlayer(
     Platform.OS === "web" ? null : SOUND_FILES.move,
   );
   const nativeCaptureSound = useAudioPlayer(
@@ -354,17 +366,33 @@ export default function Ludo() {
   const nativeStartSound = useAudioPlayer(
     Platform.OS === "web" ? null : SOUND_FILES.start,
   );
-  const nativeSoundPlayers = {
-    dice: nativeDiceSound,
-    move: nativeMoveSound,
-    capture: nativeCaptureSound,
-    home: nativeHomeSound,
-    safe: nativeSafeSound,
-    click: nativeClickSound,
-    turn: nativeTurnSound,
-    win: nativeWinSound,
-    start: nativeStartSound,
+  const nativeSoundPools = {
+    dice: [nativeDiceSound, nativeDiceSoundAlt],
+    move: [
+      nativeMoveSound,
+      nativeMoveSoundAlt,
+      nativeMoveSoundThird,
+      nativeMoveSoundFourth,
+    ],
+    capture: [nativeCaptureSound],
+    home: [nativeHomeSound],
+    safe: [nativeSafeSound],
+    click: [nativeClickSound],
+    turn: [nativeTurnSound],
+    win: [nativeWinSound],
+    start: [nativeStartSound],
   } as const;
+  const nativeSoundPoolIndexes = useRef<Record<SoundFileKey, number>>({
+    dice: 0,
+    move: 0,
+    capture: 0,
+    home: 0,
+    safe: 0,
+    click: 0,
+    turn: 0,
+    win: 0,
+    start: 0,
+  });
 
   const activePlayers = PLAYER_SETS[playerCount];
   const currentDice = diceValues[player];
@@ -425,11 +453,13 @@ export default function Ludo() {
         shouldPlayInBackground: false,
         shouldRouteThroughEarpiece: false,
       });
-      Object.values(nativeSoundPlayers).forEach((player) => {
-        player.volume = 1;
-        player.muted = false;
-        player.loop = false;
-      });
+      Object.values(nativeSoundPools).forEach((pool) =>
+        pool.forEach((player) => {
+          player.volume = 1;
+          player.muted = false;
+          player.loop = false;
+        }),
+      );
       if (__DEV__) {
         console.log(
           `[LUDO AUDIO] ${entries.length} native effects prepared with expo-audio`,
@@ -474,9 +504,9 @@ export default function Ludo() {
       sound.pause();
       sound.currentTime = 0;
     });
-    Object.values(nativeSoundPlayers).forEach((sound) => {
-      sound.pause();
-    });
+    Object.values(nativeSoundPools).forEach((pool) =>
+      pool.forEach((sound) => sound.pause()),
+    );
   }
 
   function toggleSound() {
@@ -509,11 +539,11 @@ export default function Ludo() {
       capture: "capture",
       stack: "safe",
       home: "home",
-      homePath: "home",
+      homePath: "safe",
       safe: "safe",
       click: "click",
-      turn: "turn",
-      warning: "turn",
+      turn: "click",
+      warning: "capture",
       win: "win",
       victory: "win",
       start: "start",
@@ -549,14 +579,16 @@ export default function Ludo() {
 
     void (async () => {
       await soundsReadyRef.current;
-      const sound = nativeSoundPlayers[soundKey];
+      const pool = nativeSoundPools[soundKey];
+      const poolIndex = nativeSoundPoolIndexes.current[soundKey];
+      const sound = pool[poolIndex % pool.length];
+      nativeSoundPoolIndexes.current[soundKey] = (poolIndex + 1) % pool.length;
       if (!sound.isLoaded) {
         console.warn(`Ludo ${type} native sound is not loaded yet.`);
         return;
       }
 
       try {
-        sound.pause();
         await sound.seekTo(0);
         sound.volume = 1;
         sound.muted = false;
@@ -865,7 +897,6 @@ export default function Ludo() {
 
     const generation = ++rollGeneration.current;
     setDiceRolling(true);
-    if (!gameStarted) triggerFeedback("start");
     setGameStarted(true);
     triggerFeedback("dice");
 
@@ -883,7 +914,7 @@ export default function Ludo() {
     const newSixCount = value === 6 ? sixCount + 1 : 0;
     const nextDice = cloneDice(diceValues);
     nextDice[p] = value;
-    triggerFeedback(value === 6 ? "turn" : "diceResult");
+    vibrate(value === 6 ? "turn" : "diceResult");
 
     // Three consecutive sixes: turn is cancelled.
     if (value === 6 && newSixCount >= 3) {
@@ -980,8 +1011,7 @@ export default function Ludo() {
       );
       setTokens(working);
       triggerFeedback("tokenOpen");
-      await wait(100);
-      triggerFeedback("move");
+      await wait(180);
     } else {
       for (let step = 1; step <= value; step++) {
         const progress = selected.progress + step;
@@ -1022,6 +1052,7 @@ export default function Ludo() {
     setMovingToken(null);
     void recordOnlineMove(selected, moved, value, working);
 
+    if (captured) triggerFeedback("capture");
     const ownStackSize = working.filter(
       (token) =>
         token.player === player &&
