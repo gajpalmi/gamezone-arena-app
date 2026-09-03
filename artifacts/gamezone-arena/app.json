@@ -16,7 +16,9 @@
     "ios": {
       "supportsTablet": false
     },
-    "android": {},
+    "android": {
+      "permissions": ["android.permission.VIBRATE"]
+    },
     "web": {
       "favicon": "./assets/images/icon.png"
     },

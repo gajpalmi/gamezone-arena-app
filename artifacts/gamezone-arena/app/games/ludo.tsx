@@ -16,6 +16,7 @@ import { useUser } from "@clerk/expo";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { setAudioModeAsync, useAudioPlayer } from "expo-audio";
+import * as Haptics from "expo-haptics";
 import * as Crypto from "expo-crypto";
 import { AdBannerPlaceholder } from "@/components/AdBannerPlaceholder";
 import { AdService } from "@/services/AdService";
@@ -480,16 +481,19 @@ export default function Ludo() {
 
     const audio = map[type];
     try {
-      audio.volume =
-        type === "move" ? 0.85 : type === "click" ? 0.7 : 1.0;
-      void audio
-        .seekTo(0)
-        .then(() => {
+      audio.volume = 1.0;
+      void (async () => {
+        try {
+          await audio.seekTo(0);
+        } catch (error) {
+          console.warn(`Ludo ${type} sound could not rewind; playing from its current position.`, error);
+        }
+        try {
           audio.play();
-        })
-        .catch((error) => {
+        } catch (error) {
           console.warn(`Ludo ${type} sound could not be played.`, error);
-        });
+        }
+      })();
     } catch (error) {
       console.warn(`Ludo ${type} sound could not be prepared.`, error);
     }
@@ -532,6 +536,18 @@ export default function Ludo() {
       else if (type === "safe" || type === "stack") {
         Vibration.vibrate([0, 70, 30, 70]);
       } else vibrateTurn();
+
+      const haptic =
+        type === "win" || type === "victory" || type === "home"
+          ? Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+          : type === "capture" || type === "warning"
+          ? Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning)
+          : type === "move" || type === "tokenOpen"
+          ? Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
+          : Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      void haptic.catch((error) => {
+        if (__DEV__) console.warn(`[LUDO HAPTICS] ${type} feedback failed`, error);
+      });
     } catch (error) {
       if (__DEV__) console.warn(`[LUDO VIBRATION] ${type} feedback failed`, error);
     }
