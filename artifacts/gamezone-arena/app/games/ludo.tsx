@@ -326,6 +326,7 @@ export default function Ludo() {
   const rollGeneration = useRef(0);
   const soundsRef = useRef<Partial<Record<SoundFileKey, Audio.Sound>>>({});
   const webSoundsRef = useRef<Partial<Record<SoundFileKey, HTMLAudioElement>>>({});
+  const activeWebSoundsRef = useRef<Set<HTMLAudioElement>>(new Set());
   const soundsReadyRef = useRef<Promise<void> | null>(null);
 
   const activePlayers = PLAYER_SETS[playerCount];
@@ -429,6 +430,11 @@ export default function Ludo() {
       soundsRef.current = {};
       const webSounds = Object.values(webSoundsRef.current);
       webSoundsRef.current = {};
+      activeWebSoundsRef.current.forEach((sound) => {
+        sound.pause();
+        sound.removeAttribute("src");
+      });
+      activeWebSoundsRef.current.clear();
       webSounds.forEach((sound) => {
         sound.pause();
         sound.removeAttribute("src");
@@ -443,6 +449,11 @@ export default function Ludo() {
   }, []);
 
   function stopAllSounds() {
+    activeWebSoundsRef.current.forEach((sound) => {
+      sound.pause();
+      sound.currentTime = 0;
+    });
+    activeWebSoundsRef.current.clear();
     Object.values(webSoundsRef.current).forEach((sound) => {
       sound.pause();
       sound.currentTime = 0;
@@ -496,13 +507,16 @@ export default function Ludo() {
     const soundKey = map[type];
 
     if (Platform.OS === "web") {
-      const sound =
+      const template =
         webSoundsRef.current[soundKey] ??
         new window.Audio(Asset.fromModule(SOUND_FILES[soundKey]).uri);
-      webSoundsRef.current[soundKey] = sound;
-      sound.pause();
-      sound.currentTime = 0;
+      webSoundsRef.current[soundKey] = template;
+      const sound = template.cloneNode(true) as HTMLAudioElement;
       sound.volume = 1;
+      activeWebSoundsRef.current.add(sound);
+      const releaseSound = () => activeWebSoundsRef.current.delete(sound);
+      sound.addEventListener("ended", releaseSound, { once: true });
+      sound.addEventListener("error", releaseSound, { once: true });
       const playback = sound.play();
       if (playback) {
         void playback
@@ -512,6 +526,7 @@ export default function Ludo() {
             }
           })
           .catch((error) => {
+            releaseSound();
             console.warn(`Ludo ${type} web sound was blocked.`, error);
           });
       }
@@ -967,7 +982,7 @@ export default function Ludo() {
         );
         setTokens(working);
         triggerFeedback("move");
-        await wait(120);
+        await wait(180);
       }
     }
 
@@ -1006,8 +1021,11 @@ export default function Ludo() {
     if (ownStackSize > 0 && moved.progress >= 0 && moved.progress < 57) {
       triggerFeedback("stack");
     }
-    if (finished) triggerFeedback("win");
-    if (moved.progress === 57) triggerFeedback("home");
+    if (finished) {
+      triggerFeedback("win");
+    } else if (moved.progress === 57) {
+      triggerFeedback("home");
+    }
 
     if (newOrder.length >= Math.max(1, activePlayers.length - 1)) {
       const cleared = cloneDice(diceValues);
@@ -1042,7 +1060,9 @@ export default function Ludo() {
         finishOrder: newOrder,
         sixCount,
       });
-      triggerFeedback("turn");
+      if (!captured && moved.progress !== 57) {
+        triggerFeedback("turn");
+      }
       return;
     }
 
