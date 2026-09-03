@@ -10,12 +10,12 @@ import {
   StyleSheet,
   useWindowDimensions,
   Platform,
+  Vibration,
 } from "react-native";
 import { useUser } from "@clerk/expo";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { setAudioModeAsync, useAudioPlayer } from "expo-audio";
-import * as Haptics from "expo-haptics";
 import * as Crypto from "expo-crypto";
 import { AdBannerPlaceholder } from "@/components/AdBannerPlaceholder";
 import { AdService } from "@/services/AdService";
@@ -40,6 +40,22 @@ const supabase = supabaseMaybe;
 type Player = "red" | "green" | "yellow" | "blue";
 type GameMode = "offline" | "online";
 type PlayerCount = 2 | 3 | 4;
+type GameSound =
+  | "dice"
+  | "diceResult"
+  | "move"
+  | "tokenOpen"
+  | "capture"
+  | "stack"
+  | "home"
+  | "homePath"
+  | "safe"
+  | "click"
+  | "turn"
+  | "warning"
+  | "win"
+  | "victory"
+  | "start";
 
 type Token = {
   player: Player;
@@ -300,6 +316,7 @@ export default function Ludo() {
   const [premiumMessage, setPremiumMessage] = useState("");
   const [rewardedAdReady, setRewardedAdReady] = useState(false);
   const [rewardedMessage, setRewardedMessage] = useState("");
+  const [soundTestMessage, setSoundTestMessage] = useState("");
 
   const roomChannel = useRef<any>(null);
   const pendingTimers = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
@@ -424,6 +441,8 @@ export default function Ludo() {
   function toggleSound() {
     const next = !soundOn;
     if (!next) stopAllSounds();
+    playGameSound("click", true);
+    triggerVibration("click");
     setSoundOn(next);
     void AsyncStorage.setItem(SOUND_SETTING_KEY, String(next)).catch((error) => {
       if (__DEV__) console.warn("Ludo sound setting could not be saved.", error);
@@ -438,24 +457,31 @@ export default function Ludo() {
     });
   }
 
-  function playSound(type: keyof typeof SOUND_FILES) {
-    if (!soundOn) return;
+  function playGameSound(type: GameSound, force = false) {
+    if (!soundOn && !force) return;
 
     const map = {
       dice: diceAudio,
+      diceResult: diceAudio,
       move: moveAudio,
+      tokenOpen: moveAudio,
       capture: captureAudio,
+      stack: safeAudio,
       home: homeAudio,
+      homePath: homeAudio,
       safe: safeAudio,
       click: clickAudio,
       turn: turnAudio,
+      warning: turnAudio,
       win: winAudio,
+      victory: winAudio,
       start: startAudio,
     } as const;
 
     const audio = map[type];
     try {
-      audio.volume = type === "move" ? 0.85 : 1.0;
+      audio.volume =
+        type === "move" ? 0.85 : type === "click" ? 0.7 : 1.0;
       void audio
         .seekTo(0)
         .then(() => {
@@ -471,25 +497,29 @@ export default function Ludo() {
 
   // Vibration is intentionally independent from the sound switch.
   // This makes haptics work even when the user has muted game sounds.
-  function vibrate(type: keyof typeof SOUND_FILES) {
+  function triggerVibration(type: GameSound) {
     if (!vibrationOn) return;
-    const feedback =
-      type === "capture"
-        ? Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning)
-        : type === "home" || type === "win"
-        ? Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-        : type === "safe" || type === "turn"
-        ? Haptics.selectionAsync()
-        : Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
-    void feedback.catch((error) => {
-      if (__DEV__) console.warn(`[LUDO HAPTICS] ${type} feedback failed`, error);
-    });
+    try {
+      if (type === "safe" || type === "stack") Vibration.vibrate([0, 45, 70, 45]);
+      else if (type === "capture" || type === "warning") Vibration.vibrate(180);
+      else if (type === "home") Vibration.vibrate([0, 70, 60, 100]);
+      else if (type === "win" || type === "victory") {
+        Vibration.vibrate([0, 120, 70, 120, 70, 220]);
+      } else Vibration.vibrate(35);
+    } catch (error) {
+      if (__DEV__) console.warn(`[LUDO VIBRATION] ${type} feedback failed`, error);
+    }
   }
 
-  function sound(type: keyof typeof SOUND_FILES) {
-    playSound(type);
-    vibrate(type);
+  function triggerGameFeedback(type: GameSound) {
+    playGameSound(type);
+    triggerVibration(type);
+  }
+
+  function runSoundTest() {
+    triggerGameFeedback("dice");
+    setSoundTestMessage("Sound test");
+    schedule(() => setSoundTestMessage(""), 1200);
   }
 
   function schedule(callback: () => void, delay: number) {
@@ -563,7 +593,9 @@ export default function Ludo() {
   function captureAtPosition(movingPlayer: Player, movedToken: Token, list: Token[]) {
     const index = getGlobalIndex(movedToken);
     if (index === null || SAFE_INDEXES.includes(index)) {
-      if (index !== null && STAR_INDEXES.includes(index)) sound("safe");
+      if (index !== null && STAR_INDEXES.includes(index)) {
+        triggerGameFeedback("safe");
+      }
       return { list, captured: false };
     }
 
@@ -589,7 +621,7 @@ export default function Ludo() {
         : token
     );
 
-    sound("capture");
+    triggerGameFeedback("capture");
     return { list: newList, captured: true };
   }
 
@@ -688,7 +720,7 @@ export default function Ludo() {
     setRolled(false);
     setSixCount(0);
     setDiceValues(newDice);
-    sound("turn");
+    triggerGameFeedback("turn");
     void publishOnline({
       tokens: list,
       player: next,
@@ -705,7 +737,7 @@ export default function Ludo() {
     newDice[player] = null;
     setRolled(false);
     setDiceValues(newDice);
-    sound("turn");
+    triggerGameFeedback("turn");
     void publishOnline({
       diceValues: newDice,
       rolled: false,
@@ -726,9 +758,9 @@ export default function Ludo() {
 
     const generation = ++rollGeneration.current;
     setDiceRolling(true);
-    if (!gameStarted) sound("start");
+    if (!gameStarted) triggerGameFeedback("start");
     setGameStarted(true);
-    sound("dice");
+    triggerGameFeedback("dice");
 
     const value = Math.floor(Math.random() * 6) + 1;
     for (let frame = 0; frame < 7; frame++) {
@@ -744,13 +776,14 @@ export default function Ludo() {
     const newSixCount = value === 6 ? sixCount + 1 : 0;
     const nextDice = cloneDice(diceValues);
     nextDice[p] = value;
+    triggerGameFeedback(value === 6 ? "turn" : "diceResult");
 
     // Three consecutive sixes: turn is cancelled.
     if (value === 6 && newSixCount >= 3) {
       setDiceValues(nextDice);
       setRolled(false);
       setSixCount(0);
-      sound("turn");
+      triggerGameFeedback("warning");
       void publishOnline({
         diceValues: nextDice,
         rolled: false,
@@ -806,7 +839,7 @@ export default function Ludo() {
           rolled: false,
           sixCount: 0,
         });
-        sound("turn");
+        triggerGameFeedback("turn");
       }, 650);
     }
   }
@@ -832,9 +865,9 @@ export default function Ludo() {
           : token
       );
       setTokens(working);
-      sound("click");
+      triggerGameFeedback("tokenOpen");
       await wait(100);
-      sound("move");
+      triggerGameFeedback("move");
     } else {
       for (let step = 1; step <= value; step++) {
         const progress = selected.progress + step;
@@ -845,7 +878,7 @@ export default function Ludo() {
             : token
         );
         setTokens(working);
-        sound("move");
+        triggerGameFeedback("move");
         await wait(120);
       }
     }
@@ -875,8 +908,18 @@ export default function Ludo() {
     setMovingToken(null);
     void recordOnlineMove(selected, moved, value, working);
 
-    if (finished) sound("win");
-    if (moved.progress === 57) sound("home");
+    const ownStackSize = working.filter(
+      (token) =>
+        token.player === player &&
+        token.id !== moved.id &&
+        token.progress === moved.progress
+    ).length;
+    if (moved.progress === 51) triggerGameFeedback("homePath");
+    if (ownStackSize > 0 && moved.progress >= 0 && moved.progress < 57) {
+      triggerGameFeedback("stack");
+    }
+    if (finished) triggerGameFeedback("win");
+    if (moved.progress === 57) triggerGameFeedback("home");
 
     if (newOrder.length >= Math.max(1, activePlayers.length - 1)) {
       const cleared = cloneDice(diceValues);
@@ -892,6 +935,7 @@ export default function Ludo() {
         finishOrder: newOrder,
         sixCount: 0,
       });
+      schedule(() => triggerGameFeedback("victory"), 350);
       return;
     }
 
@@ -910,7 +954,7 @@ export default function Ludo() {
         finishOrder: newOrder,
         sixCount,
       });
-      sound("turn");
+      triggerGameFeedback("turn");
       return;
     }
 
@@ -932,7 +976,7 @@ export default function Ludo() {
       finishOrder: newOrder,
       sixCount: 0,
     });
-    sound("turn");
+    triggerGameFeedback("turn");
   }
 
   function resetGame() {
@@ -940,7 +984,7 @@ export default function Ludo() {
     setDiceRolling(false);
     pendingTimers.current.forEach(clearTimeout);
     pendingTimers.current.clear();
-    sound("click");
+    triggerGameFeedback("click");
     const fresh = createTokens();
     setTokens(fresh);
     setPlayer(activePlayers[0]);
@@ -969,7 +1013,7 @@ export default function Ludo() {
   function changePlayerCount(count: PlayerCount) {
     rollGeneration.current += 1;
     setDiceRolling(false);
-    sound("click");
+    triggerGameFeedback("click");
     setPlayerCount(count);
     setTokens(createTokens());
     setPlayer(PLAYER_SETS[count][0]);
@@ -1111,7 +1155,7 @@ export default function Ludo() {
       return;
     }
 
-    sound("click");
+    triggerGameFeedback("click");
     const code = makeRoomCode();
     const firstPlayer = PLAYER_SETS[playerCount][0];
 
@@ -1198,7 +1242,7 @@ export default function Ludo() {
       return;
     }
 
-    sound("click");
+    triggerGameFeedback("click");
 
     const { data: room, error } = await supabase
       .from("ludo_rooms")
@@ -1598,7 +1642,6 @@ export default function Ludo() {
           <View style={styles.headerButtons}>
             <Pressable
               onPress={() => {
-                vibrate("click");
                 toggleSound();
               }}
               style={styles.soundButton}
@@ -1621,7 +1664,7 @@ export default function Ludo() {
             </Pressable>
             <Pressable
               onPress={() => {
-                sound("click");
+                triggerGameFeedback("click");
                 setSettingsOpen(true);
               }}
               style={styles.iconButton}
@@ -1633,6 +1676,17 @@ export default function Ludo() {
             </Pressable>
           </View>
         </View>
+
+        {__DEV__ && (
+          <View style={styles.soundTestBox}>
+            <Pressable onPress={runSoundTest} style={styles.soundTestButton}>
+              <Text style={styles.soundTestButtonText}>SOUND TEST</Text>
+            </Pressable>
+            {soundTestMessage ? (
+              <Text style={styles.soundTestMessage}>{soundTestMessage}</Text>
+            ) : null}
+          </View>
+        )}
 
         <View style={styles.playerCountBox}>
           <Text style={styles.sectionTitle}>PLAYERS</Text>
@@ -1671,7 +1725,7 @@ export default function Ludo() {
           <View style={styles.modeRow}>
             <Pressable
               onPress={() => {
-                sound("click");
+                triggerGameFeedback("click");
                 void disconnectRoom();
                 setGameMode("offline");
                 setTokens(createTokens());
@@ -1692,7 +1746,7 @@ export default function Ludo() {
             </Pressable>
             <Pressable
               onPress={() => {
-                sound("click");
+                triggerGameFeedback("click");
                 if (!supabase) {
                   setOnlineMessage(
                     "Online Ludo is unavailable until Supabase is configured."
@@ -1857,7 +1911,7 @@ export default function Ludo() {
               </View>
               <Pressable
                 onPress={async () => {
-                  sound("click");
+                  triggerGameFeedback("click");
                   const result =
                     await SubscriptionService.purchaseMonthlySubscription();
                   setPremiumMessage(result.message);
@@ -1949,7 +2003,7 @@ export default function Ludo() {
                     {(["dice", "move", "capture", "home", "win"] as const).map((type) => (
                       <Pressable
                         key={type}
-                        onPress={() => sound(type)}
+                        onPress={() => triggerGameFeedback(type)}
                         style={styles.soundTestButton}
                       >
                         <Text style={styles.soundTestText}>{type.toUpperCase()}</Text>
@@ -2504,6 +2558,19 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 7,
     backgroundColor: "#1B2C4D",
+  },
+  soundTestButtonText: {
+    color: "#43DDF8",
+    fontSize: 9,
+    fontWeight: "900",
+    textAlign: "center",
+  },
+  soundTestMessage: {
+    color: "#AFC0DE",
+    fontSize: 8,
+    fontWeight: "800",
+    marginTop: 6,
+    textAlign: "center",
   },
   soundTestText: { color: "#43DDF8", fontSize: 7, fontWeight: "900" },
   cancelButton: {

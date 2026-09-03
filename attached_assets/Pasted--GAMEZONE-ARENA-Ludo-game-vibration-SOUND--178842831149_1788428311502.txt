@@ -1,0 +1,311 @@
+मेरे GAMEZONE ARENA के Ludo game में अभी vibration काम कर रही है लेकिन SOUND बिल्कुल नहीं आ रहा है।
+
+IMPORTANT:
+Replit Agent की paid service की जरूरत नहीं है।
+Existing project और existing database को सुरक्षित रखना है।
+कोई table DROP, DELETE, ALTER, recreate या destructive SQL नहीं करना है।
+Supabase tables को बिल्कुल नष्ट या recreate नहीं करना है।
+Online multiplayer को अभी मत बदलना और न ही उसके लिए कोई paid service मांगनी है।
+पहले सिर्फ Ludo का AUDIO + VIBRATION + GAME EVENT SYSTEM पूरी तरह ठीक करो।
+
+PROJECT:
+Expo + React Native + Expo Router
+Ludo file:
+app/games/ludo.tsx
+
+GOAL:
+Android/Expo Go पर local sound files से reliable sound चलना चाहिए।
+Remote .ogg URLs का इस्तेमाल मत करो।
+Sound files local require() से load करो।
+
+SOUND EVENTS:
+1. Dashboard खोलते समय soft UI sound
+2. Dashboard में button press sound
+3. Ludo game खोलते समय start sound
+4. Player selection sound
+5. 2 Player / 3 Player / 4 Player selection sound
+6. Dice button दबाते समय dice-roll sound
+7. Dice result आने पर dice-result sound
+8. Token/goti बाहर निकलने पर token-open sound
+9. Token/goti चलने के हर step पर movement sound
+10. Safe/star cell पर पहुंचने पर special safe sound
+11. Opponent token काटने पर capture sound
+12. Multiple token stack बनने पर stack sound
+13. Extra turn मिलने पर turn sound
+14. Six आने पर special dice/extra-turn sound
+15. Three consecutive sixes होने पर warning sound
+16. Home lane में जाने पर home-path sound
+17. Final home पहुंचने पर home sound
+18. Player के चारों tokens finish होने पर win sound
+19. Winner screen खुलने पर victory sound
+20. Restart/New Game button पर click sound
+21. Sound ON/OFF button पर click sound
+
+LOCAL SOUND FILES:
+इन files को project में use करो:
+
+app/games/assets/sounds/dice-roll.wav
+app/games/assets/sounds/move.wav
+app/games/assets/sounds/capture.wav
+app/games/assets/sounds/home.wav
+app/games/assets/sounds/win.wav
+
+अगर कोई sound file missing है तो code crash नहीं होना चाहिए।
+Missing file पर fallback sound इस्तेमाल करो।
+
+IMPORTANT AUDIO IMPLEMENTATION:
+expo-audio इस्तेमाल करो।
+
+Use:
+useAudioPlayer()
+setAudioModeAsync()
+
+Audio mode में कम से कम:
+playsInSilentMode: true
+
+Remote URL audio हटाओ।
+HTML audio, browser Audio API, Web Audio API या external audio URL मत लगाओ।
+
+हर sound के लिए अलग audio player बनाओ:
+
+diceAudio
+moveAudio
+captureAudio
+homeAudio
+winAudio
+safeAudio
+clickAudio
+turnAudio
+
+Local files को require() से load करो।
+
+Audio play करने से पहले:
+seekTo(0)
+
+फिर:
+play()
+
+Volume audible रखो:
+normal sound = 1.0
+movement = 0.85
+click = 0.70
+
+Sound function ऐसा बनाओ कि अगर एक sound player fail हो जाए तो पूरा game crash न हो।
+
+IMPORTANT:
+Sound function को React render के दौरान मत चलाना।
+Sound केवल user/game events के अंदर चलाना।
+
+ANDROID AUDIO:
+setAudioModeAsync({
+  playsInSilentMode: true
+})
+
+को initialize करो।
+
+Component mount होते ही audio mode initialize करो।
+
+Component unmount होने पर सभी audio players को safely pause/cleanup करो।
+
+VIBRATION:
+Vibration अलग system होना चाहिए।
+Sound OFF होने पर भी vibration काम करनी चाहिए।
+
+Use React Native Vibration.
+
+DICE:
+dice press:
+sound + short vibration
+
+MOVE:
+हर token movement:
+movement sound + light vibration
+
+SAFE STAR:
+safe/star cell:
+safe sound + double vibration
+
+CAPTURE:
+capture sound + strong vibration
+
+HOME:
+home sound + celebration vibration
+
+WIN:
+win sound + long victory vibration
+
+DO NOT put:
+if (!soundOn) return;
+around vibration.
+Only audio should depend on soundOn.
+Vibration must work independently.
+
+CREATE ONE SAFE FUNCTION:
+
+playGameSound(type)
+
+और:
+
+triggerGameFeedback(type)
+
+playGameSound = audio only
+triggerGameFeedback = audio + vibration
+
+But vibration must remain independent of soundOn.
+
+IMPORTANT BUG FIX:
+Current project is showing:
+
+isPlayerFinished is not defined
+
+at moveToken around line 622.
+
+Do NOT simply suppress the error.
+
+Create a proper function:
+
+function isPlayerFinished(playerColor: PlayerColor, positions: number[]) {
+  return positions.every(position => position === FINISH_POSITION);
+}
+
+Use the actual existing Ludo finish position/rules from the current code.
+Do not invent an incompatible finish value.
+
+If the project already has a player-finished helper, reuse it instead of creating a duplicate.
+
+IMPORTANT:
+Do not use the string:
+"This player is not finished"
+
+as an error/warning when a token reaches valid final home.
+
+Fix the finish logic properly.
+
+LUDO PLAYER POSITIONS:
+
+2 PLAYER:
+Green vs Blue
+They must be opposite each other.
+
+3 PLAYER:
+Green + Yellow + Red
+Three separate corners.
+
+4 PLAYER:
+Green + Yellow + Blue + Red
+All four corners.
+
+No two active players may accidentally use the same home/corner.
+
+TOKEN RULES:
+4 tokens per player.
+
+2 players = 8 tokens.
+3 players = 12 tokens.
+4 players = 16 tokens.
+
+Only selected player count should be active.
+
+No Computer/Bot.
+
+All players in Offline mode are human Pass & Play.
+
+DICE:
+1–6 random result.
+
+DICE UI must visibly show real Ludo dice pips.
+
+RULES:
+6 gives extra turn.
+Capture gives extra turn.
+Final home gives extra turn.
+Three consecutive sixes cancel the sequence/turn according to the existing Ludo rule.
+Opponent stack of 2 or more cannot be cut.
+Multiple own tokens may stack.
+Safe/star cells cannot be captured.
+
+VERY IMPORTANT:
+Do not rewrite the whole Ludo game engine unnecessarily.
+Preserve the existing board design and existing working features.
+Fix only the broken player mapping, finish logic, sound and vibration system unless a change is required for correctness.
+
+AUDIO DEBUG:
+Add a small development-only audio test button outside the board:
+
+"SOUND TEST"
+
+When pressed it must:
+1. play dice sound
+2. trigger vibration
+3. show temporary "Sound test" feedback
+
+Do not leave debug text permanently visible in the final game.
+
+Also add a sound test when opening Ludo once, but only after a real user interaction if Android blocks autoplay.
+
+IMPORTANT ANDROID LIMIT:
+Do not claim that Bluetooth guarantees audio.
+Respect Android's current media audio route.
+Do not change Bluetooth settings.
+Do not request unnecessary permissions.
+
+ERROR HANDLING:
+No uncaught errors.
+No:
+isPlayerFinished is not defined
+No undefined audio player
+No undefined sound function
+No undefined vibration function
+No missing import
+No invalid require path.
+
+After editing run:
+
+npx tsc --noEmit
+
+Then run:
+
+npx expo start --clear
+
+Do not use Replit Agent.
+Do not request paid upgrade.
+Do not install paid services.
+
+FINAL CHECK:
+Test manually:
+
+A. Open dashboard
+B. Tap Ludo
+C. Tap 2 Player
+D. Tap dice
+E. Verify dice sound
+F. Move token
+G. Verify movement sound
+H. Land on star
+I. Verify safe sound
+J. Capture opponent
+K. Verify capture sound
+L. Reach home
+M. Verify home sound
+N. Win
+O. Verify victory sound
+P. Toggle sound OFF
+Q. Verify vibration still works
+R. Toggle sound ON
+S. Verify sound works again
+
+Then test:
+2 players = Green vs Blue
+3 players = Green + Yellow + Red
+4 players = Green + Yellow + Blue + Red
+
+Do not proceed to Online/AdMob/subscription until Offline Ludo passes all these tests.
+
+Return only:
+1. What files were changed
+2. Exact code changes made
+3. Any missing sound asset
+4. TypeScript check result
+5. Expo start result
+
+Do not ask me to buy anything.
