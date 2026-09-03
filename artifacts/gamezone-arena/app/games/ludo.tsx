@@ -626,6 +626,56 @@ export default function Ludo() {
     }
   }
 
+  async function recordOnlineMove(
+    before: Token,
+    after: Token,
+    diceValue: number,
+    finalTokens: Token[]
+  ) {
+    if (gameMode !== "online" || !roomId || !supabase || !user?.id) return;
+
+    const me = onlinePlayers.find(
+      (onlinePlayer) =>
+        onlinePlayer.user_id === user.id &&
+        onlinePlayer.player_color === before.player
+    );
+    if (!me) {
+      setOnlineMessage("Your online player record could not be verified.");
+      return;
+    }
+
+    const tokenPositions = finalTokens
+      .filter((token) => token.player === before.player)
+      .sort((left, right) => left.id - right.id)
+      .map((token) => token.progress);
+
+    const [{ error: playerError }, { error: moveError }] = await Promise.all([
+      supabase
+        .from("ludo_players")
+        .update({ token_positions: tokenPositions, is_connected: true })
+        .eq("id", me.id)
+        .eq("room_id", roomId),
+      supabase.from("ludo_moves").insert({
+        room_id: roomId,
+        player_id: me.id,
+        dice_value: diceValue,
+        token_number: before.id,
+        from_position: before.progress,
+        to_position: after.progress,
+        captured_player_id: null,
+        captured_token_number: null,
+      }),
+    ]);
+
+    if (playerError || moveError) {
+      console.warn(
+        "Ludo move audit could not be synchronized.",
+        playerError ?? moveError
+      );
+      setOnlineMessage("Your move played, but its online audit did not synchronize.");
+    }
+  }
+
   function localTurnChange(from: Player, list: Token[], order: Player[]) {
     const next = nextPlayer(from, list, order);
     const newDice = cloneDice(diceValues);
@@ -820,6 +870,7 @@ export default function Ludo() {
     setTokens(working);
     setFinishOrder(newOrder);
     setMovingToken(null);
+    void recordOnlineMove(selected, moved, value, working);
 
     if (finished) sound("win");
     if (moved.progress === 57) sound("home");
@@ -933,6 +984,17 @@ export default function Ludo() {
     pendingTimers.current.forEach(clearTimeout);
     pendingTimers.current.clear();
 
+    if (supabase && roomId && user?.id) {
+      const { error } = await supabase
+        .from("ludo_players")
+        .update({ is_connected: false })
+        .eq("room_id", roomId)
+        .eq("user_id", user.id);
+      if (error && __DEV__) {
+        console.warn("Ludo player connection status could not be updated.", error);
+      }
+    }
+
     if (roomChannel.current && supabase) {
       await supabase.removeChannel(roomChannel.current);
       roomChannel.current = null;
@@ -991,7 +1053,20 @@ export default function Ludo() {
         }
       )
       .subscribe((status: string) => {
-        setOnlineConnected(status === "SUBSCRIBED");
+        const connected = status === "SUBSCRIBED";
+        setOnlineConnected(connected);
+        if (connected) {
+          setOnlineMessage((message) =>
+            message === "Reconnecting..." ? "Connection restored." : message
+          );
+          void loadRoomPlayers(id);
+        } else if (
+          status === "CHANNEL_ERROR" ||
+          status === "TIMED_OUT" ||
+          status === "CLOSED"
+        ) {
+          setOnlineMessage("Reconnecting...");
+        }
       });
 
     roomChannel.current = channel;
@@ -1137,20 +1212,29 @@ export default function Ludo() {
     const count = Math.min(4, Math.max(2, Number(room.max_players))) as PlayerCount;
     const active = PLAYER_SETS[count];
 
-    if (list.length >= count) {
-      setOnlineMessage("This room is full.");
-      return;
-    }
-
     if (list.some((p) => p.user_id === user.id)) {
       const mine = list.find((p) => p.user_id === user.id)!;
+      const { error: reconnectError } = await supabase
+        .from("ludo_players")
+        .update({ is_connected: true })
+        .eq("id", mine.id)
+        .eq("room_id", room.id);
+      if (reconnectError) {
+        setOnlineMessage(reconnectError.message);
+        return;
+      }
       setMyOnlinePlayer(mine.player_color);
       setRoomId(room.id);
       setRoomCode(code);
       setPlayerCount(count);
       setPlayer(mine.player_color);
       await subscribeRoom(room.id);
-      setOnlineMessage("You are already in this room.");
+      setOnlineMessage("Reconnected to your existing player seat.");
+      return;
+    }
+
+    if (list.length >= count) {
+      setOnlineMessage("This room is full.");
       return;
     }
 
