@@ -19,6 +19,10 @@ export const SubscriptionService = {
     return { isPremium: false };
   },
 
+  async getSubscriptionStatus(): Promise<CustomerInfo> {
+    return this.getCustomerInfo();
+  },
+
   async isPremium(): Promise<boolean> {
     return (await this.getCustomerInfo()).isPremium;
   },
@@ -29,6 +33,10 @@ export const SubscriptionService = {
       message:
         "Purchases require the production mobile billing build. No charge was made.",
     };
+  },
+
+  async purchaseMonthlySubscription(): Promise<SubscriptionResult> {
+    return this.purchasePremium();
   },
 
   async restorePurchases(): Promise<SubscriptionResult> {

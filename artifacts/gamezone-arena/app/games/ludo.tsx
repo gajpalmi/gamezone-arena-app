@@ -9,15 +9,17 @@ import {
   Modal,
   StyleSheet,
   useWindowDimensions,
-  Vibration,
   Platform,
 } from "react-native";
 import { useUser } from "@clerk/expo";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { setAudioModeAsync, useAudioPlayer } from "expo-audio";
+import * as Haptics from "expo-haptics";
 import * as Crypto from "expo-crypto";
+import { AdBannerPlaceholder } from "@/components/AdBannerPlaceholder";
 import { AdService } from "@/services/AdService";
+import { RewardedAdService } from "@/services/RewardedAdService";
 import { SubscriptionService } from "@/services/SubscriptionService";
 import { supabase as supabaseMaybe } from "@/lib/supabase";
 
@@ -83,7 +85,7 @@ const COLORS = {
 // 3 players = three different corners.
 // 4 players = all four corners.
 const PLAYER_SETS: Record<PlayerCount, Player[]> = {
-  2: ["green", "red"],
+  2: ["green", "blue"],
   3: ["green", "yellow", "red"],
   4: ["green", "yellow", "blue", "red"],
 };
@@ -296,6 +298,8 @@ export default function Ludo() {
   const [premiumOpen, setPremiumOpen] = useState(false);
   const [premiumActive, setPremiumActive] = useState(false);
   const [premiumMessage, setPremiumMessage] = useState("");
+  const [rewardedAdReady, setRewardedAdReady] = useState(false);
+  const [rewardedMessage, setRewardedMessage] = useState("");
 
   const roomChannel = useRef<any>(null);
   const pendingTimers = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
@@ -357,13 +361,15 @@ export default function Ludo() {
       SubscriptionService.initialize(),
       SubscriptionService.isPremium(),
       AdService.showBanner("ludo"),
+      RewardedAdService.loadRewardedAd(),
     ])
-      .then(([storedSound, storedVibration, , premium]) => {
+      .then(([storedSound, storedVibration, , premium, , rewardedReady]) => {
         if (storedSound !== null) setSoundOn(storedSound === "true");
         if (storedVibration !== null) {
           setVibrationOn(storedVibration === "true");
         }
         setPremiumActive(premium);
+        setRewardedAdReady(rewardedReady);
       })
       .catch((error) => {
         if (__DEV__) console.warn("Ludo settings could not be loaded.", error);
@@ -467,21 +473,18 @@ export default function Ludo() {
   // This makes haptics work even when the user has muted game sounds.
   function vibrate(type: keyof typeof SOUND_FILES) {
     if (!vibrationOn) return;
-    try {
-      switch (type) {
-        case "dice": Vibration.vibrate([0, 55]); break;
-        case "click": Vibration.vibrate([0, 25]); break;
-        case "move": Vibration.vibrate([0, 20]); break;
-        case "safe": Vibration.vibrate([0, 55, 30, 55]); break;
-        case "capture": Vibration.vibrate([0, 90, 40, 110]); break;
-        case "home": Vibration.vibrate([0, 60, 35, 80, 35, 120]); break;
-        case "turn": Vibration.vibrate([0, 30, 30, 30]); break;
-        case "win": Vibration.vibrate([0, 90, 45, 90, 45, 180]); break;
-        case "start": Vibration.vibrate([0, 55]); break;
-      }
-    } catch (error) {
-      console.warn("Ludo vibration could not be played.", error);
-    }
+    const feedback =
+      type === "capture"
+        ? Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning)
+        : type === "home" || type === "win"
+        ? Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+        : type === "safe" || type === "turn"
+        ? Haptics.selectionAsync()
+        : Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    void feedback.catch((error) => {
+      if (__DEV__) console.warn(`[LUDO HAPTICS] ${type} feedback failed`, error);
+    });
   }
 
   function sound(type: keyof typeof SOUND_FILES) {
@@ -1775,8 +1778,35 @@ export default function Ludo() {
           </View>
         )}
 
-        <View style={styles.adPlaceholder}>
-          <Text style={styles.adPlaceholderText}>ADVERTISEMENT</Text>
+        <AdBannerPlaceholder placement="ludo" />
+        <View style={styles.rewardedMoveBox}>
+          <Pressable
+            disabled={!rewardedAdReady}
+            onPress={async () => {
+              const result = await RewardedAdService.showRewardedAd();
+              if (result.rewardEarned) {
+                RewardedAdService.onRewardEarned(() => {
+                  setRewardedMessage("Bonus move unlocked.");
+                });
+              } else {
+                setRewardedMessage(result.message);
+              }
+            }}
+            style={[
+              styles.rewardedMoveButton,
+              !rewardedAdReady && styles.rewardedMoveButtonDisabled,
+            ]}
+          >
+            <Text style={styles.rewardedMoveTitle}>WATCH AD FOR BONUS MOVE</Text>
+            <Text style={styles.rewardedMoveText}>
+              {rewardedAdReady
+                ? "READY"
+                : "Rewarded ads are available in the production build."}
+            </Text>
+          </Pressable>
+          {!!rewardedMessage && (
+            <Text style={styles.rewardedMessage}>{rewardedMessage}</Text>
+          )}
         </View>
 
         <View style={styles.externalDiceRow}>
@@ -1828,7 +1858,8 @@ export default function Ludo() {
               <Pressable
                 onPress={async () => {
                   sound("click");
-                  const result = await SubscriptionService.purchasePremium();
+                  const result =
+                    await SubscriptionService.purchaseMonthlySubscription();
                   setPremiumMessage(result.message);
                 }}
                 style={styles.subscribeButton}
@@ -2021,8 +2052,32 @@ const styles = StyleSheet.create({
     borderColor: "#2E4168",
   },
   resetText: { color: "#54DCF7", fontSize: 11, fontWeight: "900" },
-  adPlaceholder: { marginTop: 10, minHeight: 50, borderRadius: 10, borderWidth: 1, borderColor: "#293A5C", backgroundColor: "#0D1427", alignItems: "center", justifyContent: "center" },
-  adPlaceholderText: { color: "#526583", fontSize: 8, fontWeight: "900", letterSpacing: 1 },
+  rewardedMoveBox: { marginTop: 8, marginBottom: 2 },
+  rewardedMoveButton: {
+    minHeight: 52,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#F5C518",
+    backgroundColor: "#161A29",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 12,
+  },
+  rewardedMoveButtonDisabled: { opacity: 0.58, borderColor: "#526583" },
+  rewardedMoveTitle: { color: "#FFFFFF", fontSize: 9, fontWeight: "900" },
+  rewardedMoveText: {
+    color: "#8998B5",
+    fontSize: 7,
+    fontWeight: "700",
+    marginTop: 3,
+    textAlign: "center",
+  },
+  rewardedMessage: {
+    color: "#8FA1C2",
+    fontSize: 8,
+    textAlign: "center",
+    marginTop: 5,
+  },
 
   playerCountBox: {
     backgroundColor: "#0D1427",

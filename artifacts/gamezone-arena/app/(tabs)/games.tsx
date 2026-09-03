@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { AdBannerPlaceholder } from "@/components/AdBannerPlaceholder";
 
 type GameItem = {
   id: string;
@@ -184,6 +185,8 @@ export default function GamesScreen() {
             </Pressable>
           ))}
         </View>
+
+        <AdBannerPlaceholder placement="games" />
 
         <View style={styles.infoBox}>
           <View style={styles.infoIcon}>

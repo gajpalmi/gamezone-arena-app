@@ -14,6 +14,7 @@ import {
 
 import { Screen, SectionHeader } from '@/components/Screen';
 import { GameCard } from '@/components/GameCard';
+import { AdBannerPlaceholder } from '@/components/AdBannerPlaceholder';
 import colors from '@/constants/colors';
 import { games } from '@/constants/config';
 import { useAppSession } from '@/context/AppSessionContext';
@@ -278,6 +279,8 @@ export default function HomeScreen() {
           onPress={openQuickQuiz}
         />
       </ScrollView>
+
+      <AdBannerPlaceholder placement="home" />
 
       {/* =================================================
           DAILY CHALLENGE
