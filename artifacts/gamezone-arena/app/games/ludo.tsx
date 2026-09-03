@@ -148,20 +148,21 @@ const FINISH_LANES: Record<Player, [number, number][]> = {
 };
 
 const SOUND_FILES = {
-  dice: require("./assets/sounds/dice-roll.ogg"),
-  move: require("./assets/sounds/pop.ogg"),
-  capture: require("./assets/sounds/capture.ogg"),
-  home: require("./assets/sounds/win.ogg"),
-  safe: require("./assets/sounds/star.ogg"),
-  click: require("./assets/sounds/pop.ogg"),
-  turn: require("./assets/sounds/dice-roll.ogg"),
-  win: require("./assets/sounds/win.ogg"),
-  start: require("./assets/sounds/star.ogg"),
+  dice: require("./assets/sounds/dice-roll.wav"),
+  move: require("./assets/sounds/move.wav"),
+  capture: require("./assets/sounds/capture.wav"),
+  home: require("./assets/sounds/home.wav"),
+  safe: require("./assets/sounds/safe.wav"),
+  click: require("./assets/sounds/click.wav"),
+  turn: require("./assets/sounds/turn.wav"),
+  win: require("./assets/sounds/win.wav"),
+  start: require("./assets/sounds/turn.wav"),
 } as const;
 type SoundFileKey = keyof typeof SOUND_FILES;
 
 const SOUND_SETTING_KEY = "@gamezone/ludo/sound-enabled/v1";
 const VIBRATION_SETTING_KEY = "@gamezone/ludo/vibration-enabled/v1";
+const NATIVE_AUDIO_OPTIONS = { keepAudioSessionActive: true } as const;
 
 const EMPTY_DICE: DiceMap = {
   red: null,
@@ -329,42 +330,55 @@ export default function Ludo() {
   const soundsReadyRef = useRef<Promise<void> | null>(null);
   const nativeDiceSound = useAudioPlayer(
     Platform.OS === "web" ? null : SOUND_FILES.dice,
+    NATIVE_AUDIO_OPTIONS,
   );
   const nativeDiceSoundAlt = useAudioPlayer(
     Platform.OS === "web" ? null : SOUND_FILES.dice,
+    NATIVE_AUDIO_OPTIONS,
   );
   const nativeMoveSound = useAudioPlayer(
     Platform.OS === "web" ? null : SOUND_FILES.move,
+    NATIVE_AUDIO_OPTIONS,
   );
   const nativeMoveSoundAlt = useAudioPlayer(
     Platform.OS === "web" ? null : SOUND_FILES.move,
+    NATIVE_AUDIO_OPTIONS,
   );
   const nativeMoveSoundThird = useAudioPlayer(
     Platform.OS === "web" ? null : SOUND_FILES.move,
+    NATIVE_AUDIO_OPTIONS,
   );
   const nativeMoveSoundFourth = useAudioPlayer(
     Platform.OS === "web" ? null : SOUND_FILES.move,
+    NATIVE_AUDIO_OPTIONS,
   );
   const nativeCaptureSound = useAudioPlayer(
     Platform.OS === "web" ? null : SOUND_FILES.capture,
+    NATIVE_AUDIO_OPTIONS,
   );
   const nativeHomeSound = useAudioPlayer(
     Platform.OS === "web" ? null : SOUND_FILES.home,
+    NATIVE_AUDIO_OPTIONS,
   );
   const nativeSafeSound = useAudioPlayer(
     Platform.OS === "web" ? null : SOUND_FILES.safe,
+    NATIVE_AUDIO_OPTIONS,
   );
   const nativeClickSound = useAudioPlayer(
     Platform.OS === "web" ? null : SOUND_FILES.click,
+    NATIVE_AUDIO_OPTIONS,
   );
   const nativeTurnSound = useAudioPlayer(
     Platform.OS === "web" ? null : SOUND_FILES.turn,
+    NATIVE_AUDIO_OPTIONS,
   );
   const nativeWinSound = useAudioPlayer(
     Platform.OS === "web" ? null : SOUND_FILES.win,
+    NATIVE_AUDIO_OPTIONS,
   );
   const nativeStartSound = useAudioPlayer(
     Platform.OS === "web" ? null : SOUND_FILES.start,
+    NATIVE_AUDIO_OPTIONS,
   );
   const nativeSoundPools = {
     dice: [nativeDiceSound, nativeDiceSoundAlt],
@@ -393,6 +407,7 @@ export default function Ludo() {
     win: 0,
     start: 0,
   });
+  const nativePlayersPlayed = useRef<Set<number>>(new Set());
 
   const activePlayers = PLAYER_SETS[playerCount];
   const currentDice = diceValues[player];
@@ -589,12 +604,19 @@ export default function Ludo() {
       }
 
       try {
-        await sound.seekTo(0);
+        const isReplay = nativePlayersPlayed.current.has(sound.id);
+        if (isReplay) {
+          sound.pause();
+          await sound.seekTo(0);
+        }
         sound.volume = 1;
         sound.muted = false;
         sound.play();
+        nativePlayersPlayed.current.add(sound.id);
         if (__DEV__) {
-          console.log(`[LUDO AUDIO] played ${type} natively at full volume`);
+          console.log(
+            `[LUDO AUDIO] ${isReplay ? "replayed" : "played"} ${type} natively`,
+          );
         }
       } catch (error) {
         console.warn(`Ludo ${type} sound could not be played.`, error);
@@ -1052,21 +1074,22 @@ export default function Ludo() {
     setMovingToken(null);
     void recordOnlineMove(selected, moved, value, working);
 
-    if (captured) triggerFeedback("capture");
     const ownStackSize = working.filter(
       (token) =>
         token.player === player &&
         token.id !== moved.id &&
         token.progress === moved.progress
     ).length;
-    if (moved.progress === 51) triggerFeedback("homePath");
-    if (ownStackSize > 0 && moved.progress >= 0 && moved.progress < 57) {
-      triggerFeedback("stack");
-    }
     if (finished) {
       triggerFeedback("win");
     } else if (moved.progress === 57) {
       triggerFeedback("home");
+    } else if (captured) {
+      triggerFeedback("capture");
+    } else if (moved.progress === 51) {
+      triggerFeedback("homePath");
+    } else if (ownStackSize > 0 && moved.progress >= 0) {
+      triggerFeedback("stack");
     }
 
     if (newOrder.length >= Math.max(1, activePlayers.length - 1)) {
