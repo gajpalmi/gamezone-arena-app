@@ -1,0 +1,912 @@
+You are the senior full-stack game developer responsible for completing and stabilizing my existing app.
+
+PROJECT:
+GAMEZONE ARENA
+
+IMPORTANT:
+Do NOT create a new project.
+Do NOT delete my existing project.
+Do NOT drop or recreate any Supabase table.
+Do NOT destroy existing data.
+Do NOT use paid services unless absolutely required and clearly mark them as optional.
+First inspect the existing project and repair it.
+
+MAIN TASK:
+Build and fully stabilize a professional Ludo game inside GAMEZONE ARENA.
+
+The Ludo game must work in BOTH:
+1. OFFLINE HUMAN PASS-AND-PLAY
+2. ONLINE REAL HUMAN MULTIPLAYER
+
+There must be NO computer/bot player.
+
+==================================================
+1. FIRST: AUDIT AND FIX THE EXISTING PROJECT
+==================================================
+
+Before changing anything:
+
+- Inspect the existing app/games/ludo.tsx.
+- Inspect all existing Ludo-related files.
+- Inspect app/games/supabase.ts.
+- Inspect package.json.
+- Inspect Expo Router configuration.
+- Inspect existing assets and sound files.
+- Inspect existing Supabase integration.
+- Preserve working code where possible.
+
+Run TypeScript checking and fix ALL errors.
+
+Specifically fix any error such as:
+
+"isPlayerFinished is not defined"
+
+Never call an undefined function.
+
+Create proper helper functions before they are used.
+
+For example, if finish detection is required, implement a real function such as:
+
+function isPlayerFinished(player: PlayerState): boolean {
+  return player.tokens.every(
+    token => token.position === HOME_FINISH_POSITION
+  );
+}
+
+But do NOT blindly copy this example if the existing game model uses different data structures. Adapt it to the actual project.
+
+After every major change run:
+
+pnpm exec tsc --noEmit
+
+and fix every TypeScript error.
+
+Also check for:
+- undefined variables
+- undefined functions
+- invalid imports
+- invalid React hooks
+- stale state bugs
+- duplicate functions
+- incorrect Supabase types
+- invalid UUID values
+- broken navigation
+- runtime crashes
+
+The final Ludo screen must open without red error screens.
+
+==================================================
+2. PROFESSIONAL LUDO BOARD
+==================================================
+
+Create a proper classic Ludo board.
+
+Requirements:
+
+- 15x15 style Ludo board
+- four colored home areas
+- central finishing/home area
+- colored paths
+- safe/star cells
+- starting cells
+- proper token bases
+- four tokens per player
+- total 16 visible tokens in a 4-player game
+- clean professional appearance
+- responsive on Android phones
+- no debug text on the board
+- no development labels such as:
+  "HOME GOTI"
+  "position="
+  "debug"
+  "player not finished"
+
+Tokens must always be visually visible.
+
+The board must not become distorted on small phone screens.
+
+==================================================
+3. PLAYER COLOR / POSITION SYSTEM
+==================================================
+
+Player seating MUST depend on player count.
+
+2 PLAYER MODE:
+Use opposite sides.
+
+Players:
+- GREEN = bottom-left side
+- BLUE = top-right side
+
+Do NOT put two players on adjacent same-side positions.
+
+3 PLAYER MODE:
+Use three different corners:
+
+- GREEN = bottom-left
+- YELLOW = top-left
+- BLUE = top-right
+
+4 PLAYER MODE:
+Use all four corners:
+
+- GREEN = bottom-left
+- YELLOW = top-left
+- BLUE = top-right
+- RED = bottom-right
+
+The player color, home area, starting square, finish lane, token base and turn indicator must all use the same color mapping.
+
+Never assign two players to the same side.
+
+==================================================
+4. OFFLINE MODE
+==================================================
+
+Offline mode must be real Human Pass & Play.
+
+No bots.
+No computer.
+No AI opponent.
+
+Show:
+
+2 PLAYERS
+3 PLAYERS
+4 PLAYERS
+
+After player count selection, create the correct player seats automatically.
+
+Example:
+
+2 players:
+Green vs Blue
+
+3 players:
+Green vs Yellow vs Blue
+
+4 players:
+Green vs Yellow vs Blue vs Red
+
+Every player manually rolls the dice and moves their own token.
+
+==================================================
+5. DICE SYSTEM
+==================================================
+
+Create a professional Ludo dice.
+
+Requirements:
+
+- random number 1 to 6
+- actual visible dice pips
+- dice must animate when rolled
+- dice must be disabled while movement animation is running
+- dice must belong to the current player
+- no impossible dice values
+- no fake/debug number
+
+Implement proper Ludo rules:
+
+- token normally leaves base only on 6
+- rolling 6 gives an extra turn
+- capturing an opponent gives an extra turn
+- reaching final home gives an extra turn
+- three consecutive sixes cancel the turn according to standard Ludo rules
+- only legal tokens can be selected
+- if no legal token exists, automatically advance to the next valid turn after a short delay
+
+Never show:
+"This player is not finished"
+
+unless it is genuinely required by a rules condition. Prefer a clean user-friendly message such as:
+
+"No valid move"
+
+or simply automatically pass the turn.
+
+==================================================
+6. TOKEN MOVEMENT
+==================================================
+
+Implement real token movement.
+
+Requirements:
+
+- token moves one cell at a time
+- movement is animated
+- token visibly follows the path
+- token cannot move beyond its legal position
+- token cannot move through an invalid finish state
+- exact token position is stored
+- token selection works
+- multiple tokens can occupy the same legal safe/stack position when rules permit
+
+When a token reaches final home:
+- play home sound
+- vibrate
+- update finish state
+- give extra turn when rule allows
+
+==================================================
+7. CAPTURE / CUTTING
+==================================================
+
+Implement real Ludo capture rules.
+
+When a token lands on an opponent's vulnerable square:
+
+- opponent token is sent back to base
+- capture animation
+- capture sound
+- strong vibration
+- capture message/feedback
+
+Safe/star cells cannot be captured.
+
+Opponent stacks of 2 or more tokens must not be captured if using the selected Ludo rule set.
+
+Friendly token stacking must work.
+
+==================================================
+8. SOUND SYSTEM — VERY IMPORTANT
+==================================================
+
+The sound system currently has problems.
+
+Do NOT depend on remote URLs for important game sounds.
+
+Use LOCAL bundled audio assets.
+
+Expected files:
+
+app/games/assets/sounds/dice-roll.wav
+app/games/assets/sounds/move.wav
+app/games/assets/sounds/capture.wav
+app/games/assets/sounds/home.wav
+app/games/assets/sounds/win.wav
+
+If these exact files already exist elsewhere in the project, locate and reuse them.
+
+If some are missing, use an existing local sound as a temporary fallback rather than breaking the game.
+
+Use the project's currently installed Expo-compatible audio library.
+
+Do not introduce a new native audio dependency that breaks Expo Go.
+
+Sound events:
+
+DICE:
+dice-roll.wav
+
+TOKEN MOVE:
+move.wav
+
+CAPTURE:
+capture.wav
+
+SAFE CELL:
+move.wav or a suitable local fallback
+
+HOME:
+home.wav
+
+WIN:
+win.wav
+
+BUTTON CLICK:
+move.wav or suitable local fallback
+
+TURN CHANGE:
+move.wav or suitable local fallback
+
+Sound toggle:
+ON/OFF
+
+Sound must be enabled by default.
+
+The code must:
+- preload/create the audio players
+- seek to beginning before replay
+- set appropriate volume
+- play reliably
+- handle repeated quick plays
+- catch playback errors
+- never crash the game if audio fails
+
+Do NOT silently swallow all errors.
+
+Log useful development information when audio cannot load.
+
+Also configure audio so it can play when the device is in silent mode where Expo allows this.
+
+IMPORTANT:
+Do not claim sound is guaranteed 100% because device OS settings can still block audio.
+
+==================================================
+9. VIBRATION SYSTEM — VERY IMPORTANT
+==================================================
+
+Vibration must be completely independent of sound.
+
+Even if Sound is OFF:
+Vibration must still work.
+
+Use React Native Vibration or the Expo-compatible vibration API already installed.
+
+Patterns:
+
+Dice:
+short vibration
+
+Move:
+small vibration
+
+Safe cell:
+double vibration
+
+Capture:
+strong double vibration
+
+Home:
+multiple vibration pulses
+
+Win:
+long victory vibration pattern
+
+Button:
+short vibration
+
+Create one safe helper:
+
+function vibrate(type) {
+  try {
+    ...
+  } catch (error) {
+    console.warn("Vibration error", error);
+  }
+}
+
+Do NOT put vibration inside:
+
+if (!soundOn) return;
+
+because vibration must continue even when sound is disabled.
+
+==================================================
+10. SOUND + VIBRATION EVENT HELPER
+==================================================
+
+Create a reliable event system similar to:
+
+playGameFeedback("dice")
+playGameFeedback("move")
+playGameFeedback("capture")
+playGameFeedback("safe")
+playGameFeedback("home")
+playGameFeedback("win")
+playGameFeedback("click")
+playGameFeedback("turn")
+
+Each event must independently trigger:
+- sound if soundOn
+- vibration regardless of soundOn
+
+Do not make one failure stop the other.
+
+==================================================
+11. ONLINE MULTIPLAYER
+==================================================
+
+After Offline mode is stable, implement Online mode.
+
+Online must use REAL HUMAN PLAYERS.
+
+No bots.
+
+Use existing Supabase integration.
+
+Existing tables may include:
+
+ludo_rooms
+ludo_players
+ludo_moves
+ludo_message
+
+DO NOT DROP OR RECREATE THESE TABLES.
+
+Use the existing schema.
+
+Online flow:
+
+1. Select Online.
+2. Select:
+   - 2 Players
+   - 3 Players
+   - 4 Players
+3. Create Room or Join Room.
+4. Room has a short room code.
+5. Real players join using the room code.
+6. Show connected player list.
+7. Show each player's real profile name where available.
+8. Assign colors according to player count.
+9. Green/YELLOW/BLUE/RED mapping must remain consistent.
+10. Only the current player's dice/move controls are active.
+11. All other players see the current state in real time.
+12. Use Supabase Realtime for room/game updates.
+13. Persist moves safely.
+14. Reconnect gracefully.
+15. Handle player leaving.
+16. Handle player disconnecting.
+17. Prevent duplicate players.
+18. Prevent duplicate moves.
+
+Use Clerk profile information when available for the player's display name.
+
+Never store a color string into a UUID column.
+
+For example:
+winner_player_id must contain an actual ludo_players.id UUID or NULL.
+
+Do NOT put:
+"green"
+"blue"
+"red"
+"yellow"
+
+into a UUID field.
+
+==================================================
+12. ONLINE GAME STATE
+==================================================
+
+Create a single reliable game-state model.
+
+State should include:
+
+- room id
+- player list
+- active player
+- player colors
+- player token positions
+- dice value
+- consecutive six count
+- finish order
+- winner
+- game status
+- selected token
+- move state
+
+Synchronize this state safely.
+
+Avoid race conditions.
+
+Only the correct player may perform the current turn online.
+
+==================================================
+13. PLAYER FINISH LOGIC
+==================================================
+
+Fix the current crash:
+
+"isPlayerFinished is not defined"
+
+Create proper finish detection.
+
+A player is finished only when ALL FOUR tokens have reached the final home position.
+
+Use the actual existing token position model.
+
+Example concept:
+
+function isPlayerFinished(player) {
+  return player.tokens.every(token => token.finished === true);
+}
+
+But adapt to the actual code.
+
+Never reference isPlayerFinished before declaration.
+
+When a player finishes:
+- add them to finish order
+- play home feedback
+- vibrate
+- update online state
+- determine whether the game continues
+- determine winner correctly
+
+Never show an incorrect red warning.
+
+==================================================
+14. WIN SYSTEM
+==================================================
+
+When all four tokens of a player reach home:
+
+- player wins
+- play win sound
+- strong victory vibration
+- show professional winner screen
+- show winner name and color
+- show finish order if available
+- offer:
+  PLAY AGAIN
+  EXIT
+
+Do not corrupt the room state.
+
+==================================================
+15. UI / UX
+==================================================
+
+Professional GAMEZONE ARENA visual style.
+
+Screen sections:
+
+Top:
+- Back
+- Ludo title
+- Sound button
+
+Board:
+- centered
+- responsive
+
+Outside board:
+- player controls
+- dice
+- turn indicator
+- player status
+
+Bottom:
+- clean controls
+- optional advertisement area
+
+Do not cover the board with advertisements.
+
+Do not place debug information in the game UI.
+
+==================================================
+16. ADS
+==================================================
+
+The app should be prepared for monetization.
+
+Use architecture that supports:
+
+- Banner Ads
+- Interstitial Ads
+- Rewarded Ads
+
+Rules:
+
+Banner:
+- show outside active board area
+
+Interstitial:
+- show at natural breaks, such as after a completed match
+- never interrupt token movement
+
+Rewarded:
+- optional rewards such as virtual coins or cosmetics
+- never give real-money gambling rewards
+
+IMPORTANT:
+The project must continue working in Expo Go.
+
+Do NOT import react-native-google-mobile-ads unless the project is configured for a native development build.
+
+If the current environment is Expo Go:
+use a clean placeholder component for ads.
+
+Create an abstraction such as:
+
+AdBanner
+AdInterstitial
+AdRewarded
+
+so real AdMob can be connected later without rewriting Ludo.
+
+==================================================
+17. SUBSCRIPTION / PAYMENT ARCHITECTURE
+==================================================
+
+Prepare the architecture for:
+
+- Premium subscription
+- Remove Ads
+- Premium themes
+- Premium avatars
+- Cosmetics
+- Virtual coins
+
+Do NOT implement real payment processing with fake code.
+
+Do NOT store payment credentials in the app.
+
+Do NOT claim a subscription is active without verified purchase information.
+
+Create clean service interfaces/placeholders for:
+
+SubscriptionService
+PurchaseService
+AdService
+
+Real Google Play/App Store billing can be connected later.
+
+The core game must work without payment services.
+
+==================================================
+18. VIRTUAL COINS
+==================================================
+
+This is NOT a real-money gambling game.
+
+Virtual coins have no monetary value.
+
+Coins cannot be withdrawn for cash.
+
+Possible earning:
+- daily reward
+- rewarded ad
+- game achievements
+- sponsored events
+
+Possible spending:
+- cosmetic themes
+- avatars
+- board decorations
+
+No betting.
+No cash wagering.
+No withdrawal.
+
+==================================================
+19. CHAT / ONLINE ROOM
+==================================================
+
+If the existing ludo_message table is available:
+
+- implement room chat
+- show player names
+- send messages through Supabase
+- handle connection errors
+- do not crash the game if chat fails
+
+Chat must not block gameplay.
+
+==================================================
+20. DATABASE SAFETY
+==================================================
+
+ABSOLUTELY DO NOT:
+
+- DROP TABLE
+- DELETE all rows
+- recreate existing tables
+- reset the Supabase project
+- remove existing data
+- overwrite unrelated tables
+
+Only use the existing database schema.
+
+If a column is missing:
+first inspect the schema and adapt the code.
+
+If a database change is genuinely necessary:
+STOP and clearly explain the exact non-destructive migration needed before applying it.
+
+==================================================
+21. EXPO GO COMPATIBILITY
+==================================================
+
+The current priority is:
+
+THE GAME MUST RUN IN EXPO GO.
+
+Do not add native-only packages that cause:
+
+Unable to resolve module
+
+or
+
+native module not found
+
+If a feature requires a native development build, isolate it behind a service layer and keep an Expo Go fallback.
+
+==================================================
+22. ERROR HANDLING
+==================================================
+
+No red error screen.
+
+No:
+
+isPlayerFinished is not defined
+
+No:
+
+undefined variable
+
+No:
+
+undefined function
+
+No:
+
+cannot read property of undefined
+
+No:
+
+Supabase UUID error
+
+No:
+
+audio module missing
+
+No:
+
+native AdMob module missing
+
+No:
+
+navigation crash
+
+No:
+
+stuck loading spinner
+
+No:
+
+"This player is not finished"
+
+unless that message is genuinely required by a verified game rule.
+
+Use clear user messages:
+
+"No valid move"
+"Waiting for your turn"
+"Player disconnected"
+"Room is full"
+"Game finished"
+
+==================================================
+23. TEST EVERYTHING
+==================================================
+
+Before declaring the work finished, test:
+
+OFFLINE:
+
+2-player:
+Green vs Blue
+
+3-player:
+Green vs Yellow vs Blue
+
+4-player:
+Green vs Yellow vs Blue vs Red
+
+Test:
+- dice 1
+- dice 2
+- dice 3
+- dice 4
+- dice 5
+- dice 6
+- token opening
+- token movement
+- capture
+- safe cell
+- stack
+- final home
+- extra turn
+- three consecutive sixes
+- winner
+- restart
+- sound ON
+- sound OFF
+- vibration ON
+- vibration with sound OFF
+- rapid dice tapping
+- rapid token tapping
+- small phone screen
+
+ONLINE:
+
+2-player room
+3-player room
+4-player room
+
+Test:
+- create room
+- join room
+- room full
+- player names
+- color assignment
+- turns
+- dice synchronization
+- token synchronization
+- capture synchronization
+- winner synchronization
+- disconnect
+- reconnect
+- leave room
+
+==================================================
+24. CODE QUALITY
+==================================================
+
+Use:
+- TypeScript
+- React hooks correctly
+- stable state updates
+- clean helper functions
+- no duplicated game logic
+- no unnecessary dependencies
+- no giant fragile hacks
+
+Keep Ludo game logic separated from:
+- audio
+- vibration
+- ads
+- subscriptions
+- Supabase networking
+
+==================================================
+25. FINAL VERIFICATION
+==================================================
+
+Run:
+
+pnpm exec tsc --noEmit
+
+Then run the Expo app.
+
+Verify that:
+
+1. Ludo opens.
+2. No red error screen.
+3. No undefined function error.
+4. 2 players are opposite.
+5. 3 players use three different corners.
+6. 4 players use all four corners.
+7. Tokens are visible.
+8. Dice works.
+9. Tokens move.
+10. Capture works.
+11. Safe cells work.
+12. Winner works.
+13. Sound works when local assets are available.
+14. Vibration works independently of sound.
+15. Offline works without Internet.
+16. Online uses real humans.
+17. Supabase Realtime does not break Offline mode.
+18. Ads do not break Expo Go.
+19. Subscription placeholders do not break the game.
+20. No existing database tables are destroyed.
+
+IMPORTANT FINAL RULE:
+
+Do NOT tell me that you completed the task until you have actually inspected the existing code, fixed the errors, run TypeScript checking, and verified the important game paths.
+
+Do not ask me to manually fix TypeScript errors that you can fix yourself.
+
+Do not replace working project files unnecessarily.
+
+Do not use paid services just to complete the basic game.
+
+Priority order:
+
+1. No crashes
+2. Correct Ludo rules
+3. Correct 2/3/4 player positions
+4. Working tokens and dice
+5. Working sound
+6. Working vibration
+7. Stable Offline mode
+8. Stable Online human multiplayer
+9. Ads architecture
+10. Subscription/payment architecture
+
+Build this as a production-quality GAMEZONE ARENA Ludo module.

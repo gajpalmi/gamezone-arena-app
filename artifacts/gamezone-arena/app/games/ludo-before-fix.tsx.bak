@@ -1,0 +1,1328 @@
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  Alert,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { supabase } from "./supabase";
+
+type PlayerColor = "red" | "green" | "yellow" | "blue";
+
+type Player = {
+  id: string;
+  user_id: string;
+  player_name: string;
+  player_color: PlayerColor;
+  player_number: number;
+  is_ready: boolean;
+  is_connected: boolean;
+  token_positions: number[];
+};
+
+type Room = {
+  id: string;
+  room_code: string;
+  status: string;
+  max_players: number;
+  current_turn: number;
+  dice_value: number;
+  winner_player_id: string | null;
+  game_state: any;
+};
+
+const COLORS: PlayerColor[] = [
+  "red",
+  "green",
+  "yellow",
+  "blue",
+];
+
+const COLOR_HEX: Record<PlayerColor, string> = {
+  red: "#ef4444",
+  green: "#22c55e",
+  yellow: "#facc15",
+  blue: "#3b82f6",
+};
+
+const START_POSITION: Record<PlayerColor, number> = {
+  red: 0,
+  green: 13,
+  yellow: 26,
+  blue: 39,
+};
+
+const HOME_POSITION = -1;
+
+const STORAGE_PLAYER = "gamezone_ludo_player";
+const STORAGE_ROOM = "gamezone_ludo_room";
+
+function createId() {
+  return (
+    Date.now().toString(36) +
+    Math.random().toString(36).substring(2, 9)
+  );
+}
+
+function randomDice() {
+  return Math.floor(Math.random() * 6) + 1;
+}
+
+function createInitialTokens(): number[] {
+  return [HOME_POSITION, HOME_POSITION, HOME_POSITION, HOME_POSITION];
+}
+
+function moveTokenPosition(
+  color: PlayerColor,
+  oldPosition: number,
+  dice: number
+) {
+  if (oldPosition === HOME_POSITION) {
+    if (dice === 6) {
+      return START_POSITION[color];
+    }
+
+    return HOME_POSITION;
+  }
+
+  const next = oldPosition + dice;
+
+  if (next >= 52) {
+    return 52;
+  }
+
+  return next;
+}
+
+function getPlayerColor(
+  playerNumber: number
+): PlayerColor {
+  return COLORS[playerNumber % COLORS.length];
+}
+
+export default function LudoScreen() {
+  const [mode, setMode] = useState<"offline" | "online">(
+    "offline"
+  );
+
+  const [playerName, setPlayerName] = useState("Player");
+  const [roomCode, setRoomCode] = useState("");
+  const [room, setRoom] = useState<Room | null>(null);
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [myPlayer, setMyPlayer] = useState<Player | null>(
+    null
+  );
+
+  const [dice, setDice] = useState(1);
+  const [rolling, setRolling] = useState(false);
+  const [selectedToken, setSelectedToken] = useState<
+    number | null
+  >(null);
+
+  const [offlineTokens, setOfflineTokens] =
+    useState<number[]>(createInitialTokens());
+
+  const [message, setMessage] = useState(
+    "Roll the dice to start."
+  );
+
+  const isOnline = mode === "online";
+
+  const currentPlayer = useMemo(() => {
+    if (!room) {
+      return myPlayer;
+    }
+
+    return (
+      players.find(
+        (p) => p.player_number === room.current_turn
+      ) || myPlayer
+    );
+  }, [room, players, myPlayer]);
+
+  useEffect(() => {
+    loadLocalData();
+  }, []);
+
+  useEffect(() => {
+    if (!isOnline || !room?.id) {
+      return;
+    }
+
+    loadOnlineRoom(room.id);
+
+    const channel = supabase
+      .channel(`ludo-room-${room.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "ludo_rooms",
+          filter: `id=eq.${room.id}`,
+        },
+        () => {
+          loadOnlineRoom(room.id);
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "ludo_players",
+          filter: `room_id=eq.${room.id}`,
+        },
+        () => {
+          loadOnlineRoom(room.id);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isOnline, room?.id]);
+
+  async function loadLocalData() {
+    try {
+      const savedPlayer = await AsyncStorage.getItem(
+        STORAGE_PLAYER
+      );
+
+      const savedRoom = await AsyncStorage.getItem(
+        STORAGE_ROOM
+      );
+
+      if (savedPlayer) {
+        setMyPlayer(JSON.parse(savedPlayer));
+      }
+
+      if (savedRoom) {
+        setRoom(JSON.parse(savedRoom));
+      }
+    } catch (error) {
+      console.log("Local load error:", error);
+    }
+  }
+
+  async function saveLocalPlayer(player: Player) {
+    setMyPlayer(player);
+
+    await AsyncStorage.setItem(
+      STORAGE_PLAYER,
+      JSON.stringify(player)
+    );
+  }
+
+  async function saveLocalRoom(nextRoom: Room) {
+    setRoom(nextRoom);
+
+    await AsyncStorage.setItem(
+      STORAGE_ROOM,
+      JSON.stringify(nextRoom)
+    );
+  }
+
+  function startOfflineGame() {
+    const localPlayer: Player = {
+      id: "offline-player",
+      user_id: "offline-user",
+      player_name: playerName.trim() || "Player",
+      player_color: "red",
+      player_number: 0,
+      is_ready: true,
+      is_connected: true,
+      token_positions: createInitialTokens(),
+    };
+
+    setMode("offline");
+    setOfflineTokens(createInitialTokens());
+    setDice(1);
+    setSelectedToken(null);
+
+    saveLocalPlayer(localPlayer);
+
+    setMessage(
+      "Offline game started. Roll 6 to bring a token out."
+    );
+  }
+
+  async function createOnlineRoom() {
+    try {
+      if (!supabase) {
+        throw new Error("Supabase client is not available.");
+      }
+
+      const code = Math.floor(
+        100000 + Math.random() * 900000
+      ).toString();
+
+      const roomId = createId();
+
+      const { data, error } = await supabase
+        .from("ludo_rooms")
+        .insert({
+          id: roomId,
+          room_code: code,
+          status: "waiting",
+          max_players: 4,
+          current_turn: 0,
+          dice_value: 1,
+          winner_player_id: null,
+          game_state: {
+            started: false,
+            version: 1,
+          },
+        })
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      const player: Player = {
+        id: createId(),
+        user_id: createId(),
+        player_name:
+          playerName.trim() || "Player 1",
+        player_color: "red",
+        player_number: 0,
+        is_ready: true,
+        is_connected: true,
+        token_positions: createInitialTokens(),
+      };
+
+      const { error: playerError } =
+        await supabase.from("ludo_players").insert({
+          id: player.id,
+          room_id: data.id,
+          user_id: player.user_id,
+          player_name: player.player_name,
+          player_color: player.player_color,
+          player_number: player.player_number,
+          is_ready: true,
+          is_connected: true,
+          token_positions: player.token_positions,
+        });
+
+      if (playerError) {
+        throw playerError;
+      }
+
+      const nextRoom = data as Room;
+
+      await saveLocalRoom(nextRoom);
+      await saveLocalPlayer(player);
+
+      setMode("online");
+      setRoomCode(code);
+      setPlayers([player]);
+
+      setMessage(
+        `Room ${code} created. Share the room code with another player.`
+      );
+    } catch (error: any) {
+      console.log("Create room error:", error);
+
+      Alert.alert(
+        "Online Ludo Error",
+        error?.message ||
+          "Room create नहीं हो पाया। Supabase URL, key और tables check करें।"
+      );
+    }
+  }
+
+  async function joinOnlineRoom() {
+    try {
+      const code = roomCode.trim();
+
+      if (!code) {
+        Alert.alert(
+          "Room Code",
+          "पहले room code डालें।"
+        );
+        return;
+      }
+
+      const { data: foundRoom, error } = await supabase
+        .from("ludo_rooms")
+        .select("*")
+        .eq("room_code", code)
+        .maybeSingle();
+
+      if (error) {
+        throw error;
+      }
+
+      if (!foundRoom) {
+        Alert.alert(
+          "Room नहीं मिला",
+          "Room code check करें।"
+        );
+        return;
+      }
+
+      const { data: existingPlayers, error: playersError } =
+        await supabase
+          .from("ludo_players")
+          .select("*")
+          .eq("room_id", foundRoom.id)
+          .order("player_number");
+
+      if (playersError) {
+        throw playersError;
+      }
+
+      if (
+        (existingPlayers?.length || 0) >=
+        Number(foundRoom.max_players || 4)
+      ) {
+        Alert.alert(
+          "Room Full",
+          "इस room में जगह नहीं है।"
+        );
+        return;
+      }
+
+      const nextNumber =
+        existingPlayers?.length || 0;
+
+      const color = getPlayerColor(nextNumber);
+
+      const player: Player = {
+        id: createId(),
+        user_id: createId(),
+        player_name:
+          playerName.trim() ||
+          `Player ${nextNumber + 1}`,
+        player_color: color,
+        player_number: nextNumber,
+        is_ready: true,
+        is_connected: true,
+        token_positions: createInitialTokens(),
+      };
+
+      const { error: insertError } =
+        await supabase.from("ludo_players").insert({
+          id: player.id,
+          room_id: foundRoom.id,
+          user_id: player.user_id,
+          player_name: player.player_name,
+          player_color: player.player_color,
+          player_number: player.player_number,
+          is_ready: true,
+          is_connected: true,
+          token_positions: player.token_positions,
+        });
+
+      if (insertError) {
+        throw insertError;
+      }
+
+      await saveLocalRoom(foundRoom as Room);
+      await saveLocalPlayer(player);
+
+      setMode("online");
+
+      await loadOnlineRoom(foundRoom.id);
+
+      setMessage(
+        `Joined room ${code} as ${color}.`
+      );
+    } catch (error: any) {
+      console.log("Join room error:", error);
+
+      Alert.alert(
+        "Join Error",
+        error?.message ||
+          "Room join नहीं हो पाया।"
+      );
+    }
+  }
+
+  async function loadOnlineRoom(roomId: string) {
+    try {
+      const { data: roomData, error: roomError } =
+        await supabase
+          .from("ludo_rooms")
+          .select("*")
+          .eq("id", roomId)
+          .single();
+
+      if (roomError) {
+        throw roomError;
+      }
+
+      const { data: playerData, error: playerError } =
+        await supabase
+          .from("ludo_players")
+          .select("*")
+          .eq("room_id", roomId)
+          .order("player_number");
+
+      if (playerError) {
+        throw playerError;
+      }
+
+      setRoom(roomData as Room);
+      setPlayers((playerData || []) as Player[]);
+
+      const me = (playerData || []).find(
+        (p: Player) => p.id === myPlayer?.id
+      );
+
+      if (me) {
+        setMyPlayer(me);
+      }
+    } catch (error) {
+      console.log("Load room error:", error);
+    }
+  }
+
+  async function rollDice() {
+    if (rolling) {
+      return;
+    }
+
+    if (isOnline) {
+      if (!room || !myPlayer) {
+        Alert.alert(
+          "Online Game",
+          "पहले room create या join करें।"
+        );
+        return;
+      }
+
+      if (
+        room.current_turn !==
+        myPlayer.player_number
+      ) {
+        setMessage("अभी आपकी turn नहीं है।");
+        return;
+      }
+    }
+
+    setRolling(true);
+
+    let finalDice = randomDice();
+
+    for (let i = 0; i < 8; i++) {
+      await new Promise((resolve) =>
+        setTimeout(resolve, 70)
+      );
+
+      setDice(randomDice());
+    }
+
+    setDice(finalDice);
+    setRolling(false);
+    setSelectedToken(null);
+
+    if (isOnline) {
+      await updateOnlineDice(finalDice);
+    }
+
+    setMessage(
+      finalDice === 6
+        ? "6 आया! अब घर से गोटी निकाल सकते हैं।"
+        : `Dice: ${finalDice}. अपनी गोटी चुनें।`
+    );
+  }
+
+  async function updateOnlineDice(value: number) {
+    if (!room) {
+      return;
+    }
+
+    const { error } = await supabase
+      .from("ludo_rooms")
+      .update({
+        dice_value: value,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", room.id);
+
+    if (error) {
+      console.log("Dice update error:", error);
+    }
+  }
+
+  async function selectToken(tokenIndex: number) {
+    if (rolling) {
+      return;
+    }
+
+    if (isOnline) {
+      if (!room || !myPlayer) {
+        return;
+      }
+
+      if (
+        room.current_turn !==
+        myPlayer.player_number
+      ) {
+        setMessage("अभी आपकी turn नहीं है।");
+        return;
+      }
+
+      await moveOnlineToken(tokenIndex);
+      return;
+    }
+
+    moveOfflineToken(tokenIndex);
+  }
+
+  function moveOfflineToken(tokenIndex: number) {
+    const oldPosition =
+      offlineTokens[tokenIndex];
+
+    const newPosition = moveTokenPosition(
+      "red",
+      oldPosition,
+      dice
+    );
+
+    if (
+      oldPosition === HOME_POSITION &&
+      dice !== 6
+    ) {
+      setMessage("घर से गोटी निकालने के लिए 6 चाहिए।");
+      return;
+    }
+
+    const nextTokens = [...offlineTokens];
+
+    nextTokens[tokenIndex] = newPosition;
+
+    setOfflineTokens(nextTokens);
+    setSelectedToken(tokenIndex);
+
+    setMessage(
+      newPosition === 52
+        ? "गोटी HOME पहुँच गई!"
+        : `गोटी ${tokenIndex + 1} चल गई।`
+    );
+
+    if (newPosition === 52) {
+      const allHome = nextTokens.every(
+        (p) => p === 52
+      );
+
+      if (allHome) {
+        setMessage("🎉 आपने Offline Ludo जीत लिया!");
+      }
+    }
+  }
+
+  async function moveOnlineToken(tokenIndex: number) {
+    if (!room || !myPlayer) {
+      return;
+    }
+
+    const oldPosition =
+      myPlayer.token_positions[tokenIndex];
+
+    const newPosition = moveTokenPosition(
+      myPlayer.player_color,
+      oldPosition,
+      room.dice_value || dice
+    );
+
+    if (
+      oldPosition === HOME_POSITION &&
+      (room.dice_value || dice) !== 6
+    ) {
+      setMessage("गोटी निकालने के लिए 6 चाहिए।");
+      return;
+    }
+
+    const nextPositions = [
+      ...myPlayer.token_positions,
+    ];
+
+    nextPositions[tokenIndex] = newPosition;
+
+    const { error } = await supabase
+      .from("ludo_players")
+      .update({
+        token_positions: nextPositions,
+        is_connected: true,
+      })
+      .eq("id", myPlayer.id);
+
+    if (error) {
+      Alert.alert(
+        "Move Error",
+        error.message
+      );
+      return;
+    }
+
+    await supabase.from("ludo_moves").insert({
+      room_id: room.id,
+      player_id: myPlayer.id,
+      dice_value: room.dice_value || dice,
+      token_number: tokenIndex,
+      from_position: oldPosition,
+      to_position: newPosition,
+      captured_player_id: null,
+      captured_token_number: null,
+    });
+
+    setSelectedToken(tokenIndex);
+
+    const nextTurn =
+      (room.current_turn + 1) % 4;
+
+    await supabase
+      .from("ludo_rooms")
+      .update({
+        current_turn: nextTurn,
+        dice_value: 1,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", room.id);
+
+    await loadOnlineRoom(room.id);
+
+    setMessage(
+      newPosition === 52
+        ? "गोटी HOME पहुँच गई!"
+        : "गोटी चल गई। अगली turn शुरू।"
+    );
+  }
+
+  function resetOfflineGame() {
+    setOfflineTokens(createInitialTokens());
+    setDice(1);
+    setSelectedToken(null);
+    setMessage(
+      "New offline game started."
+    );
+  }
+
+  function getTokens() {
+    if (isOnline && myPlayer) {
+      return myPlayer.token_positions;
+    }
+
+    return offlineTokens;
+  }
+
+  const tokens = getTokens();
+
+  return (
+    <SafeAreaView style={styles.safe}>
+      <ScrollView
+        contentContainerStyle={styles.container}
+      >
+        <Text style={styles.title}>
+          GAMEZONE ARENA
+        </Text>
+
+        <Text style={styles.subtitle}>
+          LUDO
+        </Text>
+
+        <View style={styles.modeRow}>
+          <Pressable
+            style={[
+              styles.modeButton,
+              mode === "offline" &&
+                styles.activeMode,
+            ]}
+            onPress={() => setMode("offline")}
+          >
+            <Text style={styles.modeText}>
+              OFFLINE
+            </Text>
+          </Pressable>
+
+          <Pressable
+            style={[
+              styles.modeButton,
+              mode === "online" &&
+                styles.activeMode,
+            ]}
+            onPress={() => setMode("online")}
+          >
+            <Text style={styles.modeText}>
+              ONLINE
+            </Text>
+          </Pressable>
+        </View>
+
+        {mode === "online" && (
+          <View style={styles.onlineBox}>
+            <Text style={styles.sectionTitle}>
+              Online Room
+            </Text>
+
+            <Text style={styles.roomText}>
+              Room: {room?.room_code || "Not connected"}
+            </Text>
+
+            <Text style={styles.smallText}>
+              Player:{" "}
+              {myPlayer?.player_name || "Not joined"}
+            </Text>
+
+            <View style={styles.row}>
+              <Pressable
+                style={styles.actionButton}
+                onPress={createOnlineRoom}
+              >
+                <Text style={styles.buttonText}>
+                  CREATE ROOM
+                </Text>
+              </Pressable>
+
+              <Pressable
+                style={styles.actionButton}
+                onPress={joinOnlineRoom}
+              >
+                <Text style={styles.buttonText}>
+                  JOIN ROOM
+                </Text>
+              </Pressable>
+            </View>
+
+            <Text style={styles.smallText}>
+              Room Code:
+            </Text>
+
+            <View style={styles.codeBox}>
+              <Text style={styles.codeText}>
+                {roomCode || "Enter room code in your app"}
+              </Text>
+            </View>
+
+            <Text style={styles.smallText}>
+              Players: {players.length}/4
+            </Text>
+
+            {players.map((player) => (
+              <View
+                key={player.id}
+                style={styles.playerRow}
+              >
+                <View
+                  style={[
+                    styles.playerDot,
+                    {
+                      backgroundColor:
+                        COLOR_HEX[
+                          player.player_color
+                        ],
+                    },
+                  ]}
+                />
+
+                <Text style={styles.playerName}>
+                  {player.player_name}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {mode === "offline" && (
+          <View style={styles.offlineBox}>
+            <Text style={styles.sectionTitle}>
+              Offline Ludo
+            </Text>
+
+            <Text style={styles.smallText}>
+              Internet के बिना test कर सकते हैं।
+            </Text>
+
+            <Pressable
+              style={styles.actionButton}
+              onPress={startOfflineGame}
+            >
+              <Text style={styles.buttonText}>
+                START OFFLINE GAME
+              </Text>
+            </Pressable>
+          </View>
+        )}
+
+        <View style={styles.board}>
+          <View
+            style={[
+              styles.homeArea,
+              styles.redArea,
+            ]}
+          >
+            <Text style={styles.areaText}>
+              RED
+            </Text>
+          </View>
+
+          <View
+            style={[
+              styles.homeArea,
+              styles.greenArea,
+            ]}
+          >
+            <Text style={styles.areaText}>
+              GREEN
+            </Text>
+          </View>
+
+          <View
+            style={[
+              styles.homeArea,
+              styles.yellowArea,
+            ]}
+          >
+            <Text style={styles.areaText}>
+              YELLOW
+            </Text>
+          </View>
+
+          <View
+            style={[
+              styles.homeArea,
+              styles.blueArea,
+            ]}
+          >
+            <Text style={styles.areaText}>
+              BLUE
+            </Text>
+          </View>
+
+          <View style={styles.center}>
+            <Text style={styles.centerText}>
+              LUDO
+            </Text>
+          </View>
+
+          {tokens.map((position, index) => {
+            const color =
+              isOnline && myPlayer
+                ? myPlayer.player_color
+                : "red";
+
+            return (
+              <Pressable
+                key={index}
+                onPress={() =>
+                  selectToken(index)
+                }
+                style={[
+                  styles.token,
+                  {
+                    backgroundColor:
+                      COLOR_HEX[color],
+                  },
+                  selectedToken === index &&
+                    styles.selectedToken,
+                ]}
+              >
+                <Text style={styles.tokenText}>
+                  {index + 1}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        <View style={styles.diceBox}>
+          <Text style={styles.diceLabel}>
+            DICE
+          </Text>
+
+          <Text style={styles.dice}>
+            {dice}
+          </Text>
+
+          <Pressable
+            style={[
+              styles.rollButton,
+              rolling &&
+                styles.disabledButton,
+            ]}
+            onPress={rollDice}
+            disabled={rolling}
+          >
+            <Text style={styles.buttonText}>
+              {rolling
+                ? "ROLLING..."
+                : "ROLL DICE"}
+            </Text>
+          </Pressable>
+        </View>
+
+        <Text style={styles.message}>
+          {message}
+        </Text>
+
+        <Text style={styles.turn}>
+          {isOnline && room
+            ? `Turn: Player ${
+                room.current_turn + 1
+              }`
+            : "Offline Turn: Player 1"}
+        </Text>
+
+        <View style={styles.tokenRow}>
+          {tokens.map((position, index) => (
+            <Pressable
+              key={index}
+              onPress={() =>
+                selectToken(index)
+              }
+              style={styles.tokenCard}
+            >
+              <Text style={styles.tokenCardTitle}>
+                Goti {index + 1}
+              </Text>
+
+              <Text style={styles.position}>
+                {position === HOME_POSITION
+                  ? "HOME"
+                  : position === 52
+                  ? "FINISH"
+                  : position}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+
+        {mode === "offline" && (
+          <Pressable
+            style={styles.resetButton}
+            onPress={resetOfflineGame}
+          >
+            <Text style={styles.buttonText}>
+              RESET GAME
+            </Text>
+          </Pressable>
+        )}
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: {
+    flex: 1,
+    backgroundColor: "#101827",
+  },
+
+  container: {
+    padding: 16,
+    paddingBottom: 50,
+  },
+
+  title: {
+    color: "#ffffff",
+    fontSize: 25,
+    fontWeight: "900",
+    textAlign: "center",
+  },
+
+  subtitle: {
+    color: "#facc15",
+    fontSize: 18,
+    fontWeight: "800",
+    textAlign: "center",
+    marginTop: 4,
+    marginBottom: 18,
+  },
+
+  modeRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 15,
+  },
+
+  modeButton: {
+    flex: 1,
+    paddingVertical: 13,
+    borderRadius: 12,
+    backgroundColor: "#263247",
+    alignItems: "center",
+  },
+
+  activeMode: {
+    backgroundColor: "#2563eb",
+  },
+
+  modeText: {
+    color: "#ffffff",
+    fontWeight: "900",
+  },
+
+  onlineBox: {
+    backgroundColor: "#172236",
+    borderRadius: 16,
+    padding: 15,
+    marginBottom: 15,
+  },
+
+  offlineBox: {
+    backgroundColor: "#172236",
+    borderRadius: 16,
+    padding: 15,
+    marginBottom: 15,
+  },
+
+  sectionTitle: {
+    color: "#ffffff",
+    fontSize: 18,
+    fontWeight: "900",
+    marginBottom: 10,
+  },
+
+  roomText: {
+    color: "#facc15",
+    fontSize: 18,
+    fontWeight: "900",
+    marginBottom: 5,
+  },
+
+  smallText: {
+    color: "#cbd5e1",
+    fontSize: 13,
+    marginBottom: 8,
+  },
+
+  row: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 8,
+    marginBottom: 10,
+  },
+
+  actionButton: {
+    flex: 1,
+    backgroundColor: "#2563eb",
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: "center",
+    marginTop: 5,
+  },
+
+  buttonText: {
+    color: "#ffffff",
+    fontWeight: "900",
+    fontSize: 12,
+  },
+
+  codeBox: {
+    backgroundColor: "#0b1220",
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 8,
+  },
+
+  codeText: {
+    color: "#ffffff",
+    fontSize: 18,
+    fontWeight: "900",
+    textAlign: "center",
+  },
+
+  playerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 5,
+  },
+
+  playerDot: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    marginRight: 8,
+  },
+
+  playerName: {
+    color: "#ffffff",
+    fontWeight: "700",
+  },
+
+  board: {
+    width: "100%",
+    aspectRatio: 1,
+    backgroundColor: "#f8fafc",
+    borderRadius: 18,
+    overflow: "hidden",
+    position: "relative",
+    borderWidth: 5,
+    borderColor: "#ffffff",
+    marginTop: 10,
+  },
+
+  homeArea: {
+    position: "absolute",
+    width: "40%",
+    height: "40%",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#ffffff",
+  },
+
+  redArea: {
+    top: 0,
+    left: 0,
+    backgroundColor: "#fecaca",
+  },
+
+  greenArea: {
+    top: 0,
+    right: 0,
+    backgroundColor: "#bbf7d0",
+  },
+
+  yellowArea: {
+    bottom: 0,
+    left: 0,
+    backgroundColor: "#fef08a",
+  },
+
+  blueArea: {
+    bottom: 0,
+    right: 0,
+    backgroundColor: "#bfdbfe",
+  },
+
+  areaText: {
+    color: "#111827",
+    fontWeight: "900",
+    fontSize: 14,
+  },
+
+  center: {
+    position: "absolute",
+    width: "25%",
+    height: "25%",
+    left: "37.5%",
+    top: "37.5%",
+    borderRadius: 12,
+    backgroundColor: "#ffffff",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 3,
+    borderColor: "#111827",
+  },
+
+  centerText: {
+    color: "#111827",
+    fontWeight: "900",
+    fontSize: 18,
+  },
+
+  token: {
+    position: "absolute",
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    left: "46%",
+    top: "46%",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 3,
+    borderColor: "#ffffff",
+    elevation: 5,
+  },
+
+  selectedToken: {
+    borderColor: "#111827",
+    borderWidth: 5,
+  },
+
+  tokenText: {
+    color: "#ffffff",
+    fontWeight: "900",
+  },
+
+  diceBox: {
+    alignItems: "center",
+    marginTop: 20,
+    backgroundColor: "#172236",
+    padding: 18,
+    borderRadius: 16,
+  },
+
+  diceLabel: {
+    color: "#94a3b8",
+    fontWeight: "800",
+  },
+
+  dice: {
+    color: "#ffffff",
+    fontSize: 58,
+    fontWeight: "900",
+    marginVertical: 8,
+  },
+
+  rollButton: {
+    width: "80%",
+    backgroundColor: "#16a34a",
+    paddingVertical: 15,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+
+  disabledButton: {
+    opacity: 0.5,
+  },
+
+  message: {
+    color: "#facc15",
+    textAlign: "center",
+    fontSize: 15,
+    fontWeight: "700",
+    marginTop: 16,
+  },
+
+  turn: {
+    color: "#94a3b8",
+    textAlign: "center",
+    marginTop: 6,
+  },
+
+  tokenRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginTop: 18,
+  },
+
+  tokenCard: {
+    width: "47%",
+    backgroundColor: "#172236",
+    borderRadius: 12,
+    padding: 14,
+    alignItems: "center",
+  },
+
+  tokenCardTitle: {
+    color: "#ffffff",
+    fontWeight: "800",
+  },
+
+  position: {
+    color: "#facc15",
+    fontWeight: "900",
+    fontSize: 18,
+    marginTop: 4,
+  },
+
+  resetButton: {
+    backgroundColor: "#dc2626",
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    marginTop: 18,
+  },
+});

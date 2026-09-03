@@ -1,0 +1,1046 @@
+GAMEZONE ARENA — EXISTING LUDO TO FULL ONLINE MULTIPLAYER
+
+REPLIT AGENT IMPLEMENTATION PROMPT
+
+मेरे GAMEZONE ARENA प्रोजेक्ट में Ludo game पहले से पूरी तरह बना हुआ है।
+
+⚠️ IMPORTANT:
+मुझे नया Ludo game, नया board या नया UI नहीं बनवाना है।
+
+मौजूदा Ludo को जस का तस रखते हुए उसमें केवल COMPLETE ONLINE MULTIPLAYER SYSTEM जोड़ना है।
+
+Existing Ludo के:
+
+- Board
+- Tokens/Goti
+- Dice
+- Movement
+- Safe zones
+- Star positions
+- Colors
+- Home path
+- Winning system
+- Existing animations
+- Existing UI
+
+को बिना जरूरत बदलना या delete करना STRICTLY PROHIBITED है।
+
+पहले पूरे existing project और Ludo code को inspect करो और समझो कि वर्तमान game कैसे काम कर रहा है। उसके बाद उसी architecture में online functionality integrate करो।
+
+---
+
+1. REAL ONLINE MULTIPLAYER
+
+मौजूदा Ludo को वास्तविक online multiplayer बनाओ।
+
+Players अलग-अलग Android devices/browser से एक ही match में connect होकर real-time खेल सकें।
+
+Support:
+
+- 2 Players
+- 3 Players
+- 4 Players
+
+Example:
+
+Device A → Player 1
+Device B → Player 2
+Device C → Player 3
+Device D → Player 4
+
+चारों एक ही Ludo game state में हों।
+
+यह fake/local multiplayer नहीं होना चाहिए।
+
+---
+
+2. ONLINE LOBBY
+
+Existing Ludo में Online option जोड़ो।
+
+Options:
+
+- Quick Match
+- Create Room
+- Join Room
+- Play With Friends
+
+UI existing design के अनुसार ही रखें।
+
+---
+
+3. CREATE ROOM
+
+Player:
+
+CREATE ROOM
+
+पर click करे।
+
+Server एक unique room बनाए।
+
+Example:
+
+ROOM CODE: GZA4821
+
+Room में:
+
+- Host
+- Joined Players
+- Player Avatar
+- Username
+- Ready Status
+- Connection Status
+
+दिखाएँ।
+
+---
+
+4. JOIN ROOM
+
+Player:
+
+JOIN ROOM
+
+पर click करे।
+
+Room Code डालकर existing room में join कर सके।
+
+Server validate करे:
+
+- Room exists?
+- Room full?
+- Game already started?
+- Player already joined?
+- Player authenticated?
+
+Valid होने पर player room में join हो।
+
+---
+
+5. QUICK MATCH
+
+QUICK MATCH button जोड़ो।
+
+Player click करे:
+
+Searching for opponent...
+
+Server available players/rooms में suitable match खोजे।
+
+Match मिलने पर दोनों players को same game room में connect करो।
+
+---
+
+6. REAL-TIME SERVER
+
+Online Ludo के लिए proper real-time backend बनाओ।
+
+WebSocket / Socket.IO या project के लिए suitable equivalent technology इस्तेमाल करो।
+
+Client-server communication real-time होना चाहिए।
+
+Events जैसे:
+
+player_joined
+player_ready
+player_left
+game_start
+turn_changed
+dice_roll_request
+dice_rolled
+token_move_request
+token_moved
+token_captured
+extra_turn
+player_won
+game_finished
+chat_message
+player_connected
+player_disconnected
+player_reconnected
+
+implement करो।
+
+---
+
+7. SERVER AUTHORITATIVE GAME
+
+बहुत महत्वपूर्ण:
+
+Client को game result decide करने की permission मत दो।
+
+Server authoritative होना चाहिए।
+
+Server validate करे:
+
+- किसकी turn है
+- dice roll valid है या नहीं
+- dice result
+- token movement
+- token position
+- capture
+- safe zone
+- extra turn
+- winning condition
+
+Client केवल action request भेजे।
+
+---
+
+8. EXISTING LUDO ENGINE REUSE
+
+मौजूदा Ludo game logic को जितना संभव हो reuse करो।
+
+Existing functions जैसे:
+
+- rollDice
+- moveToken
+- captureToken
+- checkWinner
+- calculateMove
+
+अगर मौजूद हैं तो उन्हें समझकर server-compatible बनाओ।
+
+Duplicate Ludo engine बनाने से बचो।
+
+---
+
+9. SYNCHRONIZED DICE
+
+जब Player 1 dice roll करे:
+
+Server dice result generate करे।
+
+फिर सभी players को same result भेजे।
+
+उदाहरण:
+
+Player 1 → Dice = 6
+
+तो Player 2, 3, 4 के screen पर भी:
+
+Dice = 6
+
+दिखना चाहिए।
+
+कोई client अपना अलग dice result generate न करे।
+
+---
+
+10. SYNCHRONIZED TOKEN MOVEMENT
+
+अगर Player 1 की red token:
+
+Position 10 → Position 16
+
+move करती है,
+
+तो बाकी सभी players के devices पर भी वही token:
+
+10 → 16
+
+real-time दिखाई दे।
+
+Animation existing Ludo animation के अनुसार चलनी चाहिए।
+
+---
+
+11. TURN SYNCHRONIZATION
+
+सिर्फ current player action कर सके।
+
+Example:
+
+PLAYER 1 TURN
+
+तो:
+
+Player 1 → Dice enabled
+
+Player 2 → Dice disabled
+
+Player 3 → Dice disabled
+
+Player 4 → Dice disabled
+
+Turn बदलते ही सभी clients automatically update हों।
+
+---
+
+12. GAME STATE SYNC
+
+Server पर complete Ludo state maintain करो।
+
+Example:
+
+gameId
+roomId
+players
+currentPlayer
+diceValue
+tokenPositions
+gameStatus
+winner
+turnNumber
+lastAction
+updatedAt
+
+जब player reconnect करे तो उसे current state मिले।
+
+---
+
+13. DISCONNECT SYSTEM
+
+अगर किसी player का internet चला जाए:
+
+Player को तुरंत game से eliminate मत करो।
+
+UI:
+
+⚠️ Connection Lost
+
+Reconnecting...
+
+दिखाएँ।
+
+बाकी players को:
+
+"Player is reconnecting..."
+
+दिखाएँ।
+
+---
+
+14. RECONNECT
+
+Player internet वापस आने पर उसी game में वापस connect हो।
+
+उसका:
+
+- Token position
+- Turn
+- Dice state
+- Game progress
+- Room
+- Player identity
+
+restore हो।
+
+Player को game restart नहीं करना पड़े।
+
+---
+
+15. BACKGROUND / APP MINIMIZE
+
+Android user Ludo खेलते समय app minimize करे और वापस आए तो existing online match detect हो।
+
+Server current game state भेजे।
+
+Game वहीं से continue हो।
+
+---
+
+16. PLAYER ONLINE STATUS
+
+हर player के पास status दिखे:
+
+🟢 Online
+🟡 Connecting
+🔴 Offline
+🔄 Reconnecting
+
+Status real-time update हो।
+
+---
+
+17. TURN TIMER
+
+हर turn के लिए server-controlled timer लगाओ।
+
+Example:
+
+30 seconds
+
+UI:
+
+YOUR TURN
+00:30
+
+Timer सभी players के लिए synchronized हो।
+
+Timer खत्म होने पर server appropriate action ले।
+
+---
+
+18. TEXT CHAT
+
+Existing Ludo screen में chat option जोड़ो।
+
+Button:
+
+💬 CHAT
+
+Players real-time messages भेज सकें।
+
+Example:
+
+Player 1:
+Good luck!
+
+Player 2:
+Thank you!
+
+Message सभी connected players को तुरंत दिखाई दे।
+
+---
+
+19. CHAT FEATURES
+
+Chat में:
+
+- Text
+- Emoji
+- Quick Messages
+- Username
+- Avatar
+- Timestamp
+
+रखें।
+
+Quick messages:
+
+Good Luck!
+Nice Move!
+Wow!
+Great!
+Oops!
+Let's Go!
+Well Played!
+Congratulations!
+
+---
+
+20. CHAT SECURITY
+
+Chat server-side validate हो।
+
+Spam protection लगाओ।
+
+बहुत लंबे messages reject करो।
+
+Repeated spam messages limit करो।
+
+Basic abusive-word filtering और report system रखें।
+
+External links/spam को नियंत्रित करें।
+
+---
+
+21. VOICE CHAT
+
+सबसे महत्वपूर्ण feature:
+
+Ludo room के अंदर players आपस में REAL-TIME VOICE CHAT कर सकें।
+
+2, 3 या 4 players एक साथ बात कर सकें।
+
+Voice chat के लिए WebRTC या suitable production-ready real-time voice solution इस्तेमाल करो।
+
+यह fake voice button नहीं होना चाहिए।
+
+Actual microphone audio communication काम करना चाहिए।
+
+---
+
+22. MICROPHONE
+
+Game screen पर:
+
+🎙️ Mic
+
+button हो।
+
+States:
+
+🎙️ ON
+🔇 MUTED
+
+Player microphone को कभी भी mute/unmute कर सके।
+
+---
+
+23. SPEAKING INDICATOR
+
+जो player बोल रहा हो उसके avatar पर:
+
+🔊 Speaking
+
+indicator/animation दिखे।
+
+Example:
+
+Player 1 🔊
+
+Player 2 🎙️
+
+Player 3 🔇
+
+---
+
+24. PLAYER MUTE
+
+हर player को individual mute option दो।
+
+Example:
+
+Player 1 → Player 2 को mute करता है।
+
+तो Player 1 को Player 2 की आवाज नहीं सुनाई देगी।
+
+बाकी players पर इसका असर नहीं होना चाहिए।
+
+---
+
+25. PUSH TO TALK
+
+Voice chat में Push-To-Talk option भी जोड़ो।
+
+Button press करके रखने पर:
+
+MIC ON
+
+Button छोड़ते ही:
+
+MIC OFF
+
+---
+
+26. MICROPHONE PERMISSION
+
+पहली बार voice chat शुरू करते समय proper microphone permission request करो।
+
+Permission denied होने पर friendly message दिखाओ:
+
+"Microphone permission is required for voice chat."
+
+App crash नहीं होना चाहिए।
+
+---
+
+27. VOICE CONNECTION
+
+Voice system में:
+
+- Connection state
+- Reconnection
+- Mic mute
+- Individual player mute
+- Voice volume
+
+handle करो।
+
+Voice chat disconnect होने पर पूरा Ludo game disconnect नहीं होना चाहिए।
+
+---
+
+28. VOICE PRIVACY
+
+Voice audio को default रूप से record या permanently store मत करो।
+
+Voice केवल real-time communication के लिए हो।
+
+---
+
+29. SOUND SYSTEM
+
+Existing Ludo sounds को preserve करो।
+
+अगर existing sound system है तो उसी को extend करो।
+
+Sound effects:
+
+- Dice roll
+- Dice result
+- Token select
+- Token move
+- Token capture
+- Safe zone
+- Six
+- Extra turn
+- Game start
+- Countdown
+- Winner
+- Game over
+- Chat notification
+- Player join
+- Player leave
+
+---
+
+30. SOUND SETTINGS
+
+Existing settings में या Ludo settings में:
+
+🎵 Music
+🔊 Sound Effects
+🎙️ Voice Chat
+
+controls जोड़ो।
+
+हर setting:
+
+ON/OFF
+
+और volume control support करे।
+
+---
+
+31. CHAT + VOICE NOTIFICATIONS
+
+नया message आने पर optional notification sound हो।
+
+Player voice chat join करे तो optional sound हो।
+
+Player leave करे तो optional sound हो।
+
+User settings के अनुसार sounds mute किए जा सकें।
+
+---
+
+32. FRIEND INVITE
+
+Existing GAMEZONE ARENA friend system अगर मौजूद है तो उसे reuse करो।
+
+Invite Friend button से friend को Ludo room invite भेजा जा सके।
+
+Room Code share करने का option भी हो।
+
+---
+
+33. ROOM CAPACITY
+
+Maximum 4 players।
+
+अगर room full है:
+
+"Room is full."
+
+दिखाएँ।
+
+---
+
+34. HOST SYSTEM
+
+Room creator Host होगा।
+
+Host:
+
+- Players देख सकता है
+- Ready status देख सकता है
+- Game start कर सकता है
+
+लेकिन game rules server control करेगा।
+
+---
+
+35. HOST DISCONNECT
+
+अगर Host disconnect हो जाए:
+
+Room/game बंद मत करो।
+
+Server automatically नया host assign करे।
+
+---
+
+36. READY SYSTEM
+
+Room में:
+
+READY
+
+button हो।
+
+सभी required players ready होने पर:
+
+START GAME
+
+enabled हो।
+
+Game start server से हो।
+
+---
+
+37. GAME RESULT
+
+Game खत्म होने पर सभी players को synchronized result मिले।
+
+Winner:
+
+🏆 PLAYER NAME
+
+और ranking:
+
+1st
+2nd
+3rd
+4th
+
+दिखाएँ।
+
+---
+
+38. REMATCH
+
+Game खत्म होने पर:
+
+PLAY AGAIN
+
+option दें।
+
+अगर players agree करें तो नया match शुरू किया जा सके।
+
+---
+
+39. AUTHENTICATION
+
+Existing GAMEZONE ARENA login/authentication system को reuse करो।
+
+हर online player का authenticated unique userId होना चाहिए।
+
+Guest/anonymous cheating को control करने के लिए existing authentication architecture का उपयोग करो।
+
+---
+
+40. DATABASE
+
+अगर project में existing database है तो उसे reuse करो।
+
+नई database technology unnecessarily introduce मत करो।
+
+जरूरत होने पर tables/collections:
+
+ludo_rooms
+ludo_games
+ludo_players
+ludo_moves
+ludo_chat
+game_results
+
+बनाओ।
+
+---
+
+41. MOVE HISTORY
+
+Important game actions का server-side log रखें:
+
+playerId
+actionId
+actionType
+diceValue
+tokenId
+fromPosition
+toPosition
+timestamp
+
+यह debugging और anti-cheat में उपयोग होगा।
+
+---
+
+42. ANTI-CHEAT
+
+Client-side values पर blindly trust मत करो।
+
+Reject:
+
+- गलत turn
+- invalid dice request
+- impossible token movement
+- invalid capture
+- duplicate move
+- duplicate dice roll
+- forged player ID
+- unauthorized room access
+
+---
+
+43. DUPLICATE REQUEST PROTECTION
+
+Network retry के कारण एक ही request दो बार आ सकती है।
+
+हर important action के लिए unique:
+
+actionId / requestId
+
+रखो।
+
+Duplicate request दोबारा execute नहीं होनी चाहिए।
+
+---
+
+44. CONNECTION QUALITY
+
+Ludo screen पर छोटा indicator:
+
+🟢 Good
+🟡 Weak
+🔴 Poor
+🔄 Reconnecting
+
+दिखा सकते हो।
+
+यह actual connection state पर आधारित हो।
+
+---
+
+45. MOBILE PERFORMANCE
+
+Android phones पर performance अच्छा रहे।
+
+Unnecessary re-rendering कम करो।
+
+WebSocket events optimize करो।
+
+Voice chat और game updates एक-दूसरे को block न करें।
+
+---
+
+46. EXISTING UI PROTECTION
+
+STRICT RULE:
+
+Existing Ludo UI को redesign मत करो।
+
+Existing:
+
+- Board
+- Colors
+- Token design
+- Dice design
+- Positions
+- Safe zones
+- Stars
+- Animations
+
+को preserve करो।
+
+सिर्फ आवश्यक online controls integrate करो।
+
+Online features existing design में naturally fit होने चाहिए।
+
+---
+
+47. ERROR HANDLING
+
+इन सभी states के लिए proper UI:
+
+Connecting...
+Finding Match...
+Creating Room...
+Joining Room...
+Waiting For Players...
+Starting Game...
+Connection Lost...
+Reconnecting...
+Voice Connecting...
+Voice Disconnected...
+
+Raw technical error users को मत दिखाओ।
+
+---
+
+48. REPLIT ENVIRONMENT
+
+पूरा implementation Replit पर run होना चाहिए।
+
+Frontend + Backend सही तरीके से configure करो।
+
+WebSocket connections Replit deployment पर काम करें।
+
+Production deployment के लिए required configuration बताओ।
+
+---
+
+49. SECRETS
+
+API keys/passwords source code में hard-code मत करो।
+
+Replit Secrets / environment variables इस्तेमाल करो।
+
+अगर voice service या अन्य external service की आवश्यकता हो तो:
+
+- exact service name
+- purpose
+- required keys
+- free/paid limitations
+
+स्पष्ट बताओ।
+
+---
+
+50. IMPORTANT — DO NOT INVENT SERVICES
+
+अगर कोई service/API वास्तव में configured नहीं है तो fake API key या fake implementation मत बनाओ।
+
+जो service use कर रहे हो उसी के official SDK/API के अनुसार implementation करो।
+
+---
+
+51. TESTING
+
+Implementation के बाद कम से कम 2 अलग clients से test करो।
+
+Test:
+
+1. Create Room
+2. Join Room
+3. Ready
+4. Start Game
+5. Dice Roll
+6. Token Move
+7. Capture
+8. Safe Zone
+9. Extra Turn
+10. Turn Change
+11. Chat
+12. Voice Chat
+13. Mic Mute
+14. Player Mute
+15. Disconnect
+16. Reconnect
+17. Host Disconnect
+18. Winner
+19. Rematch
+
+फिर 4-player test भी करो।
+
+---
+
+52. FINAL ACCEPTANCE TEST
+
+Feature तभी complete माना जाए जब:
+
+✅ Device A और Device B एक ही room join कर सकें
+✅ दोनों को same Ludo board state मिले
+✅ Dice synchronized हो
+✅ Token movement synchronized हो
+✅ Turn synchronized हो
+✅ Capture synchronized हो
+✅ Winner synchronized हो
+✅ Player disconnect/reconnect कर सके
+✅ Text chat real-time हो
+✅ Voice chat वास्तविक microphone के साथ काम करे
+✅ Mic mute काम करे
+✅ Individual player mute काम करे
+✅ Sound effects काम करें
+✅ Existing Ludo UI खराब न हो
+✅ Server invalid moves रोक सके
+✅ App crash न हो
+
+---
+
+53. IMPLEMENTATION ORDER
+
+इस order में काम करो:
+
+PHASE 1
+Existing project inspection
+
+PHASE 2
+Existing Ludo architecture समझना
+
+PHASE 3
+Backend / real-time server
+
+PHASE 4
+Room system
+
+PHASE 5
+Player authentication
+
+PHASE 6
+Game state synchronization
+
+PHASE 7
+Dice synchronization
+
+PHASE 8
+Token synchronization
+
+PHASE 9
+Turn synchronization
+
+PHASE 10
+Disconnect + reconnect
+
+PHASE 11
+Text chat
+
+PHASE 12
+Voice chat / WebRTC
+
+PHASE 13
+Sound system
+
+PHASE 14
+Anti-cheat
+
+PHASE 15
+Testing
+
+PHASE 16
+Production deployment
+
+---
+
+54. VERY IMPORTANT FINAL INSTRUCTION
+
+मौजूदा Ludo को फिर से मत बनाओ।
+
+मेरा Ludo पहले से तैयार है।
+
+मुझे केवल:
+
+ONLINE MULTIPLAYER
++
+REAL-TIME SERVER
++
+ROOM SYSTEM
++
+MATCHMAKING
++
+CHAT
++
+REAL-TIME VOICE CHAT
++
+MIC/MUTE
++
+SOUND
++
+RECONNECT
++
+ONLINE STATUS
++
+ANTI-CHEAT
+
+जोड़ना है।
+
+पहले existing files को inspect करो।
+
+फिर बताओ:
+
+1. कौन-कौन सी existing files modify होंगी
+2. कौन-कौन सी नई files बनेंगी
+3. कौन से packages install करने होंगे
+4. कौन सा backend चाहिए
+5. कौन सा database इस्तेमाल होगा
+6. voice chat के लिए कौन सा infrastructure चाहिए
+7. कौन-कौन से Replit Secrets चाहिए
+
+इसके बाद implementation शुरू करो।
+
+किसी existing Ludo functionality को बिना आवश्यकता हटाना या बदलना नहीं है।
+
+Final result एक वास्तविक GAMEZONE ARENA Online Ludo होना चाहिए जिसमें अलग-अलग devices के real players एक ही match में real-time खेल सकें, text chat कर सकें और voice chat से बात कर सकें।
