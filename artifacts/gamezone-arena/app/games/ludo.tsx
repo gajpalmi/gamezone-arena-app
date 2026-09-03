@@ -15,6 +15,7 @@ import {
 import { useUser } from "@clerk/expo";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
+import { Asset } from "expo-asset";
 import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from "expo-av";
 import * as Haptics from "expo-haptics";
 import * as Crypto from "expo-crypto";
@@ -324,6 +325,7 @@ export default function Ludo() {
   const pendingTimers = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
   const rollGeneration = useRef(0);
   const soundsRef = useRef<Partial<Record<SoundFileKey, Audio.Sound>>>({});
+  const webSoundsRef = useRef<Partial<Record<SoundFileKey, HTMLAudioElement>>>({});
   const soundsReadyRef = useRef<Promise<void> | null>(null);
 
   const activePlayers = PLAYER_SETS[playerCount];
@@ -360,7 +362,23 @@ export default function Ludo() {
       });
 
     async function prepareSounds() {
-      if (Platform.OS === "web") return;
+      const entries = Object.entries(SOUND_FILES) as [
+        SoundFileKey,
+        number,
+      ][];
+
+      if (Platform.OS === "web") {
+        entries.forEach(([key, source]) => {
+          const audio = new window.Audio(Asset.fromModule(source).uri);
+          audio.preload = "auto";
+          audio.volume = 1;
+          webSoundsRef.current[key] = audio;
+        });
+        if (__DEV__) {
+          console.log(`[LUDO AUDIO] ${entries.length} web effects prepared`);
+        }
+        return;
+      }
 
       await Audio.setIsEnabledAsync(true);
       await Audio.setAudioModeAsync({
@@ -373,10 +391,6 @@ export default function Ludo() {
         playThroughEarpieceAndroid: false,
       });
 
-      const entries = Object.entries(SOUND_FILES) as [
-        SoundFileKey,
-        number,
-      ][];
       await Promise.all(
         entries.map(async ([key, source]) => {
           const { sound, status } = await Audio.Sound.createAsync(
@@ -413,6 +427,13 @@ export default function Ludo() {
       }
       const loadedSounds = Object.values(soundsRef.current);
       soundsRef.current = {};
+      const webSounds = Object.values(webSoundsRef.current);
+      webSoundsRef.current = {};
+      webSounds.forEach((sound) => {
+        sound.pause();
+        sound.removeAttribute("src");
+        sound.load();
+      });
       void Promise.all(
         loadedSounds.map((sound) =>
           sound.unloadAsync().catch(() => undefined),
@@ -422,6 +443,10 @@ export default function Ludo() {
   }, []);
 
   function stopAllSounds() {
+    Object.values(webSoundsRef.current).forEach((sound) => {
+      sound.pause();
+      sound.currentTime = 0;
+    });
     Object.values(soundsRef.current).forEach((sound) => {
       void sound.pauseAsync().catch((error) => {
         if (__DEV__) console.warn("A Ludo sound could not be stopped.", error);
@@ -468,14 +493,36 @@ export default function Ludo() {
       victory: "win",
       start: "start",
     } as const;
+    const soundKey = map[type];
+
+    if (Platform.OS === "web") {
+      const sound =
+        webSoundsRef.current[soundKey] ??
+        new window.Audio(Asset.fromModule(SOUND_FILES[soundKey]).uri);
+      webSoundsRef.current[soundKey] = sound;
+      sound.pause();
+      sound.currentTime = 0;
+      sound.volume = 1;
+      const playback = sound.play();
+      if (playback) {
+        void playback
+          .then(() => {
+            if (__DEV__) {
+              console.log(`[LUDO AUDIO] played ${type} in web browser`);
+            }
+          })
+          .catch((error) => {
+            console.warn(`Ludo ${type} web sound was blocked.`, error);
+          });
+      }
+      return;
+    }
 
     void (async () => {
       await soundsReadyRef.current;
-      const sound = soundsRef.current[map[type]];
+      const sound = soundsRef.current[soundKey];
       if (!sound) {
-        if (Platform.OS !== "web") {
-          console.warn(`Ludo ${type} sound is unavailable.`);
-        }
+        console.warn(`Ludo ${type} sound is unavailable.`);
         return;
       }
 

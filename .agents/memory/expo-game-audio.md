@@ -3,8 +3,8 @@ name: Expo game audio reliability
 description: Durable constraints for reliable short sound effects in the Expo game on Android.
 ---
 
-Use bundled local OGG/Opus effects through the imperative `expo-av` Sound API, explicitly enable audio, route playback to the speaker, and register `ogg` in Metro asset extensions.
+Use local OGG effects with separate playback paths: direct synchronous HTML Audio for web previews, and imperative `expo-av` with speaker routing for native Android. Register `ogg` in Metro.
 
-**Why:** Android Expo Go repeatedly produced vibration with no audible effect even when WAV files and dependencies were valid. `expo-audio` accepted play calls without output; OGG also fails bundling unless Metro explicitly recognizes it.
+**Why:** Testing happened in mobile Chrome, where native speaker-routing changes do not apply and an async wait can lose browser user-gesture permission. OGG also fails bundling unless Metro recognizes it.
 
-**How to apply:** Preload local OGG effects, verify loaded status, enable audio and speaker routing, use replay promises, register OGG with Metro, and confirm an Android export lists every sound asset.
+**How to apply:** On web call HTMLAudioElement.play synchronously from the tap; on native preload and replay through expo-av. Confirm web/native exports list every sound and check playback resolution in a real browser.
