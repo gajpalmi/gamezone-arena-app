@@ -1,0 +1,1 @@
+- [Ludo Supabase scope](ludo-supabase-scope.md) — keep chat disabled and use current room sync; do not invent the missing ludo_message schema.
