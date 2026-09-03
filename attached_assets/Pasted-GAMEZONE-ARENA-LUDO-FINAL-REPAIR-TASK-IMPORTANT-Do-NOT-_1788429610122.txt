@@ -1,0 +1,503 @@
+GAMEZONE ARENA – LUDO FINAL REPAIR TASK
+
+IMPORTANT:
+Do NOT ask me to upgrade Replit.
+Do NOT use any paid Replit Agent feature.
+Do NOT add any paid service.
+Do NOT install or require react-native-google-mobile-ads.
+Do NOT change or delete my Supabase tables.
+Do NOT drop/recreate database tables.
+Do NOT create a new project.
+Do NOT replace the whole project architecture.
+
+Work ONLY inside the existing GAMEZONE ARENA Expo/React Native project.
+
+FIRST PRIORITY:
+Fix the existing Ludo game completely and make it run without runtime errors.
+
+CURRENT ERROR:
+isPlayerFinished is not defined
+
+The error occurs around:
+app/games/ludo.tsx
+moveToken()
+around line 622.
+
+Fix this properly. Do not simply suppress the error.
+
+LUDO GAME REQUIREMENTS:
+
+1. PLAYER SETUP
+
+2 PLAYER:
+- Green and Blue must be opposite each other.
+- They must not appear on the same side.
+- Green must start from bottom-left.
+- Blue must start from top-right.
+
+3 PLAYER:
+- Green, Yellow and Red.
+- Each player must have their own correct corner/start area.
+- No two players should accidentally use the same color/start position.
+
+4 PLAYER:
+- Green = bottom-left
+- Yellow = top-left
+- Blue = top-right
+- Red = bottom-right
+- All four players must have four separate home areas.
+- All four must be playable.
+
+There must be NO computer/bot player.
+All players are human Pass & Play in offline mode.
+
+2. TOKEN SYSTEM
+
+Each active player gets exactly 4 tokens.
+
+2 players = 8 tokens.
+3 players = 12 tokens.
+4 players = 16 tokens.
+
+Tokens must be clearly visible.
+
+Tokens must:
+- open correctly when the required dice number is rolled
+- move according to dice value
+- stop at the correct destination
+- enter the player's colored home lane
+- reach final home
+- become finished correctly
+- never produce "This player is not finished" incorrectly
+
+VERY IMPORTANT:
+Create and use one reliable helper:
+
+isPlayerFinished(player)
+
+It MUST be defined before moveToken() and used consistently.
+
+It must return true ONLY when all 4 tokens of that player have reached the final home position.
+
+Do not reference an undefined variable/function.
+
+3. TURN SYSTEM
+
+Only the current player's turn can move a token.
+
+After dice roll:
+- valid move -> allow token selection
+- invalid move -> show a clear message
+- no valid token -> automatically pass turn after a short delay
+- never get stuck
+- never show a false "This player is not finished" warning
+
+Turn order must work correctly for:
+2 players
+3 players
+4 players
+
+Turn order must use only active players.
+
+4. DICE
+
+Create a proper Ludo dice.
+
+Dice value must be random from 1 to 6.
+
+Show real dice pips:
+1
+2
+3
+4
+5
+6
+
+Do not show debug text such as:
+HOME GOTI
+POSITION
+DEBUG
+TEST
+etc.
+
+Each active player's dice/control must be associated with the correct player.
+
+5. SIX RULE
+
+Rolling 6:
+- gives an extra turn
+- allows opening a token if it is still inside home
+- allows normal movement when applicable
+
+Three consecutive 6 rolls:
+- cancel the third-six sequence according to normal Ludo rules
+- do not allow an invalid extra turn
+- reset the six counter correctly
+
+6. CAPTURE RULE
+
+If a token lands on an opponent token on a non-safe square:
+- opponent token goes back home
+- capture sound plays
+- strong vibration plays
+- player gets an extra turn
+
+If opponent has a stack of 2 or more tokens on the same square:
+- do NOT cut the stack.
+
+7. SAFE/STARS
+
+Use proper safe/star cells.
+
+Tokens on safe cells must not be captured.
+
+Star positions must be visually obvious.
+
+Do not put stars on incorrect cells.
+
+8. FINAL HOME
+
+When a token reaches final home:
+- play home sound
+- strong vibration
+- give extra turn according to the rules
+- mark that token finished
+
+When all 4 tokens of one player reach final home:
+- that player is finished
+- record finish order
+- show winning/finished status correctly
+- do not show "This player is not finished"
+
+9. SOUND – VERY IMPORTANT
+
+The current sound system is NOT working.
+
+Do NOT use remote internet sound URLs.
+
+Use LOCAL AUDIO ONLY.
+
+Use expo-audio, which is already compatible with the Expo project.
+
+Create a robust local sound system using local require() assets.
+
+Required sounds:
+
+dice-roll.wav
+move.wav
+capture.wav
+home.wav
+win.wav
+safe.wav
+click.wav
+turn.wav
+
+If some files are missing, use an existing local WAV as a temporary fallback, but NEVER crash the application.
+
+Sound must:
+- preload/local-load correctly
+- play when dice is rolled
+- play when token moves
+- play when token captures another token
+- play when token reaches home
+- play when player wins
+- play for safe position
+- play for button click
+- play for turn change
+
+Use:
+setAudioModeAsync({ playsInSilentMode: true })
+
+Do NOT use unsupported audio configuration options.
+
+Before playing:
+- seekTo(0)
+- set volume
+- play
+
+Handle play promises safely.
+
+Do not use an empty catch that hides every error.
+Log sound errors with console.warn so they can be diagnosed.
+
+IMPORTANT:
+The sound toggle must NOT disable vibration.
+
+10. VIBRATION
+
+Vibration is currently too weak.
+
+Use React Native Vibration.
+
+Vibration must work independently from sound.
+
+Create:
+
+vibrateDice()
+vibrateMove()
+vibrateCapture()
+vibrateHome()
+vibrateTurn()
+vibrateWin()
+
+Use clearly noticeable vibration patterns.
+
+Suggested:
+
+dice:
+[0, 80]
+
+move:
+[0, 40]
+
+turn:
+[0, 40, 30, 40]
+
+safe:
+[0, 70, 30, 70]
+
+capture:
+[0, 120, 50, 120]
+
+home:
+[0, 100, 40, 100, 40, 150]
+
+win:
+[0, 150, 50, 150, 50, 250]
+
+IMPORTANT:
+Do not wrap vibration inside:
+if (!soundOn)
+
+Sound and vibration are separate settings.
+
+11. AUDIO + VIBRATION EVENT SYSTEM
+
+Create one safe function:
+
+triggerFeedback(type)
+
+It should independently call:
+
+playSound(type)
+vibrate(type)
+
+Sound failure must NEVER stop the game.
+
+Vibration failure must NEVER stop the game.
+
+Game logic must NEVER depend on sound or vibration successfully playing.
+
+12. EXISTING ASSETS
+
+Use the project's existing local sound files whenever available.
+
+Expected location:
+
+app/games/assets/sounds/
+
+Do not require internet audio.
+
+13. OFFLINE MODE
+
+Offline mode must work completely without Supabase.
+
+Options:
+2 Players
+3 Players
+4 Players
+
+All are human Pass & Play.
+
+2 players:
+Green vs Blue
+
+3 players:
+Green vs Yellow vs Red
+
+4 players:
+Green vs Yellow vs Blue vs Red
+
+14. ONLINE MODE
+
+Do NOT work on online multiplayer yet.
+
+Do NOT spend time adding new online services.
+
+Do NOT change Supabase.
+
+Do NOT add paid services.
+
+FIRST make Offline Ludo completely stable.
+
+15. UI
+
+Professional clean Ludo board.
+
+Four proper colored home areas.
+
+Correct colored paths.
+
+16 visible tokens when 4 players are selected.
+
+Responsive on Android phone.
+
+Dice should be clearly visible.
+
+No debug labels.
+
+No unnecessary warning messages.
+
+16. ERROR HANDLING
+
+Search the complete ludo.tsx file for:
+
+isPlayerFinished
+playerFinished
+finishOrder
+moveToken
+currentTurn
+diceValue
+
+Make sure:
+- no undefined functions
+- no undefined variables
+- no stale references
+- no duplicate helper functions with conflicting behavior
+- no invalid React hooks
+- no invalid imports
+
+17. TYPESCRIPT
+
+After fixing:
+
+Run:
+
+npx tsc --noEmit
+
+There must be ZERO TypeScript errors.
+
+Then run:
+
+npx expo start --clear
+
+Make sure the Ludo screen actually opens.
+
+18. IMPORTANT TEST CHECKLIST
+
+Test all of these manually:
+
+TEST 1:
+2 players
+Green vs Blue
+Green and Blue opposite corners.
+
+TEST 2:
+3 players
+Green + Yellow + Red
+three different corners.
+
+TEST 3:
+4 players
+Green + Yellow + Blue + Red
+four different corners.
+
+TEST 4:
+Roll dice.
+Dice sound must play.
+Dice vibration must happen.
+
+TEST 5:
+Open token.
+Token movement sound must play.
+Vibration must happen.
+
+TEST 6:
+Capture opponent.
+Capture sound must play.
+Strong vibration must happen.
+
+TEST 7:
+Reach home.
+Home sound must play.
+Vibration must happen.
+
+TEST 8:
+Finish all four tokens.
+Win sound must play.
+Strong win vibration must happen.
+
+TEST 9:
+Turn changes correctly.
+
+TEST 10:
+No:
+"This player is not finished"
+unless the player genuinely has not finished.
+
+19. DO NOT BREAK EXISTING PROJECT
+
+Before modifying ludo.tsx:
+make a backup:
+
+cp app/games/ludo.tsx app/games/ludo-before-final-repair.tsx.bak
+
+Then modify the existing file.
+
+Do not delete other screens.
+
+Do not modify authentication.
+
+Do not modify Supabase tables.
+
+Do not modify unrelated games.
+
+20. FINAL REQUIREMENT
+
+Do the repair directly in the existing project.
+
+Do not just tell me what code I should change.
+
+Actually fix the code.
+
+After fixing, run TypeScript validation.
+
+If TypeScript reports an error, fix it before finishing.
+
+Do not stop after finding one error.
+
+Search the complete file and fix all related Ludo runtime problems.
+
+FINAL RESULT MUST BE:
+
+OFFLINE LUDO
++
+2/3/4 HUMAN PLAYERS
++
+CORRECT OPPOSITE PLAYER POSITIONS
++
+CORRECT TOKENS
++
+CORRECT DICE
++
+CORRECT TURN SYSTEM
++
+CORRECT CAPTURE
++
+CORRECT SAFE CELLS
++
+CORRECT HOME/FINISH
++
+WORKING LOCAL SOUND
++
+STRONG VIBRATION
++
+NO "isPlayerFinished is not defined"
++
+NO "This player is not finished" FALSE WARNING
++
+ZERO TYPESCRIPT ERRORS.
+
+Do not ask me for a paid upgrade.
+Do not ask me to install a paid service.
+Do not use Replit paid features.
