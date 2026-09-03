@@ -15,7 +15,7 @@ import {
 import { useUser } from "@clerk/expo";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { setAudioModeAsync, useAudioPlayer } from "expo-audio";
+import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from "expo-av";
 import * as Haptics from "expo-haptics";
 import * as Crypto from "expo-crypto";
 import { AdBannerPlaceholder } from "@/components/AdBannerPlaceholder";
@@ -157,6 +157,7 @@ const SOUND_FILES = {
   win: require("./assets/sounds/win.wav"),
   start: require("./assets/sounds/turn.wav"),
 } as const;
+type SoundFileKey = keyof typeof SOUND_FILES;
 
 const SOUND_SETTING_KEY = "@gamezone/ludo/sound-enabled/v1";
 const VIBRATION_SETTING_KEY = "@gamezone/ludo/vibration-enabled/v1";
@@ -322,49 +323,8 @@ export default function Ludo() {
   const roomChannel = useRef<any>(null);
   const pendingTimers = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
   const rollGeneration = useRef(0);
-  // Bundle local effects directly instead of copying them through Expo's
-  // temporary asset cache. This avoids Android/Expo Go cache misses and keeps
-  // the audio session alive between short game effects.
-  const nativeAudioOptions = {
-    downloadFirst: false,
-    keepAudioSessionActive: true,
-  };
-  const diceAudio = useAudioPlayer(
-    Platform.OS === "web" ? null : SOUND_FILES.dice,
-    nativeAudioOptions
-  );
-  const moveAudio = useAudioPlayer(
-    Platform.OS === "web" ? null : SOUND_FILES.move,
-    nativeAudioOptions
-  );
-  const captureAudio = useAudioPlayer(
-    Platform.OS === "web" ? null : SOUND_FILES.capture,
-    nativeAudioOptions
-  );
-  const homeAudio = useAudioPlayer(
-    Platform.OS === "web" ? null : SOUND_FILES.home,
-    nativeAudioOptions
-  );
-  const safeAudio = useAudioPlayer(
-    Platform.OS === "web" ? null : SOUND_FILES.safe,
-    nativeAudioOptions
-  );
-  const clickAudio = useAudioPlayer(
-    Platform.OS === "web" ? null : SOUND_FILES.click,
-    nativeAudioOptions
-  );
-  const turnAudio = useAudioPlayer(
-    Platform.OS === "web" ? null : SOUND_FILES.turn,
-    nativeAudioOptions
-  );
-  const winAudio = useAudioPlayer(
-    Platform.OS === "web" ? null : SOUND_FILES.win,
-    nativeAudioOptions
-  );
-  const startAudio = useAudioPlayer(
-    Platform.OS === "web" ? null : SOUND_FILES.start,
-    nativeAudioOptions
-  );
+  const soundsRef = useRef<Partial<Record<SoundFileKey, Audio.Sound>>>({});
+  const soundsReadyRef = useRef<Promise<void> | null>(null);
 
   const activePlayers = PLAYER_SETS[playerCount];
   const currentDice = diceValues[player];
@@ -399,14 +359,48 @@ export default function Ludo() {
         if (__DEV__) console.warn("Ludo settings could not be loaded.", error);
       });
 
-    void setAudioModeAsync({
-      playsInSilentMode: true,
-      interruptionMode: "mixWithOthers",
-      allowsRecording: false,
-      shouldPlayInBackground: false,
-      shouldRouteThroughEarpiece: false,
-    }).catch((error) => {
-      console.warn("Ludo audio mode could not be configured.", error);
+    async function prepareSounds() {
+      if (Platform.OS === "web") return;
+
+      await Audio.setIsEnabledAsync(true);
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        interruptionModeIOS: InterruptionModeIOS.MixWithOthers,
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: false,
+        interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
+        shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
+      });
+
+      const entries = Object.entries(SOUND_FILES) as [
+        SoundFileKey,
+        number,
+      ][];
+      await Promise.all(
+        entries.map(async ([key, source]) => {
+          const { sound, status } = await Audio.Sound.createAsync(
+            source,
+            { shouldPlay: false, volume: 1, isMuted: false },
+            undefined,
+            true,
+          );
+          if (!status.isLoaded) {
+            await sound.unloadAsync();
+            throw new Error(`${key} did not load`);
+          }
+          soundsRef.current[key] = sound;
+        }),
+      );
+      if (__DEV__) {
+        console.log(
+          `[LUDO AUDIO] ${entries.length} local effects loaded with expo-av`,
+        );
+      }
+    }
+
+    soundsReadyRef.current = prepareSounds().catch((error) => {
+      console.warn("Ludo sounds could not be prepared.", error);
     });
 
     return () => {
@@ -417,35 +411,21 @@ export default function Ludo() {
       if (roomChannel.current && supabase) {
         void supabase.removeChannel(roomChannel.current);
       }
-      try { diceAudio.pause(); } catch {}
-      try { moveAudio.pause(); } catch {}
-      try { captureAudio.pause(); } catch {}
-      try { homeAudio.pause(); } catch {}
-      try { safeAudio.pause(); } catch {}
-      try { clickAudio.pause(); } catch {}
-      try { turnAudio.pause(); } catch {}
-      try { winAudio.pause(); } catch {}
-      try { startAudio.pause(); } catch {}
+      const loadedSounds = Object.values(soundsRef.current);
+      soundsRef.current = {};
+      void Promise.all(
+        loadedSounds.map((sound) =>
+          sound.unloadAsync().catch(() => undefined),
+        ),
+      );
     };
   }, []);
 
   function stopAllSounds() {
-    [
-      diceAudio,
-      moveAudio,
-      captureAudio,
-      homeAudio,
-      safeAudio,
-      clickAudio,
-      turnAudio,
-      winAudio,
-      startAudio,
-    ].forEach((audio) => {
-      try {
-        audio.pause();
-      } catch (error) {
+    Object.values(soundsRef.current).forEach((sound) => {
+      void sound.pauseAsync().catch((error) => {
         if (__DEV__) console.warn("A Ludo sound could not be stopped.", error);
-      }
+      });
     });
   }
 
@@ -471,41 +451,46 @@ export default function Ludo() {
   function playSound(type: GameSound, force = false) {
     if (!soundOn && !force) return;
 
-    const map = {
-      dice: diceAudio,
-      diceResult: diceAudio,
-      move: moveAudio,
-      tokenOpen: moveAudio,
-      capture: captureAudio,
-      stack: safeAudio,
-      home: homeAudio,
-      homePath: homeAudio,
-      safe: safeAudio,
-      click: clickAudio,
-      turn: turnAudio,
-      warning: turnAudio,
-      win: winAudio,
-      victory: winAudio,
-      start: startAudio,
+    const map: Record<GameSound, SoundFileKey> = {
+      dice: "dice",
+      diceResult: "dice",
+      move: "move",
+      tokenOpen: "move",
+      capture: "capture",
+      stack: "safe",
+      home: "home",
+      homePath: "home",
+      safe: "safe",
+      click: "click",
+      turn: "turn",
+      warning: "turn",
+      win: "win",
+      victory: "win",
+      start: "start",
     } as const;
 
-    const audio = map[type];
     void (async () => {
-      // A first tap can arrive while Metro is still handing the bundled WAV to
-      // the native player. Wait briefly rather than silently dropping it.
-      for (let attempt = 0; attempt < 20 && !audio.isLoaded; attempt += 1) {
-        await new Promise((resolve) => setTimeout(resolve, 50));
-      }
-
-      if (!audio.isLoaded) {
-        console.warn(`Ludo ${type} sound did not finish loading.`);
+      await soundsReadyRef.current;
+      const sound = soundsRef.current[map[type]];
+      if (!sound) {
+        if (Platform.OS !== "web") {
+          console.warn(`Ludo ${type} sound is unavailable.`);
+        }
         return;
       }
 
       try {
-        audio.volume = 1;
-        await audio.seekTo(0);
-        audio.play();
+        const status = await sound.replayAsync({
+          positionMillis: 0,
+          shouldPlay: true,
+          volume: 1,
+          isMuted: false,
+        });
+        if (!status.isLoaded) {
+          console.warn(`Ludo ${type} sound playback did not load.`);
+        } else if (__DEV__) {
+          console.log(`[LUDO AUDIO] played ${type} at full volume`);
+        }
       } catch (error) {
         console.warn(`Ludo ${type} sound could not be played.`, error);
       }
