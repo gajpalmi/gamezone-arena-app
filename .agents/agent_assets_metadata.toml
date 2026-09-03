@@ -1,0 +1,16 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "JafgsCFxW0iX_4jdX05sy"
+uri = "file://screenshots/ludo-final-ogg-sound.jpg"
+type = "image"
+title = "Ludo Final Preview"
+description = "Final GAMEZONE ARENA Ludo screen after integrating verified local OGG sound assets."
+logical_id = "63155338-b6ba-4346-9ee8-fe6bd2c4bb7b"
+content_hash = "sha256:d4c88d84cffa0ebf2f378e33ba47c80180b536ad42c8936d4635e0aa54c97ff0"
+size = 50695
+mtime_ms = 1788437297458
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7b7691e1-7821-483d-8acd-32f06728811e/63155338-b6ba-4346-9ee8-fe6bd2c4bb7b/9b2a1532-1f57-4998-9ff8-246b85d77c5e"
+storage_version_token = "1788437320690276"
+content_type = "image/jpeg"

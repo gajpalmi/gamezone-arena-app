@@ -147,15 +147,15 @@ const FINISH_LANES: Record<Player, [number, number][]> = {
 };
 
 const SOUND_FILES = {
-  dice: require("./assets/sounds/dice-roll.wav"),
-  move: require("./assets/sounds/move.wav"),
-  capture: require("./assets/sounds/capture.wav"),
-  home: require("./assets/sounds/home.wav"),
-  safe: require("./assets/sounds/safe.wav"),
-  click: require("./assets/sounds/click.wav"),
-  turn: require("./assets/sounds/turn.wav"),
-  win: require("./assets/sounds/win.wav"),
-  start: require("./assets/sounds/turn.wav"),
+  dice: require("./assets/sounds/dice-roll.ogg"),
+  move: require("./assets/sounds/pop.ogg"),
+  capture: require("./assets/sounds/capture.ogg"),
+  home: require("./assets/sounds/win.ogg"),
+  safe: require("./assets/sounds/star.ogg"),
+  click: require("./assets/sounds/pop.ogg"),
+  turn: require("./assets/sounds/dice-roll.ogg"),
+  win: require("./assets/sounds/win.ogg"),
+  start: require("./assets/sounds/star.ogg"),
 } as const;
 type SoundFileKey = keyof typeof SOUND_FILES;
 
