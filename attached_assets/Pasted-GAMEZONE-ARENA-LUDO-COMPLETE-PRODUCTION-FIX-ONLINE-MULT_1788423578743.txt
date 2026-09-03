@@ -1,0 +1,918 @@
+GAMEZONE ARENA — LUDO COMPLETE PRODUCTION FIX & ONLINE MULTIPLAYER MASTER PROMPT
+
+IMPORTANT:
+Do NOT use Replit Agent.
+Do NOT require any paid AI service.
+Do NOT delete, drop, recreate, or destroy any existing Supabase tables.
+Do NOT change the existing working Ludo unnecessarily.
+Do NOT replace the current working game with a broken demo.
+First inspect the existing project and preserve all working Ludo gameplay.
+
+PROJECT:
+GAMEZONE ARENA
+
+TECH STACK:
+
+- Expo
+- React Native
+- Expo Router
+- TypeScript
+- Supabase
+- Clerk
+- expo-audio
+- React Native Vibration
+- Future native development build for AdMob and subscriptions
+
+MAIN FILE:
+app/games/ludo.tsx
+
+EXISTING SUPABASE TABLES:
+
+- ludo_rooms
+- ludo_players
+- ludo_moves
+- ludo_message
+
+IMPORTANT:
+These tables already exist.
+Never DROP them.
+Never recreate them.
+Never delete existing data.
+
+==================================================
+PART 1 — FIX THE CURRENT LUDO SOUND SYSTEM
+
+The Ludo game currently works without the previous movement error, but sound is not playing.
+
+Completely repair the sound system.
+
+Use local bundled audio files instead of depending on remote URLs.
+
+Use:
+
+- expo-audio
+- useAudioPlayer
+- local require() assets
+- downloadFirst: true where supported
+- playsInSilentMode: true
+
+Sound files:
+
+app/games/assets/sounds/dice-roll.wav
+app/games/assets/sounds/move.wav
+app/games/assets/sounds/capture.wav
+app/games/assets/sounds/home.wav
+app/games/assets/sounds/win.wav
+
+Create a robust sound manager.
+
+Required sounds:
+
+1. Dice roll
+2. Token movement
+3. Token capture/cut
+4. Safe-zone landing
+5. Token entering home
+6. Player turn
+7. Button click
+8. Winning
+9. Game start
+
+Each sound must:
+
+- load correctly
+- reset position before playing
+- play immediately
+- have appropriate volume
+- not crash the game if an audio file is missing
+- fail gracefully
+- never freeze the game
+
+IMPORTANT:
+Do not use an empty catch that hides all sound problems.
+Log sound-loading errors in development mode.
+
+Create:
+playGameSound(type)
+
+Supported types:
+dice
+move
+capture
+safe
+home
+turn
+click
+win
+start
+
+Sound toggle:
+
+- Sound ON/OFF
+- Persist setting locally
+- Sound OFF must stop sounds
+- Sound ON must restore sounds
+
+IMPORTANT:
+Sound must NOT depend on Bluetooth.
+Sound must work through the phone speaker when possible.
+
+==================================================
+PART 2 — VIBRATION SYSTEM
+
+Add a completely independent vibration manager.
+
+IMPORTANT:
+Vibration must work even when Sound is OFF.
+
+Use React Native Vibration.
+
+Patterns:
+
+dice:
+short vibration
+
+click:
+very short vibration
+
+move:
+light vibration
+
+safe:
+double light vibration
+
+capture:
+strong double vibration
+
+home:
+three-step vibration
+
+turn:
+two short vibrations
+
+win:
+long celebration vibration
+
+start:
+short confirmation vibration
+
+Create:
+
+vibrateGame(type)
+
+Never make vibration dependent on soundOn.
+
+Add:
+Vibration ON/OFF
+
+Persist vibration setting locally.
+
+If vibration is unavailable, do not crash the game.
+
+==================================================
+PART 3 — REMOVE ALL FALSE/DEBUG WARNINGS
+
+There must be NO message such as:
+
+"This player is not finished"
+
+unless it is genuinely required by the rules.
+
+Never reference an undefined function.
+
+Before finalizing the code, search the complete file for:
+
+isPlayerFinished
+playerFinished
+finished
+finishOrder
+onlineConnected
+createRoomCode
+
+Every function and variable must be defined before use.
+
+Do not use undefined variables.
+
+Run TypeScript checking:
+
+pnpm exec tsc --noEmit
+
+Fix every TypeScript error before declaring the work complete.
+
+==================================================
+PART 4 — CORRECT PLAYER POSITIONS
+
+The player arrangement must be physically correct.
+
+2 PLAYER MODE:
+
+Player 1 = Green
+Player 2 = Red
+
+They must be opposite each other.
+
+Do NOT put both players on the same side.
+
+3 PLAYER MODE:
+
+Player 1 = Green
+Player 2 = Yellow
+Player 3 = Red
+
+They must occupy three different corners.
+
+4 PLAYER MODE:
+
+Player 1 = Green
+Player 2 = Yellow
+Player 3 = Blue
+Player 4 = Red
+
+All four corners must be occupied.
+
+PLAYER COLOR MAP:
+
+Green = bottom-left
+Yellow = top-left
+Blue = top-right
+Red = bottom-right
+
+Do not automatically assign two players to the same corner.
+
+==================================================
+PART 5 — OFFLINE LUDO
+
+Offline mode must support:
+
+2 Players
+3 Players
+4 Players
+
+Offline means HUMAN PASS-AND-PLAY.
+
+There must be:
+NO Computer
+NO Bot
+NO AI opponent
+
+2 player:
+Green vs Red
+
+3 player:
+Green vs Yellow vs Red
+
+4 player:
+Green vs Yellow vs Blue vs Red
+
+Each player takes turns using the same physical device.
+
+Only the correct active player's dice should be active.
+
+==================================================
+PART 6 — COMPLETE LUDO RULES
+
+Implement standard Ludo behavior:
+
+- Six opens a token
+- Six gives another turn
+- Capturing gives another turn
+- Reaching home gives another turn
+- Three consecutive sixes cancel the turn according to the selected rules
+- Safe/star cells cannot be captured
+- Multiple own tokens can occupy the same cell
+- An opponent stack of 2 or more tokens cannot be cut
+- A single opponent token can be captured
+- Exact number required to reach home
+- Token cannot move beyond final home
+- Correct turn progression
+- Correct winner detection
+- Correct finish order
+
+IMPORTANT:
+Do not show debug position numbers on the board.
+
+Do not show:
+HOME GOTI 1
+position debug text
+internal coordinates
+developer labels
+
+The board must look like a real polished Ludo game.
+
+==================================================
+PART 7 — DICE
+
+Dice must visually look like a real Ludo dice.
+
+Values:
+1
+2
+3
+4
+5
+6
+
+Show real dice pips.
+
+Dice must animate/roll before final number appears.
+
+On dice roll:
+
+- play dice sound
+- vibration
+- display final value
+- update game state
+
+Dice must not randomly change after being displayed.
+
+Online:
+The dice result must be generated by the authoritative game state, not independently by every device.
+
+==================================================
+PART 8 — TOKEN ANIMATION
+
+When a token moves:
+
+1. Play movement sound
+2. Light vibration
+3. Animate token cell-by-cell
+4. Update final position
+5. Detect capture
+6. Detect safe cell
+7. Detect home
+8. Detect win
+9. Decide next turn
+
+Do not instantly teleport the token unless animation is disabled.
+
+==================================================
+PART 9 — ONLINE MULTIPLAYER
+
+Add REAL HUMAN online multiplayer.
+
+Do NOT use bots.
+
+Use Supabase Realtime.
+
+Supabase can synchronize multiplayer game state through Realtime.
+
+Use the existing tables:
+
+ludo_rooms
+ludo_players
+ludo_moves
+ludo_message
+
+Do not create duplicate versions of these tables.
+
+==================================================
+PART 10 — ONLINE ROOM SYSTEM
+
+Online screen:
+
+CREATE ROOM
+JOIN ROOM
+
+Player can select:
+
+2 Players
+3 Players
+4 Players
+
+Generate a unique room code.
+
+Example:
+GZA482
+
+Room should show:
+
+Room Code
+Players joined
+Player names
+Player colors
+Ready status
+Connection status
+
+Player names must use the real logged-in user's profile/name when available.
+
+Do not display fake names such as:
+Player 1
+Player 2
+
+unless no profile name is available.
+
+==================================================
+PART 11 — ONLINE COLOR ASSIGNMENT
+
+2 players:
+
+Green
+Red
+
+3 players:
+
+Green
+Yellow
+Red
+
+4 players:
+
+Green
+Yellow
+Blue
+Red
+
+The server/room state must assign these colors consistently.
+
+A reconnecting player must retain their assigned color.
+
+Do not randomly change player colors after reconnect.
+
+==================================================
+PART 12 — ONLINE REALTIME SYNCHRONIZATION
+
+Synchronize:
+
+- room state
+- player list
+- player connection status
+- current turn
+- dice value
+- token positions
+- captures
+- home status
+- finish order
+- winner
+- game started state
+
+Use Supabase Realtime.
+
+Prefer a reliable room-state synchronization model.
+
+Do not let every client independently decide the game result.
+
+==================================================
+PART 13 — ONLINE MOVE AUTHORITY
+
+IMPORTANT:
+
+Only the current player can roll the dice.
+
+Only the current player can move their token.
+
+A player must not be able to move another player's token.
+
+Validate:
+
+room_id
+player_id
+player_color
+current_turn
+dice_value
+token_number
+token_position
+
+before accepting an online move.
+
+Reject invalid moves safely.
+
+Never crash the app.
+
+==================================================
+PART 14 — ONLINE RECONNECT
+
+If the player temporarily loses internet:
+
+Show:
+
+Reconnecting...
+
+When connection returns:
+
+Restore:
+
+- room
+- player
+- color
+- current turn
+- dice
+- tokens
+- game state
+
+Do not reset the game.
+
+Do not create a duplicate player.
+
+Do not create a duplicate room.
+
+==================================================
+PART 15 — ONLINE CHAT
+
+Use existing:
+
+ludo_message
+
+Add a simple room chat.
+
+Features:
+
+- player name
+- message
+- timestamp
+- send button
+- realtime updates
+
+Do not create another chat table.
+
+==================================================
+PART 16 — SUPABASE SECURITY
+
+Do not disable RLS.
+
+Do not remove RLS.
+
+Do not use dangerous service-role keys inside the mobile app.
+
+Keep existing database structure.
+
+Check whether required tables are included in the supabase_realtime publication.
+
+Check existing RLS policies before changing anything.
+
+If a policy is missing, create only the minimum required policy.
+
+Never execute destructive SQL.
+
+==================================================
+PART 17 — ADMOB
+
+Prepare proper Google AdMob integration.
+
+IMPORTANT:
+
+AdMob is for mobile-app advertising.
+
+Do not incorrectly treat AdSense as the mobile-app advertising SDK.
+
+The app should have:
+
+1. Banner Ad
+2. Interstitial Ad
+3. Rewarded Ad
+
+Banner:
+
+- Home screen
+- Games list
+- Appropriate non-gameplay locations
+
+Interstitial:
+
+- After a completed game
+- Not during an active token move
+- Not during critical gameplay
+- Frequency limited
+
+Rewarded:
+
+- Optional reward
+- Extra virtual coins
+- Cosmetic reward
+- Optional revive/bonus where game rules allow
+
+Never reward real money.
+
+Never allow withdrawal.
+
+Virtual coins have no monetary value.
+
+==================================================
+PART 18 — EXPO GO VS PRODUCTION BUILD
+
+Keep the current Expo Go version working.
+
+Do NOT break Expo Go by importing native AdMob modules before the native build is configured.
+
+For Expo Go:
+Use a safe placeholder/ad abstraction.
+
+For production:
+Configure Google Mobile Ads using a development/production native build.
+
+Do not claim actual AdMob ads are working inside Expo Go if the native module is unavailable.
+
+Create a clean abstraction:
+
+AdService.showBanner()
+AdService.showInterstitial()
+AdService.showRewarded()
+
+The UI should not directly depend on the native AdMob implementation.
+
+==================================================
+PART 19 — SUBSCRIPTION SYSTEM
+
+Add a proper subscription architecture.
+
+Plans:
+
+FREE
+PREMIUM
+
+Premium can provide:
+
+- Remove ads
+- Premium themes
+- Premium avatars
+- Premium boards
+- Special cosmetics
+- Extra profile customization
+- Premium badges
+
+Do NOT make subscription purchase through a fake button.
+
+Create an abstraction:
+
+SubscriptionService
+
+Methods:
+
+initialize()
+getCustomerInfo()
+isPremium()
+purchasePremium()
+restorePurchases()
+
+For production, use a real mobile IAP system such as:
+
+- Google Play Billing / App Store billing
+  or
+- RevenueCat
+
+Do not store a fake "premium=true" value as proof of payment.
+
+The backend must verify entitlement where appropriate.
+
+==================================================
+PART 20 — VIRTUAL COINS
+
+Virtual coins are NOT real money.
+
+Display legal text:
+
+"Virtual coins have no monetary value and cannot be withdrawn."
+
+Do not implement:
+
+- cash gambling
+- betting
+- withdrawal
+- real-money Ludo
+- cash prizes
+
+Coins may be earned through:
+
+- gameplay
+- daily reward
+- rewarded advertisements
+- achievements
+- optional premium benefits
+
+==================================================
+PART 21 — UI
+
+Create professional GAMEZONE ARENA styling.
+
+Ludo board:
+
+- clean
+- responsive
+- mobile optimized
+- smooth animations
+- proper colored home areas
+- proper safe/star cells
+- visible 16 tokens in 4-player mode
+- external dice areas
+- no debug text
+
+Controls outside the board:
+
+Sound ON/OFF
+Vibration ON/OFF
+Exit
+Game settings
+
+Online controls:
+
+Room Code
+Players
+Connection
+Leave Room
+
+==================================================
+PART 22 — SOUND TEST SCREEN
+
+Add a small development-only sound test if necessary.
+
+Buttons:
+
+TEST DICE
+TEST MOVE
+TEST CAPTURE
+TEST HOME
+TEST WIN
+TEST VIBRATION
+
+This must only be visible in development/debug mode.
+
+It must help verify whether local audio assets are actually loading.
+
+==================================================
+PART 23 — ASSET VALIDATION
+
+At startup verify that these files are referenced:
+
+./assets/sounds/dice-roll.wav
+./assets/sounds/move.wav
+./assets/sounds/capture.wav
+./assets/sounds/home.wav
+./assets/sounds/win.wav
+
+If dice-roll.wav is missing, do NOT silently fail.
+
+Log:
+
+Ludo sound asset missing: dice-roll.wav
+
+Use a safe fallback only if necessary.
+
+==================================================
+PART 24 — CODE QUALITY
+
+Before final response:
+
+Run:
+
+pnpm exec tsc --noEmit
+
+Then run:
+
+npx expo start --clear
+
+Check:
+
+- no undefined functions
+- no undefined variables
+- no import errors
+- no native-module errors in Expo Go
+- no sound-loading crashes
+- no vibration crashes
+- no Realtime subscription crashes
+- no duplicate room subscriptions
+- no duplicate players
+- no duplicate game moves
+
+==================================================
+PART 25 — VERY IMPORTANT DATABASE SAFETY
+
+NEVER run:
+
+DROP TABLE
+DROP DATABASE
+DROP PUBLICATION
+DELETE FROM ludo_rooms
+DELETE FROM ludo_players
+DELETE FROM ludo_moves
+
+Do not recreate existing tables.
+
+Do not destroy existing game data.
+
+Only make additive/non-destructive changes when absolutely necessary.
+
+==================================================
+PART 26 — FINAL TEST MATRIX
+
+Test all of these:
+
+OFFLINE:
+
+2 players
+3 players
+4 players
+
+For every mode test:
+
+dice
+token opening
+movement
+safe cell
+capture
+stack
+home
+win
+extra turn
+three sixes
+turn switching
+sound
+vibration
+
+ONLINE:
+
+2 players
+3 players
+4 players
+
+Test:
+
+create room
+join room
+player names
+color assignment
+ready
+start
+dice synchronization
+token movement synchronization
+capture synchronization
+turn synchronization
+reconnect
+leave room
+winner
+finish order
+chat
+
+SOUND:
+
+dice sound
+move sound
+capture sound
+safe sound
+home sound
+win sound
+turn sound
+button sound
+
+VIBRATION:
+
+dice
+move
+capture
+safe
+home
+win
+turn
+
+ADS:
+
+banner abstraction
+interstitial abstraction
+rewarded abstraction
+
+SUBSCRIPTION:
+
+free user
+premium user
+restore purchase
+remove ads entitlement
+
+==================================================
+FINAL INSTRUCTION
+
+Do not simply say "done".
+
+Inspect the existing code first.
+
+Preserve all working Ludo gameplay.
+
+Fix only what is broken.
+
+Then implement the complete system described above.
+
+Most important priorities:
+
+1. Ludo gameplay must remain stable.
+2. Sound must actually play from local assets.
+3. Vibration must work independently.
+4. 2/3/4-player positions must be correct.
+5. Online must be real human multiplayer.
+6. Supabase Realtime must synchronize the game.
+7. AdMob must be production-ready without breaking Expo Go.
+8. Subscription must use real IAP architecture.
+9. No destructive database operations.
+10. TypeScript must compile without errors.
+
+After implementation, report exactly:
+
+- Files changed
+- Packages required
+- Commands to run
+- Expo Go limitations
+- Production build requirements
+- Any Supabase configuration required
+- Any remaining issue
+
+Do not ask the user to purchase Replit Agent.
+Do not require a paid Replit Agent.
+Do not create a fake online multiplayer.
+Do not create bots.
+Do not destroy the existing database.

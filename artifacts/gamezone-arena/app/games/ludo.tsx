@@ -13,8 +13,12 @@ import {
   Platform,
 } from "react-native";
 import { useUser } from "@clerk/expo";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRouter } from "expo-router";
 import { setAudioModeAsync, useAudioPlayer } from "expo-audio";
 import * as Crypto from "expo-crypto";
+import { AdService } from "@/services/AdService";
+import { SubscriptionService } from "@/services/SubscriptionService";
 import { supabase as supabaseMaybe } from "@/lib/supabase";
 
 const supabase = supabaseMaybe;
@@ -79,8 +83,8 @@ const COLORS = {
 // 3 players = three different corners.
 // 4 players = all four corners.
 const PLAYER_SETS: Record<PlayerCount, Player[]> = {
-  2: ["green", "blue"],
-  3: ["green", "yellow", "blue"],
+  2: ["green", "red"],
+  3: ["green", "yellow", "red"],
   4: ["green", "yellow", "blue", "red"],
 };
 
@@ -132,7 +136,11 @@ const SOUND_FILES = {
   click: require("./assets/sounds/click.wav"),
   turn: require("./assets/sounds/turn.wav"),
   win: require("./assets/sounds/win.wav"),
+  start: require("./assets/sounds/turn.wav"),
 } as const;
+
+const SOUND_SETTING_KEY = "@gamezone/ludo/sound-enabled/v1";
+const VIBRATION_SETTING_KEY = "@gamezone/ludo/vibration-enabled/v1";
 
 const EMPTY_DICE: DiceMap = {
   red: null,
@@ -255,6 +263,7 @@ function Dice({
 export default function Ludo() {
   const { width } = useWindowDimensions();
   const { user, isLoaded } = useUser();
+  const router = useRouter();
 
   const boardSize = Math.min(width - 20, 500);
   const cell = boardSize / 15;
@@ -265,6 +274,8 @@ export default function Ludo() {
   const [playerCount, setPlayerCount] = useState<PlayerCount>(4);
   const [gameMode, setGameMode] = useState<GameMode>("offline");
   const [soundOn, setSoundOn] = useState(true);
+  const [vibrationOn, setVibrationOn] = useState(true);
+  const [diceRolling, setDiceRolling] = useState(false);
   const [diceValues, setDiceValues] = useState<DiceMap>(EMPTY_DICE);
   const [rolled, setRolled] = useState(false);
   const [movingToken, setMovingToken] = useState<string | null>(null);
@@ -284,9 +295,11 @@ export default function Ludo() {
   const [settingsSearch, setSettingsSearch] = useState("");
   const [premiumOpen, setPremiumOpen] = useState(false);
   const [premiumActive, setPremiumActive] = useState(false);
+  const [premiumMessage, setPremiumMessage] = useState("");
 
   const roomChannel = useRef<any>(null);
   const pendingTimers = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+  const rollGeneration = useRef(0);
   const nativeAudioOptions = { downloadFirst: true };
   const diceAudio = useAudioPlayer(
     Platform.OS === "web" ? null : SOUND_FILES.dice,
@@ -320,6 +333,10 @@ export default function Ludo() {
     Platform.OS === "web" ? null : SOUND_FILES.win,
     nativeAudioOptions
   );
+  const startAudio = useAudioPlayer(
+    Platform.OS === "web" ? null : SOUND_FILES.start,
+    nativeAudioOptions
+  );
 
   const activePlayers = PLAYER_SETS[playerCount];
   const currentDice = diceValues[player];
@@ -334,6 +351,24 @@ export default function Ludo() {
     gameMode === "offline" ? true : myOnlinePlayer === player;
 
   useEffect(() => {
+    void Promise.all([
+      AsyncStorage.getItem(SOUND_SETTING_KEY),
+      AsyncStorage.getItem(VIBRATION_SETTING_KEY),
+      SubscriptionService.initialize(),
+      SubscriptionService.isPremium(),
+      AdService.showBanner("ludo"),
+    ])
+      .then(([storedSound, storedVibration, , premium]) => {
+        if (storedSound !== null) setSoundOn(storedSound === "true");
+        if (storedVibration !== null) {
+          setVibrationOn(storedVibration === "true");
+        }
+        setPremiumActive(premium);
+      })
+      .catch((error) => {
+        if (__DEV__) console.warn("Ludo settings could not be loaded.", error);
+      });
+
     void setAudioModeAsync({
       playsInSilentMode: true,
     }).catch((error) => {
@@ -343,6 +378,7 @@ export default function Ludo() {
     return () => {
       pendingTimers.current.forEach(clearTimeout);
       pendingTimers.current.clear();
+      rollGeneration.current += 1;
 
       if (roomChannel.current && supabase) {
         void supabase.removeChannel(roomChannel.current);
@@ -355,8 +391,46 @@ export default function Ludo() {
       try { clickAudio.pause(); } catch {}
       try { turnAudio.pause(); } catch {}
       try { winAudio.pause(); } catch {}
+      try { startAudio.pause(); } catch {}
     };
   }, []);
+
+  function stopAllSounds() {
+    [
+      diceAudio,
+      moveAudio,
+      captureAudio,
+      homeAudio,
+      safeAudio,
+      clickAudio,
+      turnAudio,
+      winAudio,
+      startAudio,
+    ].forEach((audio) => {
+      try {
+        audio.pause();
+      } catch (error) {
+        if (__DEV__) console.warn("A Ludo sound could not be stopped.", error);
+      }
+    });
+  }
+
+  function toggleSound() {
+    const next = !soundOn;
+    if (!next) stopAllSounds();
+    setSoundOn(next);
+    void AsyncStorage.setItem(SOUND_SETTING_KEY, String(next)).catch((error) => {
+      if (__DEV__) console.warn("Ludo sound setting could not be saved.", error);
+    });
+  }
+
+  function toggleVibration() {
+    const next = !vibrationOn;
+    setVibrationOn(next);
+    void AsyncStorage.setItem(VIBRATION_SETTING_KEY, String(next)).catch((error) => {
+      if (__DEV__) console.warn("Ludo vibration setting could not be saved.", error);
+    });
+  }
 
   function playSound(type: keyof typeof SOUND_FILES) {
     if (!soundOn) return;
@@ -370,6 +444,7 @@ export default function Ludo() {
       click: clickAudio,
       turn: turnAudio,
       win: winAudio,
+      start: startAudio,
     } as const;
 
     const audio = map[type];
@@ -391,6 +466,7 @@ export default function Ludo() {
   // Vibration is intentionally independent from the sound switch.
   // This makes haptics work even when the user has muted game sounds.
   function vibrate(type: keyof typeof SOUND_FILES) {
+    if (!vibrationOn) return;
     try {
       switch (type) {
         case "dice": Vibration.vibrate([0, 55]); break;
@@ -401,6 +477,7 @@ export default function Ludo() {
         case "home": Vibration.vibrate([0, 60, 35, 80, 35, 120]); break;
         case "turn": Vibration.vibrate([0, 30, 30, 30]); break;
         case "win": Vibration.vibrate([0, 90, 45, 90, 45, 180]); break;
+        case "start": Vibration.vibrate([0, 55]); break;
       }
     } catch (error) {
       console.warn("Ludo vibration could not be played.", error);
@@ -585,13 +662,32 @@ export default function Ludo() {
 
   async function rollDice(p: Player) {
     if (!activePlayers.includes(p)) return;
-    if (p !== player || rolled || movingToken !== null || gameFinished) return;
+    if (
+      p !== player ||
+      rolled ||
+      diceRolling ||
+      movingToken !== null ||
+      gameFinished
+    ) return;
     if (!canControlCurrentTurn) return;
 
+    const generation = ++rollGeneration.current;
+    setDiceRolling(true);
+    if (!gameStarted) sound("start");
     setGameStarted(true);
     sound("dice");
 
     const value = Math.floor(Math.random() * 6) + 1;
+    for (let frame = 0; frame < 7; frame++) {
+      if (rollGeneration.current !== generation) return;
+      const previewDice = cloneDice(diceValues);
+      previewDice[p] = Math.floor(Math.random() * 6) + 1;
+      setDiceValues(previewDice);
+      await wait(55);
+    }
+    if (rollGeneration.current !== generation) return;
+    setDiceRolling(false);
+
     const newSixCount = value === 6 ? sixCount + 1 : 0;
     const nextDice = cloneDice(diceValues);
     nextDice[p] = value;
@@ -786,6 +882,8 @@ export default function Ludo() {
   }
 
   function resetGame() {
+    rollGeneration.current += 1;
+    setDiceRolling(false);
     pendingTimers.current.forEach(clearTimeout);
     pendingTimers.current.clear();
     sound("click");
@@ -815,6 +913,8 @@ export default function Ludo() {
   }
 
   function changePlayerCount(count: PlayerCount) {
+    rollGeneration.current += 1;
+    setDiceRolling(false);
     sound("click");
     setPlayerCount(count);
     setTokens(createTokens());
@@ -828,6 +928,8 @@ export default function Ludo() {
   }
 
   async function disconnectRoom() {
+    rollGeneration.current += 1;
+    setDiceRolling(false);
     pendingTimers.current.forEach(clearTimeout);
     pendingTimers.current.clear();
 
@@ -1358,6 +1460,7 @@ export default function Ludo() {
     const active = player === p;
     // First turn is also rollable.
     const enabled = active && !rolled && movingToken === null && !gameFinished && canControlCurrentTurn;
+    const diceEnabled = enabled && !diceRolling;
 
     return (
       <View key={`external-dice-${p}`} style={styles.externalDiceSlot}>
@@ -1375,7 +1478,7 @@ export default function Ludo() {
             value={diceValues[p]}
             size={Math.max(36, Math.min(48, width * 0.105))}
             onPress={() => void rollDice(p)}
-            disabled={!enabled}
+            disabled={!diceEnabled}
             active={active}
           />
         </View>
@@ -1408,13 +1511,26 @@ export default function Ludo() {
           <View style={styles.headerButtons}>
             <Pressable
               onPress={() => {
-                sound("click");
-                setSoundOn((v) => !v);
+                vibrate("click");
+                toggleSound();
               }}
               style={styles.soundButton}
             >
               <Text style={styles.soundIcon}>{soundOn ? "🔊" : "🔇"}</Text>
               <Text style={styles.soundText}>{soundOn ? "ON" : "OFF"}</Text>
+            </Pressable>
+            <Pressable onPress={toggleVibration} style={styles.soundButton}>
+              <Text style={styles.soundIcon}>{vibrationOn ? "📳" : "🚫"}</Text>
+              <Text style={styles.soundText}>{vibrationOn ? "ON" : "OFF"}</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                void disconnectRoom();
+                router.back();
+              }}
+              style={styles.reset}
+            >
+              <Text style={styles.resetText}>EXIT</Text>
             </Pressable>
             <Pressable
               onPress={() => {
@@ -1567,6 +1683,11 @@ export default function Ludo() {
             )}
 
             {!!onlineMessage && <Text style={styles.onlineMessage}>{onlineMessage}</Text>}
+            {roomId && (
+              <Pressable onPress={() => void disconnectRoom()} style={styles.cancelButton}>
+                <Text style={styles.cancelButtonText}>LEAVE ROOM</Text>
+              </Pressable>
+            )}
           </View>
         )}
 
@@ -1621,17 +1742,28 @@ export default function Ludo() {
                 <Text style={styles.premiumPriceValue}>₹99</Text>
               </View>
               <Pressable
-                onPress={() => {
+                onPress={async () => {
                   sound("click");
-                  setPremiumActive(true);
-                  setPremiumOpen(false);
+                  const result = await SubscriptionService.purchasePremium();
+                  setPremiumMessage(result.message);
                 }}
                 style={styles.subscribeButton}
               >
-                <Text style={styles.subscribeButtonText}>
-                  {premiumActive ? "ACTIVE" : "SUBSCRIBE"}
-                </Text>
+                <Text style={styles.subscribeButtonText}>COMING SOON</Text>
               </Pressable>
+              <Pressable
+                onPress={async () => {
+                  const result = await SubscriptionService.restorePurchases();
+                  setPremiumMessage(result.message);
+                  setPremiumActive(await SubscriptionService.isPremium());
+                }}
+                style={styles.cancelButton}
+              >
+                <Text style={styles.cancelButtonText}>RESTORE PURCHASES</Text>
+              </Pressable>
+              {!!premiumMessage && (
+                <Text style={styles.premiumMessage}>{premiumMessage}</Text>
+              )}
               <Pressable onPress={() => setPremiumOpen(false)} style={styles.cancelButton}>
                 <Text style={styles.cancelButtonText}>CLOSE</Text>
               </Pressable>
@@ -1681,10 +1813,35 @@ export default function Ludo() {
 
               {(settingsSearch.trim() === "" ||
                 "sound audio".includes(settingsSearch.toLowerCase())) && (
-                <Pressable style={styles.settingRow} onPress={() => setSoundOn((v) => !v)}>
+                <Pressable style={styles.settingRow} onPress={toggleSound}>
                   <Text style={styles.settingName}>Sound</Text>
                   <Text style={styles.settingValue}>{soundOn ? "ON" : "OFF"}</Text>
                 </Pressable>
+              )}
+
+              {(settingsSearch.trim() === "" ||
+                "vibration haptics".includes(settingsSearch.toLowerCase())) && (
+                <Pressable style={styles.settingRow} onPress={toggleVibration}>
+                  <Text style={styles.settingName}>Vibration</Text>
+                  <Text style={styles.settingValue}>{vibrationOn ? "ON" : "OFF"}</Text>
+                </Pressable>
+              )}
+
+              {__DEV__ && settingsSearch.trim() === "" && (
+                <View style={styles.soundTestBox}>
+                  <Text style={styles.settingName}>Sound test</Text>
+                  <View style={styles.soundTestRow}>
+                    {(["dice", "move", "capture", "home", "win"] as const).map((type) => (
+                      <Pressable
+                        key={type}
+                        onPress={() => sound(type)}
+                        style={styles.soundTestButton}
+                      >
+                        <Text style={styles.soundTestText}>{type.toUpperCase()}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
               )}
 
               {(settingsSearch.trim() === "" ||
@@ -1729,11 +1886,19 @@ const styles = StyleSheet.create({
 
   header: {
     flexDirection: "row",
+    flexWrap: "wrap",
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: 10,
   },
-  headerButtons: { flexDirection: "row", alignItems: "center", gap: 6 },
+  headerButtons: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 6,
+    marginTop: 8,
+  },
   brand: { color: "#43DDF8", fontSize: 11, fontWeight: "900", letterSpacing: 2 },
   title: { color: "#FFFFFF", fontSize: 34, fontWeight: "900" },
 
@@ -2167,6 +2332,13 @@ const styles = StyleSheet.create({
   },
   premiumPriceText: { color: "#7787A7", fontSize: 8, fontWeight: "900" },
   premiumPriceValue: { color: "#FFFFFF", fontSize: 28, fontWeight: "900", marginTop: 2 },
+  premiumMessage: {
+    color: "#AFC0DE",
+    fontSize: 10,
+    lineHeight: 15,
+    textAlign: "center",
+    marginTop: 8,
+  },
   subscribeButton: {
     marginTop: 15,
     minHeight: 46,
@@ -2176,6 +2348,25 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   subscribeButtonText: { color: "#111827", fontSize: 11, fontWeight: "900" },
+  soundTestBox: {
+    marginTop: 8,
+    padding: 10,
+    borderRadius: 10,
+    backgroundColor: "#11182B",
+  },
+  soundTestRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    marginTop: 8,
+  },
+  soundTestButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 7,
+    backgroundColor: "#1B2C4D",
+  },
+  soundTestText: { color: "#43DDF8", fontSize: 7, fontWeight: "900" },
   cancelButton: {
     marginTop: 8,
     minHeight: 42,
