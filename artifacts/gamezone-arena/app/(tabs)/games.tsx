@@ -6,7 +6,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { Feather } from "@expo/vector-icons";
+import { Feather } from "@/components/Feather";
 import { useRouter } from "expo-router";
 import { AdBannerPlaceholder } from "@/components/AdBannerPlaceholder";
 

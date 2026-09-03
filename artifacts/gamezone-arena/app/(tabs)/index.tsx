@@ -1,4 +1,4 @@
-import { Feather } from '@expo/vector-icons';
+import { Feather } from '@/components/Feather';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth, useUser } from '@clerk/expo';
 import { useRouter } from 'expo-router';

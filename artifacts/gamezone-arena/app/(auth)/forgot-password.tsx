@@ -1,4 +1,4 @@
-import { Feather } from '@expo/vector-icons';
+import { Feather } from '@/components/Feather';
 import { useSignIn } from '@clerk/expo';
 import { type Href, Link, useRouter } from 'expo-router';
 import React, { useState } from 'react';
