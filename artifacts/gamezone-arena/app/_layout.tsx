@@ -10,6 +10,7 @@ import {
   ClerkLoading,
   ClerkProvider,
 } from '@clerk/expo';
+import { tokenCache } from '@clerk/expo/token-cache';
 
 import { Slot } from 'expo-router';
 
@@ -19,6 +20,8 @@ import {
 
 const CLERK_PUBLISHABLE_KEY =
   process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
+const CLERK_PROXY_URL =
+  process.env.EXPO_PUBLIC_CLERK_PROXY_URL || undefined;
 
 export default function RootLayout() {
   if (!CLERK_PUBLISHABLE_KEY) {
@@ -35,6 +38,8 @@ export default function RootLayout() {
   return (
     <ClerkProvider
       publishableKey={CLERK_PUBLISHABLE_KEY}
+      tokenCache={tokenCache}
+      proxyUrl={CLERK_PROXY_URL}
     >
       <ClerkLoading>
         <View style={styles.loading}>
