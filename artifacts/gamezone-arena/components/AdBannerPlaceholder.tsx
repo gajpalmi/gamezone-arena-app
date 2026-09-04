@@ -1,4 +1,8 @@
+import React, { useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
+
+import { AdService } from "@/services/AdService";
+import { getNativeAdsModule } from "@/services/NativeAds";
 
 type AdBannerPlaceholderProps = {
   placement: "home" | "games" | "ludo";
@@ -7,18 +11,65 @@ type AdBannerPlaceholderProps = {
 export function AdBannerPlaceholder({
   placement,
 }: AdBannerPlaceholderProps) {
+  const ads = useMemo(() => getNativeAdsModule(), []);
+  const [ready, setReady] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    void AdService.showBanner(placement).then((initialized) => {
+      if (active) setReady(initialized);
+    });
+    return () => {
+      active = false;
+    };
+  }, [placement]);
+
+  const unitId = AdService.getBannerUnitId();
+  if (ads && ready && unitId && !failed) {
+    return (
+      <View
+        accessibilityLabel={`Advertisement on ${placement}`}
+        style={styles.adContainer}
+      >
+        <ads.BannerAd
+          unitId={unitId}
+          size={ads.BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+          requestOptions={{ requestNonPersonalizedAdsOnly: true }}
+          onAdFailedToLoad={(error) => {
+            console.warn(`Banner ad failed at ${placement}.`, error);
+            setFailed(true);
+          }}
+        />
+      </View>
+    );
+  }
+
   return (
     <View
-      accessibilityLabel={`Reserved advertisement area on ${placement}`}
+      accessibilityLabel={`Advertisement area on ${placement}`}
       style={styles.container}
     >
       <Text style={styles.label}>ADVERTISEMENT</Text>
-      <Text style={styles.caption}>Reserved for the production mobile build</Text>
+      <Text style={styles.caption}>
+        {ads
+          ? failed
+            ? "Ad unavailable"
+            : "Loading ad…"
+          : "Native ads appear in Android development and release builds"}
+      </Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  adContainer: {
+    minHeight: 54,
+    marginVertical: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
   container: {
     minHeight: 54,
     marginVertical: 10,
@@ -40,5 +91,6 @@ const styles = StyleSheet.create({
     color: "#465570",
     fontSize: 7,
     marginTop: 3,
+    textAlign: "center",
   },
 });

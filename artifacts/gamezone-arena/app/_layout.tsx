@@ -17,6 +17,7 @@ import { Slot } from 'expo-router';
 import {
   AppSessionProvider,
 } from '@/context/AppSessionContext';
+import { AdService } from '@/services/AdService';
 
 const CLERK_PUBLISHABLE_KEY =
   process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
@@ -24,6 +25,10 @@ const CLERK_PROXY_URL =
   process.env.EXPO_PUBLIC_CLERK_PROXY_URL || undefined;
 
 export default function RootLayout() {
+  React.useEffect(() => {
+    void AdService.initialize();
+  }, []);
+
   if (!CLERK_PUBLISHABLE_KEY) {
     return (
       <View style={styles.error}>

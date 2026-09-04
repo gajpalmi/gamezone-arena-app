@@ -17,6 +17,7 @@
       "supportsTablet": false
     },
     "android": {
+      "package": "com.gamezonearena.app",
       "permissions": [
         "android.permission.VIBRATE"
       ]
@@ -34,7 +35,17 @@
       "expo-font",
       "expo-web-browser",
       "expo-audio",
-      "expo-asset"
+      "expo-asset",
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-5348301935438016~5109940531",
+          "iosAppId": "ca-app-pub-3940256099942544~1458002511",
+          "delayAppMeasurementInit": true,
+          "optimizeInitialization": true,
+          "optimizeAdLoading": true
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

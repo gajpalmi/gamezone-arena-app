@@ -338,6 +338,7 @@ export default function Ludo() {
   const [premiumMessage, setPremiumMessage] = useState("");
   const [rewardedAdReady, setRewardedAdReady] = useState(false);
   const [rewardedMessage, setRewardedMessage] = useState("");
+  const [adPrivacyMessage, setAdPrivacyMessage] = useState("");
   const [turnMessage, setTurnMessage] = useState("");
 
   const roomChannel = useRef<any>(null);
@@ -442,6 +443,13 @@ export default function Ludo() {
   const realName = isLoaded && user?.firstName?.trim() ? user.firstName.trim() : "Player";
   const canControlCurrentTurn =
     gameMode === "offline" ? true : myOnlinePlayer === player;
+  const rewardedRerollEligible =
+    rewardedAdReady &&
+    gameMode === "offline" &&
+    rolled &&
+    movingToken === null &&
+    !diceRolling &&
+    !gameFinished;
 
   function applyOnlineSnapshot(
     state: Partial<OnlineSnapshot> | null | undefined,
@@ -469,6 +477,11 @@ export default function Ludo() {
     setSupabaseAccessTokenGetter(() => getToken());
     return () => setSupabaseAccessTokenGetter(null);
   }, [getToken]);
+
+  useEffect(
+    () => RewardedAdService.subscribeToAvailability(setRewardedAdReady),
+    [],
+  );
 
   useEffect(() => {
     void Promise.all([
@@ -2102,27 +2115,34 @@ export default function Ludo() {
         <AdBannerPlaceholder placement="ludo" />
         <View style={styles.rewardedMoveBox}>
           <Pressable
-            disabled={!rewardedAdReady}
+            disabled={!rewardedRerollEligible}
             onPress={async () => {
               const result = await RewardedAdService.showRewardedAd();
               if (result.rewardEarned) {
-                RewardedAdService.onRewardEarned(() => {
-                  setRewardedMessage("Bonus move unlocked.");
-                });
+                const cleared = cloneDice(diceValues);
+                cleared[player] = null;
+                setDiceValues(cleared);
+                setRolled(false);
+                setSixCount(0);
+                setRewardedMessage("Reroll unlocked. Roll again with the same player.");
               } else {
                 setRewardedMessage(result.message);
               }
             }}
             style={[
               styles.rewardedMoveButton,
-              !rewardedAdReady && styles.rewardedMoveButtonDisabled,
+              !rewardedRerollEligible && styles.rewardedMoveButtonDisabled,
             ]}
           >
-            <Text style={styles.rewardedMoveTitle}>WATCH AD FOR BONUS MOVE</Text>
+            <Text style={styles.rewardedMoveTitle}>WATCH AD TO REROLL</Text>
             <Text style={styles.rewardedMoveText}>
-              {rewardedAdReady
-                ? "READY"
-                : "Rewarded ads are available in the production build."}
+              {gameMode === "online"
+                ? "Unavailable in online matches"
+                : rewardedRerollEligible
+                  ? "Optional: watch the full ad to reroll this dice"
+                  : rewardedAdReady
+                    ? "Roll the dice first to unlock an optional reroll"
+                    : "Loading in native Android builds"}
             </Text>
           </Pressable>
           {!!rewardedMessage && (
@@ -2291,6 +2311,29 @@ export default function Ludo() {
                   {premiumActive ? "ACTIVE" : "OPEN"}
                 </Text>
               </Pressable>
+
+              {(settingsSearch.trim() === "" ||
+                "ads privacy consent".includes(settingsSearch.toLowerCase())) && (
+                <>
+                  <Pressable
+                    style={styles.settingRow}
+                    onPress={async () => {
+                      const shown = await AdService.showPrivacyOptions();
+                      setAdPrivacyMessage(
+                        shown
+                          ? "Ad privacy choices updated."
+                          : "Ad privacy options are available when required in a native Android build.",
+                      );
+                    }}
+                  >
+                    <Text style={styles.settingName}>Ad Privacy</Text>
+                    <Text style={styles.settingValue}>OPEN</Text>
+                  </Pressable>
+                  {!!adPrivacyMessage && (
+                    <Text style={styles.rewardedMessage}>{adPrivacyMessage}</Text>
+                  )}
+                </>
+              )}
             </View>
           </View>
         </Modal>
