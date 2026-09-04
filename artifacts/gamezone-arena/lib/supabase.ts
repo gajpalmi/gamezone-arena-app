@@ -18,7 +18,24 @@ if (isPlaceholderUrl || isPlaceholderKey) {
   );
 }
 
+let accessTokenGetter: (() => Promise<string | null>) | null = null;
+
+export function setSupabaseAccessTokenGetter(
+  getter: (() => Promise<string | null>) | null,
+) {
+  accessTokenGetter = getter;
+  void refreshSupabaseRealtimeAuth();
+}
+
 export const supabase =
   !isPlaceholderUrl && !isPlaceholderKey
-    ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+    ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        accessToken: async () => accessTokenGetter?.() ?? null,
+      })
     : null;
+
+export async function refreshSupabaseRealtimeAuth() {
+  if (!supabase) return;
+  const token = await accessTokenGetter?.();
+  supabase.realtime.setAuth(token ?? SUPABASE_ANON_KEY);
+}

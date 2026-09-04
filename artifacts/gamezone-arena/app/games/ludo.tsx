@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
+  AppState,
   SafeAreaView,
   ScrollView,
   View,
@@ -12,7 +13,7 @@ import {
   Platform,
   Vibration,
 } from "react-native";
-import { useUser } from "@clerk/expo";
+import { useAuth, useUser } from "@clerk/expo";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { Asset } from "expo-asset";
@@ -23,7 +24,11 @@ import { AdBannerPlaceholder } from "@/components/AdBannerPlaceholder";
 import { AdService } from "@/services/AdService";
 import { RewardedAdService } from "@/services/RewardedAdService";
 import { SubscriptionService } from "@/services/SubscriptionService";
-import { supabase as supabaseMaybe } from "@/lib/supabase";
+import {
+  refreshSupabaseRealtimeAuth,
+  setSupabaseAccessTokenGetter,
+  supabase as supabaseMaybe,
+} from "@/lib/supabase";
 
 const supabase = supabaseMaybe;
 
@@ -77,6 +82,17 @@ type OnlineSnapshot = {
   finishOrder: Player[];
   sixCount: number;
   gameStarted: boolean;
+  revision?: number;
+};
+
+type OnlineRoomRow = {
+  id: string;
+  room_code: string;
+  status: string;
+  max_players: number;
+  current_turn: Player;
+  game_state?: Partial<OnlineSnapshot> | null;
+  updated_at?: string;
 };
 
 type OnlinePlayer = {
@@ -285,6 +301,7 @@ function Dice({
 export default function Ludo() {
   const { width } = useWindowDimensions();
   const { user, isLoaded } = useUser();
+  const { getToken } = useAuth();
   const router = useRouter();
 
   const boardSize = Math.min(width - 20, 500);
@@ -311,6 +328,7 @@ export default function Ludo() {
   const [onlinePlayers, setOnlinePlayers] = useState<OnlinePlayer[]>([]);
   const [onlineConnected, setOnlineConnected] = useState(false);
   const [onlineMessage, setOnlineMessage] = useState("");
+  const [onlineBusy, setOnlineBusy] = useState(false);
 
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -323,6 +341,10 @@ export default function Ludo() {
   const [turnMessage, setTurnMessage] = useState("");
 
   const roomChannel = useRef<any>(null);
+  const roomRevision = useRef(0);
+  const authoritativeSixCount = useRef(0);
+  const publishQueue = useRef<Promise<void>>(Promise.resolve());
+  const activeRoomId = useRef<string | null>(null);
   const pendingTimers = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
   const rollGeneration = useRef(0);
   const webSoundsRef = useRef<Partial<Record<SoundFileKey, HTMLAudioElement>>>({});
@@ -421,6 +443,33 @@ export default function Ludo() {
   const canControlCurrentTurn =
     gameMode === "offline" ? true : myOnlinePlayer === player;
 
+  function applyOnlineSnapshot(
+    state: Partial<OnlineSnapshot> | null | undefined,
+  ) {
+    if (!state) return false;
+    const incomingRevision = Number(state.revision ?? 0);
+    if (incomingRevision < roomRevision.current) return false;
+    roomRevision.current = incomingRevision;
+    if (Array.isArray(state.tokens)) setTokens(state.tokens);
+    if (state.player) setPlayer(state.player);
+    if (state.playerCount) setPlayerCount(state.playerCount);
+    if (state.diceValues) setDiceValues(state.diceValues);
+    if (typeof state.rolled === "boolean") setRolled(state.rolled);
+    setMovingToken(state.movingToken ?? null);
+    if (Array.isArray(state.finishOrder)) setFinishOrder(state.finishOrder);
+    if (typeof state.sixCount === "number") {
+      setSixCount(state.sixCount);
+      authoritativeSixCount.current = state.sixCount;
+    }
+    if (typeof state.gameStarted === "boolean") setGameStarted(state.gameStarted);
+    return true;
+  }
+
+  useEffect(() => {
+    setSupabaseAccessTokenGetter(() => getToken());
+    return () => setSupabaseAccessTokenGetter(null);
+  }, [getToken]);
+
   useEffect(() => {
     void Promise.all([
       AsyncStorage.getItem(SOUND_SETTING_KEY),
@@ -508,6 +557,34 @@ export default function Ludo() {
       });
     };
   }, []);
+
+  useEffect(() => {
+    if (gameMode !== "online" || !roomId || !supabase || !user?.id) return;
+
+    const setPresence = async (connected: boolean) => {
+      const id = activeRoomId.current;
+      if (!id) return;
+      const { error } = await supabase
+        .from("ludo_players")
+        .update({ is_connected: connected })
+        .eq("room_id", id)
+        .eq("user_id", user.id);
+      if (error && __DEV__) {
+        console.warn("Ludo presence could not be updated.", error);
+      }
+    };
+
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      if (nextState === "active") {
+        setOnlineMessage("Reconnecting…");
+        void setPresence(true).then(() => subscribeRoom(roomId));
+      } else if (nextState === "background") {
+        void setPresence(false);
+      }
+    });
+
+    return () => subscription.remove();
+  }, [gameMode, roomId, user?.id]);
 
   function stopAllSounds() {
     activeWebSoundsRef.current.forEach((sound) => {
@@ -786,7 +863,57 @@ export default function Ludo() {
     return { list: newList, captured: true };
   }
 
-  async function publishOnline(next: Partial<OnlineSnapshot>) {
+  async function loadRoomState(id: string) {
+    if (!supabase) return null;
+    const { data, error } = await supabase
+      .from("ludo_rooms")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (activeRoomId.current !== id) return null;
+    if (error || !data) {
+      setOnlineConnected(false);
+      setOnlineMessage(error?.message ?? "This room no longer exists.");
+      return null;
+    }
+
+    const room = data as OnlineRoomRow;
+    applyOnlineSnapshot(room.game_state);
+    setRoomCode(room.room_code);
+    return room;
+  }
+
+  async function commitOnlineSnapshot(snapshot: OnlineSnapshot, id: string) {
+    if (!supabase || !user?.id || !myOnlinePlayer) return;
+    const expectedRevision = roomRevision.current;
+    const candidate = { ...snapshot, revision: expectedRevision + 1 };
+    const { data, error } = await supabase.rpc("ludo_commit_state", {
+      p_room_id: id,
+      p_user_id: user.id,
+      p_expected_revision: expectedRevision,
+      p_game_state: candidate,
+    });
+
+    if (!error && data) {
+      const row = data as OnlineRoomRow;
+      applyOnlineSnapshot(row.game_state);
+      setOnlineConnected(true);
+      return;
+    }
+
+    console.warn("Ludo room state could not be synchronized.", error);
+    setOnlineMessage(
+      error?.code === "PGRST202" || error?.message?.includes("ludo_commit_state")
+        ? "Online update is required before this room can synchronize safely."
+        : error?.message?.includes("LUDO_STALE_STATE")
+        ? "Another device moved first. Reloading the latest room…"
+        : "Connection issue. Reloading the latest room…",
+    );
+    await loadRoomState(id);
+  }
+
+  function publishOnline(next: Partial<OnlineSnapshot>) {
     if (gameMode !== "online" || !roomId) return;
     if (!supabase) {
       setOnlineMessage("Online Ludo is unavailable until Supabase is configured.");
@@ -804,22 +931,40 @@ export default function Ludo() {
       gameStarted,
       ...next,
     };
+    publishQueue.current = publishQueue.current
+      .then(() => commitOnlineSnapshot(snapshot, roomId))
+      .catch(async (error) => {
+        console.warn("Ludo state queue failed.", error);
+        setOnlineMessage("Connection issue. Reloading the latest room…");
+        await loadRoomState(roomId);
+      });
+  }
 
-    const { error } = await supabase
-      .from("ludo_rooms")
-      .update({
-        current_turn: snapshot.player,
-        dice_value: snapshot.diceValues[snapshot.player],
-        winner_player_id: null,
-        game_state: snapshot,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", roomId);
-
-    if (error) {
-      console.warn("Ludo room state could not be synchronized.", error);
-      setOnlineMessage("Connection issue. Your latest move may not be synchronized.");
+  async function rollOnlineDice(id: string) {
+    if (!supabase || !user?.id) return null;
+    const { data, error } = await supabase.rpc("ludo_roll_dice", {
+      p_room_id: id,
+      p_user_id: user.id,
+      p_expected_revision: roomRevision.current,
+    });
+    if (error || !data) {
+      setDiceRolling(false);
+      setOnlineMessage(
+        error?.code === "PGRST202" || error?.message?.includes("ludo_roll_dice")
+          ? "Online update is required before dice can roll securely."
+          : error?.message?.includes("LUDO_STALE_STATE")
+            ? "Another device moved first. Reloading the latest room…"
+            : error?.message ?? "The online dice could not roll.",
+      );
+      await loadRoomState(id);
+      return null;
     }
+    const result = data as { room: OnlineRoomRow; dice: number };
+    applyOnlineSnapshot(result.room.game_state);
+    return {
+      value: result.dice,
+      sixCount: Number(result.room.game_state?.sixCount ?? 0),
+    };
   }
 
   async function recordOnlineMove(
@@ -922,7 +1067,10 @@ export default function Ludo() {
     setGameStarted(true);
     triggerFeedback("dice");
 
-    const value = Math.floor(Math.random() * 6) + 1;
+    const onlineRoll =
+      gameMode === "online" && roomId ? await rollOnlineDice(roomId) : null;
+    if (gameMode === "online" && onlineRoll === null) return;
+    const value = onlineRoll?.value ?? Math.floor(Math.random() * 6) + 1;
     for (let frame = 0; frame < 7; frame++) {
       if (rollGeneration.current !== generation) return;
       const previewDice = cloneDice(diceValues);
@@ -933,7 +1081,8 @@ export default function Ludo() {
     if (rollGeneration.current !== generation) return;
     setDiceRolling(false);
 
-    const newSixCount = value === 6 ? sixCount + 1 : 0;
+    const newSixCount =
+      onlineRoll?.sixCount ?? (value === 6 ? sixCount + 1 : 0);
     const nextDice = cloneDice(diceValues);
     nextDice[p] = value;
     vibrate(value === 6 ? "turn" : "diceResult");
@@ -944,12 +1093,6 @@ export default function Ludo() {
       setRolled(false);
       setSixCount(0);
       triggerFeedback("warning");
-      void publishOnline({
-        diceValues: nextDice,
-        rolled: false,
-        sixCount: 0,
-        gameStarted: true,
-      });
       schedule(() => {
         const next = nextPlayer(p, tokens, finishOrder);
         const cleared = cloneDice(nextDice);
@@ -976,12 +1119,14 @@ export default function Ludo() {
     setRolled(true);
     setGameStarted(true);
 
-    void publishOnline({
-      diceValues: nextDice,
-      sixCount: newSixCount,
-      rolled: true,
-      gameStarted: true,
-    });
+    if (gameMode === "offline") {
+      void publishOnline({
+        diceValues: nextDice,
+        sixCount: newSixCount,
+        rolled: true,
+        gameStarted: true,
+      });
+    }
 
     if (!possible) {
       setTurnMessage("No valid token can move. Passing turn…");
@@ -1123,7 +1268,8 @@ export default function Ludo() {
         rolled: false,
         movingToken: null,
         finishOrder: newOrder,
-        sixCount,
+        sixCount:
+          gameMode === "online" ? authoritativeSixCount.current : sixCount,
       });
       if (!captured && moved.progress !== 57) {
         triggerFeedback("turn");
@@ -1153,6 +1299,13 @@ export default function Ludo() {
   }
 
   function resetGame() {
+    if (gameMode === "online" && roomId) {
+      triggerFeedback("warning");
+      setOnlineMessage(
+        "Online rooms cannot be reset during play. Create a new room for a fresh game.",
+      );
+      return;
+    }
     rollGeneration.current += 1;
     setDiceRolling(false);
     pendingTimers.current.forEach(clearTimeout);
@@ -1220,6 +1373,9 @@ export default function Ludo() {
       roomChannel.current = null;
     }
     setRoomId(null);
+    activeRoomId.current = null;
+    roomRevision.current = 0;
+    publishQueue.current = Promise.resolve();
     setRoomCode("");
     setOnlinePlayers([]);
     setMyOnlinePlayer(null);
@@ -1237,6 +1393,9 @@ export default function Ludo() {
       await supabase.removeChannel(roomChannel.current);
       roomChannel.current = null;
     }
+    await refreshSupabaseRealtimeAuth();
+    activeRoomId.current = id;
+    await Promise.all([loadRoomState(id), loadRoomPlayers(id)]);
 
     const channel = supabase
       .channel(`ludo-room-${id}`)
@@ -1247,17 +1406,9 @@ export default function Ludo() {
           const row: any = payload.new;
           if (!row) return;
 
-          if (row.game_state) {
-            const state = row.game_state as Partial<OnlineSnapshot>;
-            if (Array.isArray(state.tokens)) setTokens(state.tokens);
-            if (state.player) setPlayer(state.player);
-            if (state.playerCount) setPlayerCount(state.playerCount);
-            if (state.diceValues) setDiceValues(state.diceValues);
-            if (typeof state.rolled === "boolean") setRolled(state.rolled);
-            if (Array.isArray(state.finishOrder)) setFinishOrder(state.finishOrder);
-            if (typeof state.sixCount === "number") setSixCount(state.sixCount);
-            if (typeof state.gameStarted === "boolean") setGameStarted(state.gameStarted);
-          }
+          applyOnlineSnapshot(
+            (row as OnlineRoomRow).game_state as Partial<OnlineSnapshot>,
+          );
         }
       )
       .on(
@@ -1279,7 +1430,7 @@ export default function Ludo() {
           setOnlineMessage((message) =>
             message === "Reconnecting..." ? "Connection restored." : message
           );
-          void loadRoomPlayers(id);
+          void Promise.all([loadRoomState(id), loadRoomPlayers(id)]);
         } else if (
           status === "CHANNEL_ERROR" ||
           status === "TIMED_OUT" ||
@@ -1318,6 +1469,16 @@ export default function Ludo() {
   }
 
   async function createRoom() {
+    if (onlineBusy) return;
+    setOnlineBusy(true);
+    try {
+      await createRoomInternal();
+    } finally {
+      setOnlineBusy(false);
+    }
+  }
+
+  async function createRoomInternal() {
     if (!supabase) {
       setOnlineMessage("Online Ludo is unavailable until Supabase is configured.");
       return;
@@ -1342,63 +1503,55 @@ export default function Ludo() {
       finishOrder: [],
       sixCount: 0,
       gameStarted: false,
+      revision: 0,
     };
 
-    const { data: room, error } = await supabase
-      .from("ludo_rooms")
-      .insert({
-        room_code: code,
-        status: "waiting",
-        max_players: playerCount,
-        current_turn: firstPlayer,
-        dice_value: null,
-        winner_player_id: null,
-        game_state: initialState,
-      })
-      .select("*")
-      .single();
-
-    if (error || !room) {
-      setOnlineMessage(error?.message ?? "Could not create room.");
+    const { data: createdData, error: createRpcError } = await supabase.rpc(
+      "ludo_create_room",
+      {
+        p_room_code: code,
+        p_user_id: user.id,
+        p_player_name: realName,
+        p_max_players: playerCount,
+        p_game_state: initialState,
+      },
+    );
+    if (!createRpcError && createdData) {
+      const result = createdData as {
+        room: OnlineRoomRow;
+        player: OnlinePlayer;
+      };
+      setRoomId(result.room.id);
+      activeRoomId.current = result.room.id;
+      roomRevision.current = 0;
+      setRoomCode(result.room.room_code);
+      setMyOnlinePlayer(result.player.player_color);
+      applyOnlineSnapshot(result.room.game_state);
+      setOnlineMessage("Room created. Share the code with your friends.");
+      await subscribeRoom(result.room.id);
       return;
     }
+    setOnlineMessage(
+      createRpcError?.code === "PGRST202" ||
+        createRpcError?.message?.includes("ludo_create_room")
+        ? "Online update is required before creating secure rooms."
+        : createRpcError?.message ?? "Could not create room.",
+    );
+    return;
 
-    const { data: me, error: playerError } = await supabase
-      .from("ludo_players")
-      .insert({
-        room_id: room.id,
-        user_id: user.id,
-        player_name: realName,
-        player_color: firstPlayer,
-        player_number: 1,
-        is_ready: true,
-        is_connected: true,
-        token_positions: [-1, -1, -1, -1],
-      })
-      .select("*")
-      .single();
-
-    if (playerError || !me) {
-      setOnlineMessage(playerError?.message ?? "Could not join created room.");
-      return;
-    }
-
-    setRoomId(room.id);
-    setRoomCode(code);
-    setMyOnlinePlayer(firstPlayer);
-    setPlayer(firstPlayer);
-    setTokens(initialState.tokens);
-    setDiceValues(initialState.diceValues);
-    setRolled(false);
-    setFinishOrder([]);
-    setSixCount(0);
-    setGameStarted(false);
-    setOnlineMessage("Room created. Share the code with your friends.");
-    await loadRoomPlayers(room.id);
-    await subscribeRoom(room.id);
   }
 
   async function joinRoom() {
+    if (onlineBusy) return;
+    setOnlineBusy(true);
+    try {
+      await joinRoomInternal();
+    } finally {
+      setOnlineBusy(false);
+    }
+  }
+
+  async function joinRoomInternal() {
     if (!supabase) {
       setOnlineMessage("Online Ludo is unavailable until Supabase is configured.");
       return;
@@ -1417,123 +1570,52 @@ export default function Ludo() {
 
     triggerFeedback("click");
 
-    const { data: room, error } = await supabase
-      .from("ludo_rooms")
-      .select("*")
-      .eq("room_code", code)
-      .maybeSingle();
-
-    if (error || !room) {
-      setOnlineMessage(error?.message ?? "Room not found.");
-      return;
-    }
-
-    const list = await loadRoomPlayers(room.id);
-    const count = Math.min(4, Math.max(2, Number(room.max_players))) as PlayerCount;
-    const active = PLAYER_SETS[count];
-
-    if (list.some((p) => p.user_id === user.id)) {
-      const mine = list.find((p) => p.user_id === user.id)!;
-      const { error: reconnectError } = await supabase
-        .from("ludo_players")
-        .update({ is_connected: true })
-        .eq("id", mine.id)
-        .eq("room_id", room.id);
-      if (reconnectError) {
-        setOnlineMessage(reconnectError.message);
-        return;
-      }
-      setMyOnlinePlayer(mine.player_color);
-      setRoomId(room.id);
-      setRoomCode(code);
-      setPlayerCount(count);
-      setPlayer(mine.player_color);
-      await subscribeRoom(room.id);
-      setOnlineMessage("Reconnected to your existing player seat.");
-      return;
-    }
-
-    if (list.length >= count) {
-      setOnlineMessage("This room is full.");
-      return;
-    }
-
-    const used = new Set(list.map((p) => p.player_color));
-    const nextColor = active.find((color) => !used.has(color));
-    if (!nextColor) {
-      setOnlineMessage("No player slot is available.");
-      return;
-    }
-
-    const { data: me, error: insertError } = await supabase
-      .from("ludo_players")
-      .insert({
-        room_id: room.id,
-        user_id: user.id,
-        player_name: realName,
-        player_color: nextColor,
-        player_number: list.length + 1,
-        is_ready: true,
-        is_connected: true,
-        token_positions: [-1, -1, -1, -1],
-      })
-      .select("*")
-      .single();
-
-    if (insertError || !me) {
-      setOnlineMessage(insertError?.message ?? "Could not join room.");
-      return;
-    }
-
-    const newList = [...list, me as OnlinePlayer];
-    const state = (room.game_state ?? {}) as Partial<OnlineSnapshot>;
-    const joinedState: OnlineSnapshot = {
-      tokens: Array.isArray(state.tokens) ? state.tokens : createTokens(),
-      player: (state.player as Player) ?? active[0],
-      playerCount: count,
-      diceValues: (state.diceValues as DiceMap) ?? EMPTY_DICE,
-      rolled: Boolean(state.rolled),
-      movingToken: null,
-      finishOrder: Array.isArray(state.finishOrder) ? state.finishOrder : [],
-      sixCount: Number(state.sixCount ?? 0),
-      gameStarted: newList.length >= count,
-    };
-
-    const { error: roomUpdateError } = await supabase
-      .from("ludo_rooms")
-      .update({
-        status: newList.length >= count ? "playing" : "waiting",
-        max_players: count,
-        current_turn: joinedState.player,
-        game_state: joinedState,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", room.id);
-
-    if (roomUpdateError) {
-      console.warn("Ludo room could not be updated after joining.", roomUpdateError);
-      setOnlineMessage("Joined the room, but the game state could not be synchronized.");
-      return;
-    }
-
-    setRoomId(room.id);
-    setRoomCode(code);
-    setMyOnlinePlayer(nextColor);
-    setPlayerCount(count);
-    setPlayer(joinedState.player);
-    setTokens(joinedState.tokens);
-    setDiceValues(joinedState.diceValues);
-    setRolled(joinedState.rolled);
-    setFinishOrder(joinedState.finishOrder);
-    setSixCount(joinedState.sixCount);
-    setGameStarted(joinedState.gameStarted);
-    setOnlineMessage(
-      newList.length >= count
-        ? "All players joined. Game is ready."
-        : "Joined room. Waiting for the remaining players."
+    const { data: joinedData, error: joinRpcError } = await supabase.rpc(
+      "ludo_claim_seat",
+      {
+        p_room_code: code,
+        p_user_id: user.id,
+        p_player_name: realName,
+      },
     );
-    await loadRoomPlayers(room.id);
-    await subscribeRoom(room.id);
+    if (!joinRpcError && joinedData) {
+      const result = joinedData as {
+        room: OnlineRoomRow;
+        player: OnlinePlayer;
+        reconnected?: boolean;
+      };
+      setRoomId(result.room.id);
+      activeRoomId.current = result.room.id;
+      roomRevision.current = 0;
+      setRoomCode(result.room.room_code);
+      setMyOnlinePlayer(result.player.player_color);
+      applyOnlineSnapshot(result.room.game_state);
+      await subscribeRoom(result.room.id);
+      setOnlineMessage(
+        result.reconnected
+          ? "Reconnected to your existing player seat."
+          : result.room.status === "playing"
+            ? "All players joined. Game is ready."
+            : "Joined room. Waiting for the remaining players.",
+      );
+      return;
+    }
+    if (joinRpcError) {
+      const friendlyMessage =
+        joinRpcError.code === "PGRST202" ||
+        joinRpcError.message.includes("ludo_claim_seat")
+          ? "Online update is required before joining secure rooms."
+          : joinRpcError.message.includes("LUDO_ROOM_FULL")
+        ? "This room is full."
+        : joinRpcError.message.includes("LUDO_ROOM_EXPIRED")
+          ? "This room is no longer available."
+          : joinRpcError.message;
+      setOnlineMessage(friendlyMessage);
+      return;
+    }
+    setOnlineMessage("Could not join room.");
+    return;
+
   }
 
   function drawCell(row: number, col: number) {
@@ -1958,8 +2040,17 @@ export default function Ludo() {
                 <Text style={styles.roomLabel}>YOUR ROOM</Text>
                 <Text style={styles.roomCode}>{roomCode || "------"}</Text>
               </View>
-              <Pressable onPress={() => void createRoom()} style={styles.roomButton}>
-                <Text style={styles.roomButtonText}>CREATE</Text>
+              <Pressable
+                onPress={() => void createRoom()}
+                disabled={onlineBusy || roomId !== null}
+                style={[
+                  styles.roomButton,
+                  (onlineBusy || roomId !== null) && { opacity: 0.55 },
+                ]}
+              >
+                <Text style={styles.roomButtonText}>
+                  {onlineBusy ? "WAIT" : "CREATE"}
+                </Text>
               </Pressable>
             </View>
 
@@ -1972,8 +2063,17 @@ export default function Ludo() {
                 placeholderTextColor="#6E7E9E"
                 style={styles.joinInput}
               />
-              <Pressable onPress={() => void joinRoom()} style={styles.joinButton}>
-                <Text style={styles.joinButtonText}>JOIN</Text>
+              <Pressable
+                onPress={() => void joinRoom()}
+                disabled={onlineBusy || roomId !== null}
+                style={[
+                  styles.joinButton,
+                  (onlineBusy || roomId !== null) && { opacity: 0.55 },
+                ]}
+              >
+                <Text style={styles.joinButtonText}>
+                  {onlineBusy ? "WAIT" : "JOIN"}
+                </Text>
               </Pressable>
             </View>
 
@@ -1984,6 +2084,7 @@ export default function Ludo() {
                     <View style={[styles.rosterDot, { backgroundColor: COLORS[p.player_color].main }]} />
                     <Text style={styles.rosterName}>{p.player_name}</Text>
                     {p.user_id === user?.id && <Text style={styles.youBadge}>YOU</Text>}
+                    {!p.is_connected && <Text style={styles.offlineBadge}>OFFLINE</Text>}
                   </View>
                 ))}
               </View>
@@ -2414,6 +2515,7 @@ const styles = StyleSheet.create({
   rosterDot: { width: 9, height: 9, borderRadius: 5, marginRight: 8 },
   rosterName: { color: "#FFFFFF", fontSize: 10, fontWeight: "800", flex: 1 },
   youBadge: { color: "#43DDF8", fontSize: 7, fontWeight: "900" },
+  offlineBadge: { color: "#F5C518", fontSize: 7, fontWeight: "900" },
   onlineMessage: { color: "#8FA1C2", fontSize: 8, marginTop: 8, textAlign: "center" },
 
   adBox: {
