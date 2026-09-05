@@ -20,7 +20,8 @@
       "package": "com.gamezonearena.app",
       "versionCode": 1,
       "permissions": [
-        "android.permission.VIBRATE"
+        "android.permission.VIBRATE",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
       ]
     },
     "web": {
@@ -62,6 +63,7 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "owner": "gajpalgamezones-team"
   }
 }
