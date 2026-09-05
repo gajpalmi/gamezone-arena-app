@@ -1,0 +1,410 @@
+GAMEZONE ARENA — PLAY STORE + EAS ANDROID BUILD MASTER TASK
+
+You are working on my existing GAMEZONE ARENA project.
+
+IMPORTANT:
+- Do NOT rebuild the project from scratch.
+- Do NOT delete or replace existing working game code.
+- Preserve all existing screens, games, navigation, authentication, UI, AdMob integration, virtual coins, profiles, friends, leaderboard and other working features.
+- First inspect the entire existing project and understand its current architecture.
+- Make only the changes required to make the project production-ready and ready for Google Play Store Android AAB release.
+- Do not use paid services unless absolutely required.
+- Do not introduce unnecessary dependencies.
+
+PROJECT:
+App name: GAMEZONE ARENA
+Tagline: Play sharp. Rise fast.
+The app uses virtual coins only.
+Virtual coins have no monetary value and cannot be withdrawn.
+
+GOAL:
+Prepare the existing project for:
+1. Android production build
+2. Expo/EAS Build
+3. Google Play Console
+4. Internal Testing
+5. Production release later
+
+==================================================
+1. PROJECT AUDIT
+==================================================
+
+First inspect:
+- package.json
+- app.json / app.config.js / app.config.ts
+- eas.json if present
+- tsconfig.json
+- Expo Router configuration
+- Android configuration
+- all existing source files
+- existing assets
+- existing AdMob configuration
+- authentication
+- navigation
+- game screens
+- environment variables
+
+Before changing anything, identify:
+- current Expo SDK version
+- React Native version
+- package name/application ID
+- version/versionCode
+- existing EAS configuration
+- any build errors
+- missing dependencies
+- deprecated dependencies
+
+Do not blindly upgrade Expo or React Native.
+
+==================================================
+2. ANDROID APPLICATION ID
+==================================================
+
+Configure a unique permanent Android application ID.
+
+Preferred ID:
+com.gajpal.gamezonearena
+
+BUT:
+If the project already has a valid application ID/package name, DO NOT change it without checking first.
+
+The final application ID must be stable and suitable for Google Play.
+
+==================================================
+3. APP CONFIGURATION
+==================================================
+
+Ensure the app configuration contains:
+
+name:
+GAMEZONE ARENA
+
+slug:
+gamezone-arena
+
+android package:
+com.gajpal.gamezonearena
+
+Set a proper production version.
+
+Ensure:
+- version is valid
+- android.versionCode is an integer
+- future releases can increment versionCode
+- app icon is configured
+- splash screen is configured
+- orientation is appropriate
+- Android permissions are minimal and justified
+
+Do not request unnecessary permissions.
+
+==================================================
+4. EAS CONFIGURATION
+==================================================
+
+Create or repair eas.json.
+
+Configure production Android build so that it produces:
+
+.aab
+
+The production build must be suitable for Google Play Store.
+
+Use EAS managed workflow where compatible with the current project.
+
+Do NOT force a migration to bare React Native unless absolutely necessary.
+
+==================================================
+5. BUILD REQUIREMENTS
+==================================================
+
+Make sure these commands can work from the project root:
+
+npm install
+
+npx expo doctor
+
+eas --version
+
+eas build:configure
+
+eas build --platform android --profile production
+
+Do not actually start a paid build without my confirmation.
+
+If EAS requires login, clearly tell me.
+
+If an EAS project ID is required, configure it correctly.
+
+==================================================
+6. ADMOB
+==================================================
+
+IMPORTANT:
+
+The existing AdMob integration must NOT be removed.
+
+Do NOT create a new AdMob account.
+
+Do NOT replace existing AdMob IDs unless they are invalid.
+
+Preserve the existing:
+- AdMob App ID
+- Rewarded Ad Unit ID
+- Banner/interstitial configuration if already present
+
+Use environment variables or secure configuration where appropriate.
+
+During development/testing:
+- prevent accidental invalid production ad behavior
+- use Google test ads where appropriate
+- never encourage artificial ad clicks
+- do not hard-code secrets unnecessarily
+
+The app uses Rewarded Ads for virtual rewards.
+
+Ads must never represent real-money gambling.
+
+==================================================
+7. VIRTUAL COINS
+==================================================
+
+Keep the existing virtual coin system.
+
+Clearly maintain the rule:
+
+"Virtual coins have no monetary value and cannot be withdrawn."
+
+Users must NOT be able to:
+- withdraw cash
+- exchange coins for real money
+- transfer coins for money
+- gamble real money
+
+Do not introduce real-money gambling mechanics.
+
+==================================================
+8. GAMEZONE ARENA GAMES
+==================================================
+
+Preserve all currently working games.
+
+Do not remove:
+- Ludo
+- Quiz
+- Memory
+- Carrom
+- Racing
+- Spin/Challenge features
+- other existing games
+
+Do not rewrite working game logic unnecessarily.
+
+Fix only build/runtime issues that prevent production release.
+
+==================================================
+9. LUDO
+==================================================
+
+Preserve the existing Ludo implementation.
+
+Verify:
+- board renders correctly
+- tokens render correctly
+- dice works
+- token movement works
+- capture/cutting works
+- safe zones work
+- star positions work according to the existing project requirements
+- turn system works
+- winning logic works
+- sounds work if already implemented
+- no "This player is not finished" false warning
+- no infinite loading
+- no blank screen
+- no broken navigation
+
+Do not change the visual design unless required to fix a bug.
+
+==================================================
+10. AUTHENTICATION
+==================================================
+
+Preserve the existing authentication system.
+
+Check:
+- login
+- signup
+- profile creation
+- logout
+- session persistence
+
+Do not remove authentication dependencies.
+
+If configuration is missing, report exactly what environment variables/configuration are required.
+
+Do not expose secrets in source code.
+
+==================================================
+11. ENVIRONMENT VARIABLES
+==================================================
+
+Inspect all environment variables.
+
+Create or update an example environment file if appropriate.
+
+Clearly identify variables required for:
+- authentication
+- AdMob
+- API/backend
+- other external services
+
+Never print private API keys or secrets into the final response.
+
+==================================================
+12. PRODUCTION SAFETY
+==================================================
+
+Remove:
+- debug-only UI
+- test buttons that should not be public
+- console noise where appropriate
+- development-only URLs
+- localhost dependencies
+- temporary mock data that would break production
+
+BUT:
+Do not remove functionality that is intentionally part of GAMEZONE ARENA.
+
+==================================================
+13. OFFLINE / NETWORK HANDLING
+==================================================
+
+The app must not remain stuck forever on:
+- Loading
+- Spinner
+- Running
+- Connecting
+
+Add proper:
+- loading state
+- error state
+- retry button
+- timeout handling
+where appropriate.
+
+==================================================
+14. ANDROID BUILD VALIDATION
+==================================================
+
+Before declaring the project ready:
+
+Run/check:
+
+npm install
+
+npx expo doctor
+
+npx expo export --platform android
+
+Check for:
+- TypeScript errors
+- import errors
+- missing modules
+- invalid Expo configuration
+- Android package configuration problems
+
+Fix all errors that can be safely fixed.
+
+Do not hide errors.
+
+==================================================
+15. EAS PRODUCTION PROFILE
+==================================================
+
+Ensure eas.json contains a production profile appropriate for Google Play.
+
+The goal is:
+
+eas build --platform android --profile production
+
+and the resulting artifact must be:
+
+Android App Bundle (.aab)
+
+==================================================
+16. GOOGLE PLAY READINESS
+==================================================
+
+Prepare the project for:
+
+Google Play Console → GAMEZONE ARENA → Internal testing
+
+The build must be compatible with Google Play's current Android requirements.
+
+Use a modern supported Android target SDK appropriate for the installed Expo/React Native version.
+
+Do not randomly change Gradle/SDK versions.
+
+==================================================
+17. VERSIONING
+==================================================
+
+Set an initial production version such as:
+
+1.0.0
+
+and:
+
+android.versionCode = 1
+
+If an existing versionCode is already higher, preserve it.
+
+For every future Play Store release, versionCode must increase.
+
+==================================================
+18. FINAL REPORT
+==================================================
+
+After inspecting and fixing the project, DO NOT just say "done".
+
+Give me a clear report containing:
+
+A. Current Expo version
+B. Current React Native version
+C. Android application ID
+D. App version
+E. versionCode
+F. Whether eas.json exists
+G. Whether the project is EAS-build ready
+H. Exact command I need to run to create the AAB
+I. Any remaining errors
+J. Any required environment variables
+K. Any required manual steps in Expo/EAS
+L. Any required manual steps in Google Play Console
+
+IMPORTANT:
+Do NOT start a paid EAS build automatically.
+
+First prepare and validate the project.
+
+When everything is ready, give me the exact command:
+
+eas build --platform android --profile production
+
+Then wait for my confirmation before starting any build that could consume paid credits.
+
+==================================================
+IMPORTANT FINAL RULES
+==================================================
+
+- Do not delete working code.
+- Do not rebuild the app from scratch.
+- Do not remove AdMob.
+- Do not create a second AdMob account.
+- Do not create real-money gambling.
+- Do not expose secrets.
+- Do not start paid services automatically.
+- Do not make unnecessary dependency upgrades.
+- Do not claim success unless you actually verify the configuration.
+- If something cannot be fixed automatically, clearly explain exactly what I need to do manually.
