@@ -4,6 +4,16 @@
     "appVersionSource": "local"
   },
   "build": {
+    "testing-apk": {
+      "distribution": "internal",
+      "environment": "production",
+      "env": {
+        "EXPO_PUBLIC_ADMOB_PRODUCTION": "false"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
     "internal": {
       "environment": "production",
       "env": {
