@@ -18,13 +18,15 @@ Run these commands from `artifacts/gamezone-arena`:
 
 ```bash
 pnpm dlx eas-cli@latest login
-pnpm dlx eas-cli@latest init
+pnpm dlx eas-cli@latest project:info
 ```
 
-`eas init` links this existing app to the owner's Expo account and writes the
-real EAS project ID into Expo config. Do not invent or copy another project's
-ID. Let EAS manage the Android signing keystore unless an existing GAMEZONE
-ARENA upload key already exists.
+The app is already linked to existing Expo Project ID
+`4e9dc944-2a7b-4051-95be-b276401e6e06`. Do not run `eas init` and do not create
+another Expo project. After login, `project:info` must identify the existing
+GAMEZONE ARENA project. If it does not, stop before building and verify that the
+logged-in Expo account has access to that project. Let EAS manage the Android
+signing keystore unless an existing GAMEZONE ARENA upload key already exists.
 
 In the linked Expo project's **production** environment, add these build-time
 variables using the Expo dashboard. Copy them from the matching Replit
