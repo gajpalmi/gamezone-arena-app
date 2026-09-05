@@ -1,0 +1,78 @@
+Fix the Android EAS production/internal build failure in the GAMEZONE ARENA project.
+
+IMPORTANT:
+- Do NOT redesign or change the existing UI.
+- Do NOT remove or replace any existing games or functionality.
+- Do NOT change authentication, Clerk, Supabase, AdMob, virtual coins, navigation, profiles, friends, leaderboard, assets, or game logic unless a specific build error requires a minimal compatibility fix.
+- Do NOT create new API keys or credentials.
+- Do NOT remove the existing Expo project configuration.
+- Do NOT start an EAS cloud build.
+- Do NOT upgrade to any paid service.
+- Do NOT expose or print secret values.
+
+Project directory:
+artifacts/gamezone-arena
+
+Expo/EAS project:
+@gajpalgamezones-team/gamezone-arena
+
+Project ID:
+4e9dc944-2a7b-4051-95be-b276401e6e06
+
+Android package:
+com.gamezonearena.app
+
+Expo SDK:
+54.0.0
+
+Version:
+1.0.0
+
+Version code:
+1
+
+Build profile:
+internal
+
+Distribution:
+store
+
+The latest EAS Android build failed:
+Build ID:
+49e065b8-141d-4717-bbe5-ff4427c23b86
+
+The failure reported:
+"Gradle build failed with unknown error."
+
+The build successfully reached:
+- EAS project resolution
+- Production environment variable loading
+- Remote Android credentials
+- Existing remote Android keystore
+- Project compression
+- Upload to EAS
+- Project fingerprint
+
+Environment variables configured in EAS Production:
+- EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY
+- EXPO_PUBLIC_SUPABASE_ANON_KEY
+- EXPO_PUBLIC_SUPABASE_URL
+
+Internal build environment variable:
+- EXPO_PUBLIC_ADMOB_PRODUCTION
+
+Tasks:
+1. Inspect the project files and determine the actual Android/Gradle cause of the failed build.
+2. Inspect package.json, app.json/app.config.*, eas.json, Android configuration, Expo modules, native dependencies, and build configuration.
+3. Check for incompatible packages or configuration with Expo SDK 54.
+4. Run local/static checks that do NOT require an EAS cloud build.
+5. Fix only the actual build-blocking issue(s), keeping the existing app behavior intact.
+6. Make sure Android is included in the Expo platforms configuration.
+7. Verify that the Android package remains com.gamezonearena.app.
+8. Verify that the internal EAS profile remains an Android app-bundle (.aab) profile.
+9. Do not change the EAS project ID or owner.
+10. After fixing, run safe local checks such as TypeScript/config validation and any available Android/Gradle validation without starting an EAS cloud build.
+11. Report exactly what caused the failure and exactly what files were changed.
+12. Do not run "eas build" after the fix. I will start the build manually after you confirm everything is ready.
+
+If the actual EAS Gradle log is accessible from the project/build information, inspect the "Run gradlew" phase and use the real error rather than guessing.

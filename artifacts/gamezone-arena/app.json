@@ -53,7 +53,8 @@
           "optimizeInitialization": true,
           "optimizeAdLoading": true
         }
-      ]
+      ],
+      "./plugins/withAndroidPackagingOptions"
     ],
     "extra": {
       "eas": {
