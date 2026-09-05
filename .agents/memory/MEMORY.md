@@ -1,2 +1,3 @@
 - [Ludo Supabase scope](ludo-supabase-scope.md) — keep chat disabled and use current room sync; do not invent the missing ludo_message schema.
+- [Ludo movement and capture rules](ludo-movement-rules.md) — token stacks never block movement; stacks stay capture-safe while single tokens remain capturable.
 - [Expo game audio reliability](expo-game-audio.md) — use bundled local effects without temporary cache and keep required native asset peers explicit.

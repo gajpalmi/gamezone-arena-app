@@ -381,9 +381,7 @@ begin
               when 'red' then 26 else 39
             end + token.progress
           ) % 52 = v_step_global;
-        if v_block_count >= 2 then
-          raise exception 'LUDO_OPPONENT_BLOCK';
-        end if;
+        -- Stacked tokens are capture-protected, but never block the path.
       end loop;
     end if;
   end if;
@@ -432,10 +430,7 @@ begin
                   when 'red' then 26 else 39
                 end + blocker.progress
               ) % 52 = v_step_global;
-            if v_block_count >= 2 then
-              v_path_clear := false;
-              exit;
-            end if;
+            -- Stacked tokens are capture-protected, but never block the path.
           end loop;
         end if;
         if v_path_clear then

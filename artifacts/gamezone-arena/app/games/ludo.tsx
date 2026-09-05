@@ -800,43 +800,12 @@ export default function Ludo() {
     return from;
   }
 
-  function hasOpponentBlockAt(
-    movingPlayer: Player,
-    globalIndex: number,
-    list: Token[]
-  ) {
-    return (
-      list.filter(
-        (other) =>
-          other.player !== movingPlayer &&
-          activePlayers.includes(other.player) &&
-          other.progress >= 0 &&
-          other.progress <= 50 &&
-          getGlobalIndex(other) === globalIndex
-      ).length >= 2
-    );
-  }
-
   function canMove(token: Token, value: number, list: Token[]) {
     if (token.progress === 57) return false;
-    if (token.progress === -1) {
-      return (
-        value === 6 &&
-        !hasOpponentBlockAt(token.player, START_INDEX[token.player], list)
-      );
-    }
+    if (token.progress === -1) return value === 6;
 
     const targetProgress = token.progress + value;
     if (targetProgress > 57) return false;
-
-    for (
-      let progress = token.progress + 1;
-      progress <= Math.min(targetProgress, 50);
-      progress++
-    ) {
-      const globalIndex = (START_INDEX[token.player] + progress) % 52;
-      if (hasOpponentBlockAt(token.player, globalIndex, list)) return false;
-    }
 
     return true;
   }
