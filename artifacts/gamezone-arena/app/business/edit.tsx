@@ -20,7 +20,7 @@ import { LocationAutocomplete } from '@/components/LocationAutocomplete';
 import colors from '@/constants/colors';
 import {
   useCategories,
-  useBusinessDetail,
+  useMyBusinessDetail,
   useCreateBusiness,
   useUpdateBusiness,
   useUploadBusinessImage,
@@ -40,7 +40,7 @@ export default function BusinessEditScreen() {
   useSupabaseAuth();
 
   const { data: categoriesData, isLoading: categoriesLoading, error: categoriesError, refetch: refetchCategories } = useCategories();
-  const { data: businessData, isLoading: loadingBusiness, refetch: refetchBusiness } = useBusinessDetail(id || '');
+  const { data: businessData, isLoading: loadingBusiness, refetch: refetchBusiness } = useMyBusinessDetail(id || '');
   const createBusiness = useCreateBusiness();
   const updateBusiness = useUpdateBusiness(id || '');
   const uploadImage = useUploadBusinessImage();

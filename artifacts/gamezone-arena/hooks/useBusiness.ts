@@ -32,6 +32,13 @@ export function useBusinessDetail(id: string) {
     enabled: !!id,
   });
 }
+export function useMyBusinessDetail(id: string) {
+  return useQuery({
+    queryKey: ['business', 'mine', id],
+    queryFn: () => api.getMyBusinessDetail(id),
+    enabled: !!id,
+  });
+}
 
 export function useMyBusinesses() {
   return useQuery({

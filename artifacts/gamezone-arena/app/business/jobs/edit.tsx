@@ -6,7 +6,7 @@ import { CategoryPicker } from "@/components/CategoryPicker";
 import { LocationAutocomplete } from "@/components/LocationAutocomplete";
 import { Button, styles as s } from "@/components/JobsUi";
 import { useSupabaseAuth } from "@/hooks/useBusiness";
-import { useJob, useJobCategories, useJobMutation } from "@/hooks/useJobs";
+import { useJobCategories, useJobMutation, useOwnerJob } from "@/hooks/useJobs";
 import type { Job, JobInput } from "@/lib/jobs";
 
 const legal = "2026-09-10";
@@ -62,7 +62,7 @@ export default function EditJob() {
   const params = useLocalSearchParams<{ id?: string | string[] }>();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const router = useRouter();
-  const draft = useJob(id ?? "");
+  const draft = useOwnerJob(id ?? "");
   const categories = useJobCategories();
   const mutation = useJobMutation();
   const [form, setForm] = useState<JobInput>(blank());

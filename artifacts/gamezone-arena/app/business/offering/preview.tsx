@@ -4,14 +4,14 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import colors from "@/constants/colors";
 import { Button } from "@/components/JobsUi";
 import { useSupabaseAuth } from "@/hooks/useBusiness";
-import { useOffering, useOfferingAction } from "@/hooks/useOfferings";
+import { useMyOffering, useOfferingAction } from "@/hooks/useOfferings";
 
 export default function OfferingPreview() {
   useSupabaseAuth();
   const params = useLocalSearchParams<{ id?: string | string[] }>();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const router = useRouter();
-  const detail = useOffering(id ?? "");
+  const detail = useMyOffering(id ?? "");
   const action = useOfferingAction();
   if (detail.isLoading) return <View style={s.root}><ActivityIndicator color={colors.light.primary}/></View>;
   if (!detail.data) return <View style={s.root}><Text style={s.error}>{detail.error ? (detail.error as Error).message : "Preview unavailable."}</Text>{detail.error ? <Button label="Retry" onPress={() => void detail.refetch()}/> : null}</View>;

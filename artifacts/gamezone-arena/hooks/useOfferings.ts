@@ -4,6 +4,7 @@ import * as api from "@/lib/offerings";
 const invalidate = (q: ReturnType<typeof useQueryClient>) => q.invalidateQueries({ queryKey: ["offerings"] });
 export const useOfferings = (filters: api.OfferingFilters = {}) => useQuery({ queryKey: ["offerings", filters], queryFn: () => api.browseOfferings(filters) });
 export const useOffering = (id: string) => useQuery({ queryKey: ["offering", id], queryFn: () => api.getOffering(id), enabled: !!id });
+export const useMyOffering = (id: string) => useQuery({ queryKey: ["offering", "mine", id], queryFn: () => api.getMyOffering(id), enabled: !!id });
 export const useMyOfferings = (enabled = true) => useQuery({ queryKey: ["offerings", "mine"], queryFn: api.myOfferings, enabled });
 export const useSavedOfferings = (enabled = true) => useQuery({ queryKey: ["offerings", "saved"], queryFn: api.savedOfferings, enabled });
 export const useOfferingBasket = (enabled = true) => useQuery({ queryKey: ["offerings", "basket"], queryFn: api.myOfferingBasket, enabled });

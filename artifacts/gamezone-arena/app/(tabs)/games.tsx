@@ -6,10 +6,12 @@ import {
   StyleSheet,
   Text,
   View,
+  useWindowDimensions,
 } from "react-native";
 import { Feather } from "@/components/Feather";
 import { useRouter } from "expo-router";
 import { AdBannerPlaceholder } from "@/components/AdBannerPlaceholder";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type GameItem = {
   id: string;
@@ -76,6 +78,9 @@ const GAME_LIST: GameItem[] = [
 
 export default function GamesScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const isNarrow = width < 360;
   const availableGameCount = GAME_LIST.filter((game) => game.available).length;
 
   const openGame = (game: GameItem) => {
@@ -91,7 +96,14 @@ export default function GamesScreen() {
     <View style={styles.screen}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingTop: Math.max(24, insets.top + 12),
+            paddingBottom: Math.max(120, insets.bottom + 96),
+          },
+          isNarrow && styles.compactContent,
+        ]}
       >
         <View style={styles.header}>
           <View>
@@ -112,10 +124,11 @@ export default function GamesScreen() {
             onPress={() => router.push("/games/ludo" as any)}
             style={({ pressed }) => [
               styles.featuredCard,
+              isNarrow && styles.featuredCardCompact,
               pressed && styles.pressed,
             ]}
           >
-            <View style={styles.featuredIcon}>
+            <View style={[styles.featuredIcon, isNarrow && styles.featuredIconCompact]}>
               <Feather name="circle" size={38} color="#FFFFFF" />
             </View>
 
@@ -151,6 +164,7 @@ export default function GamesScreen() {
               onPress={() => openGame(game)}
               style={({ pressed }) => [
                 styles.gameCard,
+                isNarrow && styles.gameCardCompact,
                 pressed && styles.pressed,
                 !game.available && styles.disabledCard,
               ]}
@@ -229,8 +243,10 @@ const styles = StyleSheet.create({
 
   content: {
     paddingHorizontal: 18,
-    paddingTop: 24,
-    paddingBottom: 120,
+  },
+
+  compactContent: {
+    paddingHorizontal: 14,
   },
 
   header: {
@@ -287,6 +303,10 @@ const styles = StyleSheet.create({
     borderColor: "#2B5D9D",
   },
 
+  featuredCardCompact: {
+    padding: 16,
+  },
+
   featuredIcon: {
     width: 78,
     height: 78,
@@ -295,6 +315,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginRight: 16,
+  },
+
+  featuredIconCompact: {
+    width: 66,
+    height: 66,
+    borderRadius: 20,
+    marginRight: 12,
   },
 
   featuredText: {
@@ -371,6 +398,10 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     borderWidth: 1,
     borderColor: "#202A3E",
+  },
+
+  gameCardCompact: {
+    padding: 12,
   },
 
   disabledCard: {

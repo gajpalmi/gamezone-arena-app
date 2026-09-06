@@ -26,7 +26,6 @@ import {
 } from '@/hooks/useBusiness';
 import { businessLink, copyLink, shareLink } from '@/lib/share';
 import { type ReportReason } from '@/lib/business';
-import { useUser } from '@clerk/expo';
 
 export default function BusinessDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -34,8 +33,7 @@ export default function BusinessDetailScreen() {
   const insets = useSafeAreaInsets();
   useSupabaseAuth();
 
-  const { data, isLoading, error } = useBusinessDetail(id!);
-  const { user } = useUser();
+  const { data, isLoading, error, refetch } = useBusinessDetail(id!);
   const { data: favorites } = useFavorites();
   const setFavorite = useSetFavorite();
 
@@ -55,12 +53,10 @@ export default function BusinessDetailScreen() {
     );
   }
   if (!data) {
-    return <View style={[styles.root, styles.centered, { paddingTop: insets.top, paddingHorizontal: 24 }]}><Feather name="alert-circle" size={36} color={colors.light.destructive} /><Text style={styles.loadError}>{error instanceof Error ? error.message : 'Unable to load this business.'}</Text><Pressable style={styles.retryBtn} onPress={() => router.back()}><Text style={styles.submitBtnText}>GO BACK</Text></Pressable></View>;
+    return <View style={[styles.root, styles.centered, { paddingTop: insets.top, paddingHorizontal: 24 }]}><Feather name="alert-circle" size={36} color={colors.light.destructive} /><Text style={styles.loadError}>{error instanceof Error ? error.message : 'Unable to load this business.'}</Text><Pressable style={styles.retryBtn} onPress={() => void refetch()}><Text style={styles.submitBtnText}>RETRY</Text></Pressable><Pressable style={styles.backRetryBtn} onPress={() => router.back()}><Text style={styles.backRetryText}>GO BACK</Text></Pressable></View>;
   }
 
   const { business, hours, photos, reviews } = data;
-  const isOwner = user?.id === business.owner_id;
-
   const openExternal = async (url: string, unavailableMessage: string) => {
     try {
       const supported = await Linking.canOpenURL(url);
@@ -74,23 +70,11 @@ export default function BusinessDetailScreen() {
     }
   };
 
-  const handleCall = () => {
-    if (!business.phone) return Alert.alert('Phone unavailable', 'This business has not provided a phone number.');
-    void openExternal(`tel:${business.phone.replace(/[^\d+]/g, '')}`, 'Your device cannot place a call.');
-  };
-
-  const handleWhatsApp = () => {
-    const whatsappNumber = (business as { whatsapp?: string }).whatsapp || business.phone;
-    const number = whatsappNumber?.replace(/[^0-9]/g, '');
-    if (!number) return Alert.alert('WhatsApp unavailable', 'This business has not provided a WhatsApp number.');
-    void openExternal(`https://wa.me/${number}`, 'WhatsApp is unavailable for this number on this device.');
-  };
-
   const handleMap = () => {
     const hasCoordinates = business.latitude != null && business.longitude != null;
     const q = hasCoordinates
       ? `${business.latitude},${business.longitude}`
-      : encodeURIComponent(business.address ? `${business.name}, ${business.address}, ${business.city || ''}` : `${business.name}, ${business.city || ''}`);
+      : encodeURIComponent(`${business.name}, ${business.city || ''}`);
     void openExternal(`https://maps.google.com/?q=${q}`, 'No maps app or browser is available.');
   };
 
@@ -170,7 +154,8 @@ export default function BusinessDetailScreen() {
       onSuccess: () => {
         setReviewBody('');
         Alert.alert('Success', 'Review saved!');
-      }
+      },
+      onError: (reviewError: Error) => Alert.alert('Could not save review', reviewError.message || 'Your review is still here. Please try again.')
     });
   };
 
@@ -184,7 +169,6 @@ export default function BusinessDetailScreen() {
           <Feather name="arrow-left" size={20} color={colors.light.foreground} />
         </Pressable>
         <View style={styles.headerActions}>
-          {isOwner && business.status !== 'approved' && <Pressable accessibilityRole="button" accessibilityLabel={`Edit ${business.name}`} onPress={() => router.push(`/business/edit?id=${business.id}` as any)} style={styles.actionIcon}><Feather name="edit-2" size={20} color={colors.light.primary} /></Pressable>}
           <Pressable accessibilityRole="button" accessibilityLabel={`Share ${business.name}`} onPress={handleShare} style={styles.actionIcon}>
             <Feather name="share-2" size={20} color={colors.light.foreground} />
           </Pressable>
@@ -210,7 +194,6 @@ export default function BusinessDetailScreen() {
             </View>
           )}
           {business.subcategory && <View style={styles.badge}><Text style={styles.badgeText}>{business.subcategory}</Text></View>}
-          {isOwner && <View style={styles.ownerStatus}><Text style={styles.ownerStatusText}>{business.status.toUpperCase()}</Text></View>}
           {todaysHours && (
             <View style={[styles.badge, todaysHours.is_closed ? styles.badgeClosed : styles.badgeOpen]}>
               <Text style={[styles.badgeText, todaysHours.is_closed ? styles.badgeTextClosed : styles.badgeTextOpen]}>
@@ -234,46 +217,15 @@ export default function BusinessDetailScreen() {
         )}
 
         <View style={styles.infoGroup}>
-          {(business.city || business.address) && (
+          {business.city && (
             <View style={styles.infoRow}>
               <Feather name="map-pin" size={16} color={colors.light.mutedForeground} />
-              <Text style={styles.infoText}>{business.address ? `${business.address}, ` : ''}{business.city}</Text>
+              <Text style={styles.infoText}>{business.city}</Text>
             </View>
-          )}
-          {business.phone && (
-            <View style={styles.infoRow}>
-              <Feather name="phone" size={16} color={colors.light.mutedForeground} />
-              <Text style={styles.infoText}>{business.phone}</Text>
-            </View>
-          )}
-          {business.website && (
-            <Pressable accessibilityRole="link" accessibilityLabel={`Open ${business.website}`} style={styles.infoRow} onPress={() => void openExternal(business.website!, 'This website cannot be opened on your device.')}>
-              <Feather name="globe" size={16} color={colors.light.mutedForeground} />
-              <Text style={[styles.infoText, styles.website]}>{business.website}</Text>
-            </Pressable>
-          )}
-          {business.email && (
-            <Pressable accessibilityRole="link" accessibilityLabel={`Email ${business.name}`} style={styles.infoRow} onPress={() => void openExternal(`mailto:${business.email}`, 'Your device cannot open an email app.')}>
-              <Feather name="mail" size={16} color={colors.light.mutedForeground} />
-              <Text style={[styles.infoText, styles.website]}>{business.email}</Text>
-            </Pressable>
           )}
         </View>
 
         <View style={styles.actionRow}>
-          {business.phone && (
-            <>
-              <Pressable accessibilityRole="button" accessibilityLabel={`Call ${business.name}`} style={[styles.primaryBtn, { backgroundColor: '#4ADE80' }]} onPress={handleCall}>
-                <Feather name="phone" size={16} color="#050A17" />
-                <Text style={styles.primaryBtnText}>CALL</Text>
-              </Pressable>
-            </>
-          )}
-          {(business.whatsapp || business.phone) && (
-            <Pressable accessibilityRole="button" accessibilityLabel={`Message ${business.name} on WhatsApp`} style={[styles.primaryBtn, { backgroundColor: '#25D366' }]} onPress={handleWhatsApp}>
-              <Text style={styles.primaryBtnText}>WHATSAPP</Text>
-            </Pressable>
-          )}
           <Pressable accessibilityRole="button" accessibilityLabel={`Find ${business.name} on a map`} style={[styles.primaryBtn, { backgroundColor: colors.light.card }]} onPress={handleMap}>
             <Feather name="map" size={16} color={colors.light.foreground} />
             <Text style={[styles.primaryBtnText, { color: colors.light.foreground }]}>MAP</Text>
@@ -282,6 +234,7 @@ export default function BusinessDetailScreen() {
              <Feather name="bookmark" size={16} color={isFavorited ? colors.light.primary : colors.light.foreground} />
           </Pressable>
         </View>
+        <Text style={styles.contactNotice}>Contact details appear only through a dedicated public-safe contact projection after explicit owner consent. This listing does not currently have one.</Text>
 
         <View style={styles.divider} />
         
@@ -409,4 +362,7 @@ const styles = StyleSheet.create({
   noReviews: { color: colors.light.mutedForeground, fontSize: 14, fontStyle: 'italic' },
   loadError: { color: colors.light.foreground, textAlign: 'center', fontSize: 15, lineHeight: 22, marginTop: 12, marginBottom: 16 },
   retryBtn: { backgroundColor: colors.light.primary, borderRadius: 12, paddingHorizontal: 20, paddingVertical: 12 },
+   backRetryBtn: { marginTop: 12, padding: 8 },
+   backRetryText: { color: colors.light.primary, fontWeight: '800' },
+   contactNotice: { color: colors.light.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: -12, marginBottom: 16 },
 });

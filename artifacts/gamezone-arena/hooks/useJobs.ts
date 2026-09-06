@@ -3,6 +3,7 @@ const clear=(q:ReturnType<typeof useQueryClient>)=>Promise.all([q.invalidateQuer
 export const useJobs=(f:api.JobFilters={})=>useQuery({queryKey:["jobs",f],queryFn:()=>api.browseJobs(f)});
 export const useJobCategories=(enabled=true)=>useQuery({queryKey:["jobs","categories"],queryFn:async()=>{try{return await api.jobCategories()}catch(error){console.error("Job category query failed",error);throw error}},staleTime:300000,enabled});
 export const useJob=(id:string)=>useQuery({queryKey:["job",id],queryFn:()=>api.getJob(id),enabled:!!id});
+export const useOwnerJob=(id:string)=>useQuery({queryKey:["jobs","owner",id],queryFn:()=>api.getOwnerJob(id),enabled:!!id});
 export const useMyJobs=()=>useQuery({queryKey:["jobs","mine"],queryFn:api.myJobs});export const useSavedJobs=()=>useQuery({queryKey:["jobs","saved"],queryFn:api.savedJobs});
 export const useMyApplications=()=>useQuery({queryKey:["jobs","applications"],queryFn:api.myApplications});export const useJobApplications=(id:string)=>useQuery({queryKey:["jobs","applications",id],queryFn:()=>api.jobApplications(id),enabled:!!id});
 export const useMySeekerProfile=()=>useQuery({queryKey:["jobs","profile"],queryFn:api.mySeekerProfile});export const useWorkers=(f:api.WorkerFilters={})=>useQuery({queryKey:["jobs","workers",f],queryFn:()=>api.findWorkers(f)});export const useWorker=(id:string)=>useQuery({queryKey:["jobs","worker",id],queryFn:()=>api.getWorker(id),enabled:!!id});

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -15,17 +16,20 @@ import {
 import {
   useRouter, type Href
 } from 'expo-router';
-import { useDeleteUserData, useSupabaseAuth } from '@/hooks/useBusiness';
+import { useBusinessAdmin, useDeleteUserData, useSupabaseAuth } from '@/hooks/useBusiness';
 import { Alert } from 'react-native';
 import { Feather } from '@/components/Feather';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const { signOut } = useAuth();
   const { user } = useUser();
   const deleteUserData = useDeleteUserData();
   useSupabaseAuth();
+  const { data: isAdmin } = useBusinessAdmin();
 
   const [loggingOut, setLoggingOut] =
     useState(false);
@@ -95,6 +99,16 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.container}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingTop: insets.top + 10,
+            paddingBottom: insets.bottom + 32,
+          },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
 
       {/* BACK */}
       <Pressable
@@ -169,11 +183,13 @@ export default function ProfileScreen() {
           <Feather name="chevron-right" size={18} color="#71809F" />
         </Pressable>
 
-        <Pressable style={styles.menuLink} onPress={() => router.push('/business/admin' as Href)}>
-          <Feather name="shield" size={18} color="#FFFFFF" />
-          <Text style={styles.menuLinkText}>Moderation Queue</Text>
-          <Feather name="chevron-right" size={18} color="#71809F" />
-        </Pressable>
+        {isAdmin === true ? (
+          <Pressable style={styles.menuLink} onPress={() => router.push('/business/admin' as Href)}>
+            <Feather name="shield" size={18} color="#FFFFFF" />
+            <Text style={styles.menuLinkText}>Moderation Queue</Text>
+            <Feather name="chevron-right" size={18} color="#71809F" />
+          </Pressable>
+        ) : null}
       </View>
 
       {/* ACTIONS */}
@@ -207,6 +223,7 @@ export default function ProfileScreen() {
         </Pressable>
       </View>
 
+      </ScrollView>
     </View>
   );
 }
@@ -215,11 +232,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#050A17',
+  },
+
+  content: {
     padding: 22,
   },
 
   back: {
-    marginTop: 10,
     paddingVertical: 8,
     alignSelf: 'flex-start',
   },

@@ -4,14 +4,14 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { Button, Card, styles as s } from "@/components/JobsUi";
 import { useSupabaseAuth } from "@/hooks/useBusiness";
-import { useJob, useJobMutation } from "@/hooks/useJobs";
+import { useJobMutation, useOwnerJob } from "@/hooks/useJobs";
 
 export default function Preview() {
   useSupabaseAuth();
   const params = useLocalSearchParams<{ id?: string | string[] }>();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const router = useRouter();
-  const { data, error, isLoading } = useJob(id ?? "");
+  const { data, error, isLoading } = useOwnerJob(id ?? "");
   const mutation = useJobMutation();
 
   if (isLoading) return <ActivityIndicator />;
@@ -41,6 +41,9 @@ export default function Preview() {
     );
   };
   const returnToDraft = () => router.replace(`/business/jobs/edit?id=${data.id}` as never);
+  const salary = data.salary_min == null
+    ? `Negotiable · ${data.salary_type}`
+    : `${data.salary_max == null ? `₹${data.salary_min}` : `₹${data.salary_min} – ₹${data.salary_max}`} · ${data.salary_type}`;
 
   return (
     <KeyboardAwareScrollViewCompat style={s.root} contentContainerStyle={s.content}>
@@ -48,6 +51,11 @@ export default function Preview() {
       <Text style={s.subtitle}>Review all entered information before submitting it for moderation.</Text>
       <Card job={data} onPress={() => {}} />
       <View style={s.card}>
+        {detail("Category", data.category)}
+        {detail("Salary", salary)}
+        {detail("Job type", data.work_type.replace("_", " "))}
+        {detail("Application deadline", data.application_deadline)}
+        {detail("Contact visibility", "Contact visibility is enforced after publish by server consent rules.")}
         {detail("Contact person", data.employer_name)}
         {detail("Job role", data.job_role)}
         {detail("Description", data.description)}

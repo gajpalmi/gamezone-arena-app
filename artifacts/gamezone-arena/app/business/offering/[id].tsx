@@ -1,5 +1,5 @@
-import React from "react";
-import { ActivityIndicator, Alert, Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useState } from "react";
+import { ActivityIndicator, Alert, Image, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import colors from "@/constants/colors";
 import { useSupabaseAuth } from "@/hooks/useBusiness";
@@ -13,16 +13,15 @@ export default function Detail() {
   const { data, isLoading, error, refetch } = useOffering(id);
   const action = useOfferingAction();
   const basket = useOfferingBasketAction();
+  const [reporting, setReporting] = useState(false);
+  const [reportReason, setReportReason] = useState<"spam" | "fraud" | "inappropriate_content" | "harassment" | "incorrect_information" | "other">("spam");
+  const [reportDetails, setReportDetails] = useState("");
 
   if (isLoading) return <View style={styles.root}><ActivityIndicator color={colors.light.primary}/></View>;
   if (error || !data) return <View style={styles.root}><Text style={styles.error}>{error ? (error as Error).message : "Listing unavailable"}</Text>{error ? <Pressable style={styles.retry} onPress={() => void refetch()}><Text style={styles.retryText}>RETRY</Text></Pressable> : null}</View>;
 
   const offering = data.offering;
   const open = (url:string) => void Linking.openURL(url).catch(() => Alert.alert("Unavailable", "No compatible app is available."));
-  const phone = offering.contact_phone.trim().replace(/[ ()-]/g, "");
-  const whatsapp = offering.whatsapp?.trim().replace(/\D/g, "") ?? "";
-  const canContact = !!offering.contact_public_consent_at && /^\+?\d{7,39}$/.test(phone);
-  const canWhatsApp = canContact && /^\d{7,39}$/.test(whatsapp);
   const button = (label:string, onPress:()=>void, primary=false) => <Pressable
     testID={`offering-${label.toLowerCase().replaceAll(" ", "-")}`}
     style={[styles.button, primary && styles.primaryButton]}
@@ -36,9 +35,8 @@ export default function Detail() {
   });
   const buy = () => basket.mutate({ type:"add", id:offering.id }, {
     onSuccess:() => {
-      Alert.alert("Added to basket", canContact ? "Purchase request saved. You can contact the seller now." : "Purchase request saved. The seller has not made contact details publicly available.", [
+       Alert.alert("Added to basket", "Purchase request saved. Seller contact is available only when a server-side public contact projection confirms explicit consent and a valid value.", [
         { text:"View Basket", onPress:() => router.push("/business/offering/basket" as never) },
-        ...(canContact ? [{ text:"Message Seller", onPress:() => open(`sms:${phone}`) }, { text:"Call Seller", onPress:() => open(`tel:${phone}`) }] : []),
       ]);
     },
     onError:error => {
@@ -69,16 +67,31 @@ export default function Detail() {
     </View> : null}
 
     <View style={styles.actions}>
-      {canContact ? button("Call", () => open(`tel:${phone}`)) : null}
-      {canWhatsApp ? button("WhatsApp", () => open(`https://wa.me/${whatsapp}`)) : null}
       {button("Map", () => open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(offering.location_text || `${offering.area || ""} ${offering.city}`)}`))}
       {button("Share", () => void shareLink(offering.name, `${offering.name}: ${offeringLink(offering.id)}`))}
-      {button("Copy Link", () => void copyLink(offeringLink(offering.id)).then(() => Alert.alert("Copied", "Listing link copied.")))}
+       {button("Copy Link", () => void copyLink(offeringLink(offering.id)).then(() => Alert.alert("Copied", "Listing link copied.")).catch(() => Alert.alert("Copy unavailable", "Your device could not copy the listing link.")))}
       {button(data.isSaved ? "Unsave" : "Save", toggleSaved)}
       {button("Block", () => action.mutate({ type:"block", id:offering.id, value:true }, { onSuccess:() => router.replace("/business/offerings" as never) }))}
-      {button("Report", () => action.mutate({ type:"report", id:offering.id, value:"other", reason:"Reported from listing details" }, { onSuccess:() => Alert.alert("Reported", "Thank you for your report.") }))}
+       {button("Report", () => setReporting(true))}
     </View>
-    {!canContact ? <Text style={styles.contactNotice}>The seller has not provided publicly usable contact details.</Text> : null}
+     <Text style={styles.contactNotice}>Seller contact is shown only when explicit consent and a valid contact value are returned by a public-safe server projection. Contact is unavailable for this listing.</Text>
+     {reporting ? <View style={styles.reportCard}>
+       <Text style={styles.reportTitle}>Report listing</Text>
+       <Text style={styles.reportHelp}>Select the closest reason. Details are optional.</Text>
+       <View style={styles.reasonList}>{([
+         ["spam", "Spam or misleading promotion"],
+         ["fraud", "Fraud or scam"],
+         ["incorrect_information", "Incorrect information"],
+         ["inappropriate_content", "Inappropriate content"],
+         ["harassment", "Harassment or hate"],
+         ["other", "Other concern"],
+       ] as const).map(([reason, label]) => <Pressable key={reason} style={[styles.reason, reportReason === reason && styles.reasonSelected]} onPress={() => setReportReason(reason)}><Text style={[styles.reasonText, reportReason === reason && styles.reasonTextSelected]}>{reportReason === reason ? "✓ " : ""}{label}</Text></Pressable>)}</View>
+       <TextInput value={reportDetails} onChangeText={setReportDetails} multiline maxLength={2000} placeholder="Optional details" placeholderTextColor={colors.light.mutedForeground} style={styles.reportInput}/>
+       <View style={styles.reportActions}>
+         <Pressable style={styles.cancelReport} onPress={() => setReporting(false)}><Text style={styles.buttonText}>CANCEL</Text></Pressable>
+         <Pressable disabled={action.isPending} style={styles.submitReport} onPress={() => action.mutate({ type:"report", id:offering.id, value:reportReason, reason:reportDetails }, { onSuccess:() => { setReporting(false); setReportDetails(""); Alert.alert("Reported", "Thank you for your report."); }, onError:(reportError: Error) => Alert.alert("Could not submit report", reportError.message || "Your selected reason and details are still available. Please try again.") })}><Text style={styles.primaryButtonText}>{action.isPending ? "SENDING…" : "SUBMIT REPORT"}</Text></Pressable>
+       </View>
+     </View> : null}
     <Text style={styles.reviews}>Reviews ({data.reviews.length})</Text>
     {data.reviews.map((review:any) => <Text key={review.id} style={styles.info}>★ {review.rating} {review.body}</Text>)}
   </ScrollView>;
@@ -107,4 +120,16 @@ const styles = StyleSheet.create({
    retry:{alignSelf:"center",marginTop:12,padding:12},
    retryText:{color:colors.light.primary,fontWeight:"900"},
    contactNotice:{color:colors.light.mutedForeground,fontSize:12},
+   reportCard:{backgroundColor:colors.light.card,borderColor:colors.light.border,borderWidth:1,borderRadius:14,padding:14,gap:10},
+   reportTitle:{color:colors.light.foreground,fontSize:17,fontWeight:"900"},
+   reportHelp:{color:colors.light.mutedForeground,fontSize:12},
+   reasonList:{gap:7},
+   reason:{borderWidth:1,borderColor:colors.light.border,borderRadius:9,padding:10},
+   reasonSelected:{borderColor:colors.light.primary,backgroundColor:colors.light.primary+"14"},
+   reasonText:{color:colors.light.foreground,fontSize:12,fontWeight:"700"},
+   reasonTextSelected:{color:colors.light.primary},
+   reportInput:{borderWidth:1,borderColor:colors.light.border,borderRadius:10,padding:10,minHeight:72,color:colors.light.foreground,textAlignVertical:"top"},
+   reportActions:{flexDirection:"row",gap:8},
+   cancelReport:{flex:1,borderWidth:1,borderColor:colors.light.border,borderRadius:10,padding:11,alignItems:"center"},
+   submitReport:{flex:1,backgroundColor:colors.light.primary,borderRadius:10,padding:11,alignItems:"center"},
 });

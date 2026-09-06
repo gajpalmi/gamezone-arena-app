@@ -1,5 +1,5 @@
 import React from "react";
-import { ActivityIndicator, Alert, FlatList, Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Feather } from "@/components/Feather";
 import colors from "@/constants/colors";
@@ -11,7 +11,6 @@ export default function BuyerBasket() {
   const router = useRouter();
   const basket = useOfferingBasket(auth.ready);
   const action = useOfferingBasketAction();
-  const open = (url:string) => void Linking.openURL(url).catch(() => Alert.alert("Unavailable", "No compatible contact app is available."));
 
   return <View style={styles.root}>
     <View style={styles.header}>
@@ -27,10 +26,6 @@ export default function BuyerBasket() {
       ListEmptyComponent={<View style={styles.empty}><Feather name="shopping-bag" size={42} color={colors.light.mutedForeground}/><Text style={styles.emptyTitle}>Your basket is empty</Text><Text style={styles.subtitle}>Open a FOR SALE product and tap Buy / Add to Basket.</Text></View>}
       renderItem={({ item }) => {
         const product = item.business_offerings;
-        const phone = product.contact_phone.trim().replace(/[ ()-]/g, "");
-        const whatsapp = product.whatsapp?.trim().replace(/\D/g, "") ?? "";
-        const canContact = !!product.contact_public_consent_at && /^\+?\d{7,39}$/.test(phone);
-        const canWhatsApp = canContact && /^\d{7,39}$/.test(whatsapp);
         return <View style={styles.card}>
           <Text style={styles.intent}>PURCHASE REQUEST</Text>
           <Text style={styles.name}>{product.name}</Text>
@@ -39,11 +34,8 @@ export default function BuyerBasket() {
           <Text style={styles.meta}>Added {new Date(item.created_at).toLocaleDateString()}</Text>
           <View style={styles.actions}>
             <Pressable style={styles.primary} onPress={() => router.push(`/business/offering/${product.id}` as never)}><Text style={styles.primaryText}>VIEW PRODUCT</Text></Pressable>
-            {canContact ? <><Pressable style={styles.contact} onPress={() => open(`tel:${phone}`)}><Text style={styles.contactText}>CALL</Text></Pressable>
-            <Pressable style={styles.contact} onPress={() => open(`sms:${phone}`)}><Text style={styles.contactText}>MESSAGE</Text></Pressable></> : null}
-            {canWhatsApp ? <Pressable style={styles.contact} onPress={() => open(`https://wa.me/${whatsapp}`)}><Text style={styles.contactText}>WHATSAPP</Text></Pressable> : null}
           </View>
-          {!canContact ? <Text style={styles.meta}>Seller contact details are not publicly available.</Text> : null}
+          <Text style={styles.meta}>Seller contact details are available only when a public-safe projection confirms explicit consent and a valid contact value.</Text>
           <Pressable style={styles.cancel} disabled={action.isPending} onPress={() => Alert.alert("Cancel purchase request", "Remove this product from your basket?", [
               { text: "Keep" },
               { text: "Cancel Request", style: "destructive", onPress: () => action.mutate({ type: "cancel", id: item.id }) },

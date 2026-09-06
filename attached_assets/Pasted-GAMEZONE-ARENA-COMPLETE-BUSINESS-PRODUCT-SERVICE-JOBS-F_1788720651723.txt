@@ -1,0 +1,835 @@
+GAMEZONE ARENA — COMPLETE BUSINESS, PRODUCT, SERVICE & JOBS FUNCTIONALIZATION
+
+आप GAMEZONE ARENA के senior full-stack engineer, security engineer और QA engineer हैं।
+
+इस task का उद्देश्य existing GAMEZONE ARENA app में Business, Product, Service, Jobs/Hiring और Worker systems को production-quality तरीके से complete और reliable बनाना है।
+
+🔴 ABSOLUTE RULE — पहले पढ़ें
+
+किसी भी code को बदलने से पहले पूरे existing implementation को inspect करें।
+
+Existing features, UI, routes, database, RLS, authentication, moderation और navigation को बिना आवश्यकता हटाना या redesign करना मना है।
+
+बिल्कुल नहीं करना है
+
+- Replit Pro खरीदना/upgrade करना
+- कोई paid service activate करना
+- EAS build चलाना
+- deployment करना
+- नया Clerk account बनाना
+- नया Clerk application बनाना
+- Existing Replit-managed Clerk हटाना
+- Clerk authentication migrate करना
+- Supabase authentication architecture बदलना
+- RLS disable करना
+- RLS कमजोर करना
+- public/anonymous INSERT जोड़ना
+- service_role key client में डालना
+- client-supplied owner ID पर भरोसा करना
+- authentication bypass करना
+- deprecated Clerk JWT template इस्तेमाल करना
+- fake success दिखाना
+- fake database data बनाना
+- existing working features हटाना
+
+Current known authentication blocker
+
+Existing architecture:
+
+Clerk Session JWT
+→ Supabase Third-Party Auth
+→ "role: authenticated"
+→ Existing RLS
+→ User-owned database row
+
+Current Replit-managed Clerk configuration में required Supabase compatibility configuration उपलब्ध नहीं है।
+
+इसलिए:
+
+Product/Service/Business/Job/Worker Profile database writes को bypass करके चालू करने की कोशिश बिल्कुल न करें।
+
+जहाँ authentication blocker हो वहाँ truthful error/retry state रखें।
+
+---
+
+PHASE 1 — COMPLETE PROJECT AUDIT
+
+पूरे project को inspect करें।
+
+इन सभी क्षेत्रों को check करें:
+
+1. Business
+2. Product
+3. Service
+4. Jobs
+5. Hiring
+6. Worker Profile
+7. Categories
+8. Search
+9. Filters
+10. Saved Listings
+11. My Listings
+12. Drafts
+13. Preview
+14. Photos
+15. Camera
+16. Gallery
+17. Files
+18. Contact
+19. Call
+20. WhatsApp
+21. Email
+22. Share
+23. Report
+24. Block
+25. Notifications
+26. Settings
+27. Profile
+28. Friends
+29. Leaderboard
+30. Games
+31. Ludo
+32. Quick Quiz
+33. Navigation
+34. Database queries
+35. RLS
+36. Storage policies
+
+हर feature का वास्तविक code path identify करें।
+
+---
+
+PHASE 2 — BUSINESS DIRECTORY
+
+Business system को verify करें।
+
+Business profile में support करें:
+
+- Business name
+- Business category
+- Description
+- Owner/business name
+- Phone
+- WhatsApp
+- Email
+- City
+- Area
+- Address/landmark
+- Opening hours
+- Photos
+- Logo
+- Services
+- Products
+- Verification status
+- Sponsored label जहाँ लागू हो
+- Report
+- Block
+- Share
+- Save/Favorite
+
+Business privacy
+
+Contact information तभी दिखे जब owner ने explicit consent दिया हो।
+
+Private information को public query से expose न करें।
+
+---
+
+PHASE 3 — BUSINESS CATEGORIES
+
+Central category system verify करें।
+
+Categories कम से कम:
+
+- Grocery
+- Restaurant
+- Clothing
+- Electronics
+- Mobile Shop
+- Computer
+- Hardware
+- Furniture
+- Salon
+- Beauty
+- Education
+- Repair
+- Electrician
+- Plumber
+- Carpenter
+- Mechanic
+- Transport
+- Hotel
+- Real Estate
+- Agriculture
+- Medical/Healthcare
+- Other
+
+Category picker में:
+
+- Open
+- Select
+- Selected state
+- Cancel
+- Search where appropriate
+- Empty state
+- Error state
+- Retry
+
+सब वास्तविक होना चाहिए।
+
+---
+
+PHASE 4 — PRODUCT MARKETPLACE
+
+Product listing में:
+
+- Product name
+- Product option/variant
+- Category
+- Sell/Buy intent
+- Description
+- Price
+- Price unit
+- City
+- Area
+- Delivery information
+- Photos
+- Stock/availability
+- Seller contact consent
+- Terms acceptance
+
+Product detail:
+
+- Product photos
+- Product information
+- Seller information
+- Contact Seller
+- Call Seller
+- WhatsApp Seller
+- Email Seller
+- Share
+- Save
+- Report
+- Block
+
+Important
+
+Real-money payment gateway अभी add नहीं करना है।
+
+"Buy" का अर्थ अभी contact/interest flow हो सकता है।
+
+Fake payment success बिल्कुल नहीं।
+
+---
+
+PHASE 5 — PRODUCT SEARCH
+
+Search केवल इन events पर execute हो:
+
+- Search button
+- Keyboard Enter
+- Apply Filters
+- Reset Filters
+
+हर character पर network search नहीं।
+
+Filters:
+
+- Category
+- City
+- Area
+- Minimum price
+- Maximum price
+- Availability
+
+Open-ended prices को गलत तरीके से exclude न करें।
+
+---
+
+PHASE 6 — PRODUCT SAVED LISTINGS
+
+Saved Product system verify करें।
+
+जहाँ authentication उपलब्ध है:
+
+- Save
+- Unsave
+- Saved state
+- Saved Listings
+- Duplicate prevention
+
+जहाँ current authentication blocker है:
+
+- fake save success नहीं
+- clear error
+- retry
+- entered screen state preserve
+
+---
+
+PHASE 7 — SERVICE MARKETPLACE
+
+Service listing:
+
+- Service name
+- Category
+- Description
+- Provider
+- Price/range
+- Price unit
+- City
+- Area
+- Availability
+- Working hours
+- Photos
+- Contact consent
+
+Service detail:
+
+- Contact
+- Call
+- WhatsApp
+- Email
+- Share
+- Save
+- Report
+- Block
+
+Contact controls तभी दिखें जब explicit consent और valid contact मौजूद हो।
+
+---
+
+PHASE 8 — JOBS & HIRING
+
+Employer
+
+Employer को support करें:
+
+- Post Job
+- Save Draft
+- Preview
+- Publish
+- Edit
+- Delete
+- Applications
+- Applicant list
+- Applicant status
+- Shortlist
+- Reject
+- Contact worker
+- Call
+- WhatsApp
+- Email
+- Report
+- Block
+
+Worker
+
+Worker को support करें:
+
+- Worker Profile
+- Browse Jobs
+- Search
+- Filters
+- Save Job
+- Apply
+- Withdraw Application
+- Application status
+- Contact request
+- Report
+- Block
+
+---
+
+PHASE 9 — JOB CATEGORIES
+
+Categories:
+
+- Retail
+- Sales
+- Delivery
+- Driver
+- Security
+- Construction
+- Electrician
+- Plumber
+- Carpenter
+- Mechanic
+- Office
+- Computer/IT
+- Teacher
+- Hotel/Restaurant
+- Agriculture
+- Healthcare
+- Marketing
+- Other
+
+Category selection हर relevant form में consistent हो।
+
+---
+
+PHASE 10 — JOB SEARCH & FILTERS
+
+Search accidental तरीके से execute नहीं होना चाहिए।
+
+Filters:
+
+- Category
+- City
+- Area
+- Salary minimum
+- Salary maximum
+- Experience
+- Education
+- Work location
+- Job type
+- Working hours
+
+Null/open-ended salary को सही handle करें।
+
+---
+
+PHASE 11 — JOB APPLICATION STATUS
+
+Application states properly handle करें:
+
+- Applied
+- Under Review
+- Shortlisted
+- Interview
+- Selected
+- Rejected
+- Withdrawn
+
+Terminal state के बाद invalid transitions रोकें।
+
+Example:
+
+Rejected application को फिर से Shortlisted करने का UI नहीं दिखना चाहिए जब तक backend explicitly अनुमति न देता हो।
+
+Worker का Withdraw application action preserve करें।
+
+Confirmation dialog और error feedback रखें।
+
+---
+
+PHASE 12 — WORKER PROFILE
+
+Worker profile में:
+
+- Name/display name
+- Profile photo
+- Skills
+- Experience
+- Education
+- City
+- Area
+- Availability
+- Preferred work
+- Resume where supported
+
+Client से arbitrary "user_id" स्वीकार न करें।
+
+Authenticated identity database से authoritative हो।
+
+Private worker information public listing में expose न हो।
+
+---
+
+PHASE 13 — CONTACT PRIVACY
+
+यह बहुत महत्वपूर्ण है।
+
+Phone/email/WhatsApp केवल:
+
+- explicit consent
+- valid contact value
+- allowed listing state
+
+होने पर दिखाएं।
+
+Private contact fields को public discovery queries में select न करें।
+
+Employer/private worker contacts को unauthorized users से expose न करें।
+
+---
+
+PHASE 14 — PHOTO & FILE SYSTEM
+
+Add Photo में native Android के लिए:
+
+1. Take Photo
+2. Photo Library
+3. Image Files
+
+जहाँ existing implementation support करती है वहाँ video support भी preserve करें।
+
+Validation:
+
+- JPG
+- JPEG
+- PNG
+- WebP
+
+Invalid files reject करें।
+
+Upload पूरा होने से पहले navigation न करें।
+
+Upload fail होने पर:
+
+- selected data preserve
+- retry
+- clear error
+
+Fake upload success नहीं।
+
+Web preview में camera unavailable होने पर infinite spinner नहीं होना चाहिए।
+
+---
+
+PHASE 15 — SHARE SYSTEM
+
+Share support करें:
+
+- Business
+- Product
+- Service
+- Job
+- Game
+
+Existing deep links preserve करें:
+
+"gamezone-arena://"
+
+Share content में sensitive/private data शामिल न करें।
+
+HTTPS fallback तभी implement करें जब existing architecture सुरक्षित तरीके से support करे।
+
+---
+
+PHASE 16 — REPORT & BLOCK
+
+User किसी Business/Product/Service/Job/Worker को:
+
+- Report
+- Block
+- Unblock
+
+कर सके।
+
+Report reasons meaningful हों।
+
+Optional details field रखें जहाँ appropriate हो।
+
+Duplicate reports prevent करें।
+
+Block के बाद relevant content hide/filter हो।
+
+Existing moderation architecture preserve करें।
+
+---
+
+PHASE 17 — ADMIN MODERATION
+
+Existing admin moderation system को inspect करें।
+
+Admin:
+
+- View reports
+- Review content
+- Moderate
+- Suspend/unpublish where existing system allows
+- Audit action
+
+कर सके।
+
+Admin controls ordinary users को expose न हों।
+
+---
+
+PHASE 18 — DRAFTS
+
+Forms:
+
+- Product
+- Service
+- Business
+- Job
+
+में existing Draft functionality verify करें।
+
+Draft:
+
+- Save
+- Resume
+- Edit
+- Delete
+
+जहाँ authentication blocker के कारण database save unavailable है वहाँ:
+
+truthful unavailable state रखें।
+
+Local entered form state नष्ट न करें।
+
+---
+
+PHASE 19 — PREVIEW
+
+Preview screen में exactly वही data दिखना चाहिए जो listing में जाने वाला है।
+
+Preview:
+
+- no accidental publish
+- back preserves form
+- missing required fields clearly shown
+- contact consent reflected
+- photos shown correctly
+
+---
+
+PHASE 20 — LOADING / ERROR / EMPTY STATES
+
+हर database-backed screen में अलग-अलग states रखें:
+
+Loading
+
+जब data अभी load हो रहा हो।
+
+Error
+
+जब query/request fail हो।
+
+Empty
+
+जब request सफल हुई लेकिन result zero हो।
+
+Retry
+
+Error state में।
+
+कभी भी query failure को empty result मत दिखाएं।
+
+---
+
+PHASE 21 — SETTINGS
+
+Existing settings को preserve करें।
+
+Verify:
+
+- Notifications
+- Sounds
+- Vibration/Haptics
+- Music
+- Volume
+- Language
+- Theme
+- Privacy
+- Security
+- Help
+- About
+- Account deletion
+
+यदि कोई preference केवल local है तो fake remote persistence मत दिखाएं।
+
+---
+
+PHASE 22 — GAMES
+
+Existing games को न तोड़ें।
+
+विशेष रूप से:
+
+- Ludo
+- Quick Quiz
+- अन्य existing games
+
+Game availability सही दिखे।
+
+Unavailable game पर truthful:
+
+Coming Soon
+
+दिखे।
+
+Fake online users, fake rankings, fake timers या fake backend statistics न बनाएं।
+
+---
+
+PHASE 23 — FRIENDS & LEADERBOARD
+
+यदि real secure backend उपलब्ध नहीं है:
+
+Fake users/rankings/counts generate न करें।
+
+Truthful unavailable/empty state दिखाएं।
+
+---
+
+PHASE 24 — AUTHENTICATION BLOCKER
+
+यह सबसे महत्वपूर्ण है।
+
+यदि किसी operation पर:
+
+"PGRST301"
+
+या authentication/session/RLS failure आता है तो:
+
+1. error capture करें
+2. user-friendly message दें
+3. retry दें
+4. form data preserve करें
+
+लेकिन:
+
+❌ RLS bypass नहीं
+❌ anonymous insert नहीं
+❌ service_role नहीं
+❌ owner ID spoofing नहीं
+❌ fake success नहीं
+
+Authentication blocker को केवल तभी fix करें जब कोई existing, free, supported configuration codebase में पहले से उपलब्ध हो।
+
+कोई paid configuration खोजने/activate करने की कोशिश न करें।
+
+---
+
+PHASE 25 — SECURITY AUDIT
+
+Final review में confirm करें:
+
+- RLS enabled
+- Ownership enforced
+- No public INSERT
+- No anonymous write
+- No service_role in client
+- No secret keys exposed
+- No client-trusted owner IDs
+- Private contacts protected
+- Private media protected
+- Reports protected
+- Blocks protected
+- Admin operations protected
+- Authentication architecture unchanged
+
+---
+
+PHASE 26 — PERFORMANCE
+
+Unnecessary:
+
+- repeated queries
+- search-per-keystroke
+- duplicate requests
+- duplicate uploads
+- infinite polling
+
+हटाएं जहाँ सुरक्षित हो।
+
+Existing functionality न टूटे।
+
+---
+
+PHASE 27 — RESPONSIVE UI
+
+कम से कम इन widths पर UI logic inspect करें:
+
+- 320px
+- 360px
+- 390px
+- 402px
+- 430px
+
+Horizontal clipping नहीं होना चाहिए।
+
+Buttons screen से बाहर नहीं जाने चाहिए।
+
+Forms usable रहें।
+
+---
+
+PHASE 28 — FINAL TEST
+
+Available environment में बिना paid build के:
+
+- TypeScript
+- imports
+- routes
+- forms
+- query construction
+- error handling
+- responsive layout
+- security-sensitive code
+
+test करें।
+
+No EAS build.
+
+No deployment.
+
+---
+
+PHASE 29 — FINAL REPORT
+
+काम समाप्त होने पर यह exact structure दें:
+
+Fixed
+
+वास्तव में किए गए fixes।
+
+Verified
+
+जो पहले से सही मिले।
+
+Authentication blocked
+
+जो operations Clerk/Supabase blocker के कारण अभी नहीं चल सकते।
+
+Not implemented
+
+जो features के लिए वास्तविक backend/infrastructure अभी उपलब्ध नहीं है।
+
+Security
+
+Confirm:
+
+- RLS unchanged
+- No auth bypass
+- No public INSERT
+- No service_role
+- No deprecated JWT template
+- No new Clerk app
+- No security weakening
+
+Build
+
+"No build/deployment performed."
+
+Paid operations
+
+"No paid operation performed."
+
+Remaining recommended work
+
+केवल वे items बताएं जो वास्तव में बाकी हैं।
+
+---
+
+FINAL PRINCIPLE
+
+Existing GAMEZONE ARENA को बचाते हुए उसे धीरे-धीरे complete करें।
+
+हर feature वास्तविक होना चाहिए।
+
+जो काम नहीं कर सकता उसे fake success नहीं दिखाना है।
+
+जो authentication blocker के कारण नहीं हो सकता उसे bypass नहीं करना है।
+
+Security को कमजोर करके functionality हासिल नहीं करनी है।
+
+Minimal, additive, safe changes करें।
+
+पहले inspect → फिर fix → फिर test → फिर report।
+
+किसी भी destructive migration, reset, project recreation, paid operation, build या deployment से पहले रुकें और केवल report करें।

@@ -21,7 +21,7 @@ import colors from "@/constants/colors";
 import { useSupabaseAuth } from "@/hooks/useBusiness";
 import {
   useDeleteOfferingPhoto,
-  useOffering,
+  useMyOffering,
   useOfferingCategories,
   useOfferingPhoto,
   useSaveOffering,
@@ -41,7 +41,7 @@ export default function OfferingEdit() {
   const scroll = useRef<ScrollView>(null);
   const auth = useSupabaseAuth();
 
-  const detail = useOffering(id ?? "");
+  const detail = useMyOffering(id ?? "");
   const save = useSaveOffering(id);
   const photo = useOfferingPhoto();
   const deletePhoto = useDeleteOfferingPhoto();

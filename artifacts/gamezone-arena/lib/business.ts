@@ -14,6 +14,8 @@ export type Business = {
   business_categories?: { id: string; slug: string; name: string };
   business_photos?: BusinessPhoto[];
 };
+/** Fields intentionally safe for public directory and detail reads. */
+export type PublicBusiness = Pick<Business, "id" | "category_id" | "name" | "description" | "city" | "latitude" | "longitude" | "subcategory" | "service_areas" | "services_offered" | "price_range" | "status" | "approved_at" | "created_at" | "updated_at" | "business_categories">;
 export type BusinessCategory = { id: string; slug: string; name: string; description: string | null; sort_order: number };
 export type BusinessHours = { day_of_week: number; opens_at: string | null; closes_at: string | null; is_closed: boolean };
 export type BusinessPhoto = { id: string; business_id: string; storage_path: string; alt_text: string | null; sort_order: number; is_logo?: boolean; created_at: string; signedUrl?: string };
@@ -22,7 +24,11 @@ export type BrowseOptions = { categoryId?: string; city?: string; query?: string
 export type BusinessInput = Pick<Business, "category_id" | "name" | "city" | "phone" | "terms_version" | "terms_accepted_at" | "privacy_version" | "privacy_accepted_at" | "listing_rules_version" | "listing_rules_accepted_at"> & Partial<Pick<Business, "description" | "email" | "website" | "address" | "latitude" | "longitude" | "owner_name" | "owner_display_name" | "subcategory" | "whatsapp" | "service_areas" | "services_offered" | "price_range" | "public_contact_consent_at">>;
 
 const MAX_PAGE_SIZE = 50;
-const businessColumns = "id,owner_id,category_id,name,description,phone,email,website,address,city,latitude,longitude,owner_name,owner_display_name,subcategory,whatsapp,service_areas,services_offered,price_range,public_contact_consent_at,terms_version,terms_accepted_at,privacy_version,privacy_accepted_at,listing_rules_version,listing_rules_accepted_at,status,submitted_at,approved_at,rejection_reason,created_at,updated_at";
+const ownerBusinessColumns = "id,owner_id,category_id,name,description,phone,email,website,address,city,latitude,longitude,owner_name,owner_display_name,subcategory,whatsapp,service_areas,services_offered,price_range,public_contact_consent_at,terms_version,terms_accepted_at,privacy_version,privacy_accepted_at,listing_rules_version,listing_rules_accepted_at,status,submitted_at,approved_at,rejection_reason,created_at,updated_at";
+// Do not add contact, owner, legal acceptance, or moderation fields here. The
+// current schema has no security-definer public projection that can conditionally
+// expose contacts, so public reads must not select them at all.
+const publicBusinessColumns = "id,category_id,name,description,city,latitude,longitude,subcategory,service_areas,services_offered,price_range,status,approved_at,created_at,updated_at";
 const LEGAL_VERSION = "2026-09-06";
 let pendingAccountPhotoDeletion: string[] | null = null;
 
@@ -67,25 +73,44 @@ export async function listCategories(): Promise<BusinessCategory[]> {
   fail(error); return (data ?? []) as BusinessCategory[];
 }
 
-export async function browseBusinesses(options: BrowseOptions = {}) {
+export async function browseBusinesses(options: BrowseOptions = {}): Promise<{ data: PublicBusiness[]; count: number; page: number; pageSize: number }> {
   const page = Math.max(0, options.page ?? 0);
   const pageSize = Math.min(MAX_PAGE_SIZE, Math.max(1, options.pageSize ?? 20));
-  let query = client().from("businesses").select(`${businessColumns},business_categories(id,slug,name)`, { count: "exact" }).eq("status", "approved");
+  if (!publicSupabase) throw new Error("Business directory is unavailable: Supabase is not configured.");
+  let query = publicSupabase.from("businesses").select(`${publicBusinessColumns},business_categories(id,slug,name)`, { count: "exact" }).eq("status", "approved");
   if (options.categoryId) query = query.eq("category_id", options.categoryId);
   if (options.city?.trim()) query = query.ilike("city", `%${options.city.trim()}%`);
   if (options.query?.trim()) query = query.or(`name.ilike.%${options.query.trim().replace(/[%,()]/g, " ")}%,description.ilike.%${options.query.trim().replace(/[%,()]/g, " ")}%`);
   const { data, error, count } = await query.order("created_at", { ascending: false }).range(page * pageSize, page * pageSize + pageSize - 1);
   fail(error);
-  const blocked = await listBlockedBusinessIds();
-  return { data: ((data ?? []) as unknown as Business[]).filter((business) => !blocked.has(business.id)), count: count ?? 0, page, pageSize };
+  // Blocking is a signed-in, user-specific concern. Do not turn an otherwise
+  // successful public directory read into a failure when that private read is unavailable.
+  return { data: (data ?? []) as unknown as PublicBusiness[], count: count ?? 0, page, pageSize };
 }
 
-export async function getBusinessDetail(id: string) {
+export async function getBusinessDetail(id: string): Promise<{ business: PublicBusiness; hours: BusinessHours[]; photos: BusinessPhoto[]; reviews: BusinessReview[] }> {
   if (!id) throw new Error("Business id is required.");
-  if ((await listBlockedBusinessIds()).has(id)) throw new Error("This business is blocked.");
+  if (!publicSupabase) throw new Error("Business directory is unavailable: Supabase is not configured.");
+  const db = publicSupabase;
+  const [{ data: business, error }, { data: hours, error: hoursError }, { data: photos, error: photosError }, { data: reviews, error: reviewsError }] = await Promise.all([
+    db.from("businesses").select(`${publicBusinessColumns},business_categories(id,slug,name)`).eq("id", id).eq("status", "approved").single(),
+    db.from("business_hours").select("day_of_week,opens_at,closes_at,is_closed").eq("business_id", id).order("day_of_week"),
+    db.from("business_photos").select("id,business_id,storage_path,alt_text,sort_order,is_logo,created_at").eq("business_id", id).order("sort_order"),
+    db.from("business_reviews").select("id,business_id,user_id,rating,body,is_approved,created_at,updated_at").eq("business_id", id).eq("is_approved", true).order("created_at", { ascending: false }),
+  ]);
+  fail(error); fail(hoursError); fail(photosError); fail(reviewsError);
+  const rawPhotos = (photos ?? []) as BusinessPhoto[];
+  const { data: signed, error: signedError } = rawPhotos.length ? await db.storage.from("business-media").createSignedUrls(rawPhotos.map((photo) => photo.storage_path), 60 * 10) : { data: [], error: null };
+  fail(signedError);
+  const signedByPath = new Map((signed ?? []).map((item) => [item.path, item.signedUrl]));
+  return { business: business as unknown as PublicBusiness, hours: (hours ?? []) as BusinessHours[], photos: rawPhotos.map((photo) => ({ ...photo, signedUrl: signedByPath.get(photo.storage_path) ?? undefined })), reviews: (reviews ?? []) as BusinessReview[] };
+}
+/** Authenticated owner/admin projection for edit and moderation flows. */
+export async function getMyBusinessDetail(id: string): Promise<{ business: Business; hours: BusinessHours[]; photos: BusinessPhoto[]; reviews: BusinessReview[] }> {
+  if (!id) throw new Error("Business id is required.");
   const db = client();
   const [{ data: business, error }, { data: hours, error: hoursError }, { data: photos, error: photosError }, { data: reviews, error: reviewsError }] = await Promise.all([
-    db.from("businesses").select(`${businessColumns},business_categories(id,slug,name)`).eq("id", id).single(),
+    db.from("businesses").select(`${ownerBusinessColumns},business_categories(id,slug,name)`).eq("id", id).single(),
     db.from("business_hours").select("day_of_week,opens_at,closes_at,is_closed").eq("business_id", id).order("day_of_week"),
     db.from("business_photos").select("id,business_id,storage_path,alt_text,sort_order,is_logo,created_at").eq("business_id", id).order("sort_order"),
     db.from("business_reviews").select("id,business_id,user_id,rating,body,is_approved,created_at,updated_at").eq("business_id", id).eq("is_approved", true).order("created_at", { ascending: false }),
@@ -100,7 +125,7 @@ export async function getBusinessDetail(id: string) {
 
 export async function listMyBusinesses(): Promise<Business[]> {
   const db = client();
-  const { data, error } = await db.from("businesses").select(`${businessColumns},business_photos(id,business_id,storage_path,alt_text,sort_order,is_logo,created_at)`).order("updated_at", { ascending: false });
+  const { data, error } = await db.from("businesses").select(`${ownerBusinessColumns},business_photos(id,business_id,storage_path,alt_text,sort_order,is_logo,created_at)`).order("updated_at", { ascending: false });
   fail(error);
   const businesses = (data ?? []) as unknown as Business[];
   const paths = businesses.flatMap((business) => business.business_photos ?? []).map((photo) => photo.storage_path);
@@ -110,12 +135,12 @@ export async function listMyBusinesses(): Promise<Business[]> {
   return businesses.map((business) => ({ ...business, business_photos: (business.business_photos ?? []).map((photo) => ({ ...photo, signedUrl: signedByPath.get(photo.storage_path) ?? undefined })) }));
 }
 export async function createBusiness(input: BusinessInput): Promise<Business> {
-  const { data, error } = await client().from("businesses").insert(normalizedInput(input)).select(businessColumns).single();
+  const { data, error } = await client().from("businesses").insert(normalizedInput(input)).select(ownerBusinessColumns).single();
   fail(error, "insert", "businesses"); return data as Business;
 }
 export async function updateBusiness(id: string, input: BusinessInput): Promise<Business> {
   if (!id) throw new Error("Business id is required.");
-  const { data, error } = await client().from("businesses").update({ ...normalizedInput(input), updated_at: new Date().toISOString() }).eq("id", id).select(businessColumns).single();
+  const { data, error } = await client().from("businesses").update({ ...normalizedInput(input), updated_at: new Date().toISOString() }).eq("id", id).select(ownerBusinessColumns).single();
   fail(error, "update", "businesses"); return data as Business;
 }
 export async function deleteBusiness(id: string) {
@@ -130,11 +155,11 @@ export async function setFavorite(businessId: string, favorite: boolean) {
   const { error } = favorite ? await db.from("business_favorites").insert({ business_id: businessId }) : await db.from("business_favorites").delete().eq("business_id", businessId);
   fail(error);
 }
-export async function listFavorites(): Promise<Business[]> {
-  const { data, error } = await client().from("business_favorites").select(`business_id, businesses(${businessColumns})`);
+export async function listFavorites(): Promise<PublicBusiness[]> {
+  const { data, error } = await client().from("business_favorites").select(`business_id, businesses(${publicBusinessColumns})`);
   fail(error);
   const blocked = await listBlockedBusinessIds();
-  return (data ?? []).map((row: any) => row.businesses as Business).filter((business) => business?.status === "approved" && !blocked.has(business.id));
+  return (data ?? []).map((row: any) => row.businesses as PublicBusiness).filter((business) => business?.status === "approved" && !blocked.has(business.id));
 }
 export async function saveReview(businessId: string, rating: number, body: string) {
   if (!Number.isInteger(rating) || rating < 1 || rating > 5) throw new Error("Rating must be between 1 and 5.");
@@ -161,7 +186,7 @@ export async function listBlockedBusinessIds(): Promise<Set<string>> {
 export async function adminQueue(limit = 50) {
   const safeLimit = Math.min(100, Math.max(1, limit));
   const [businesses, reports] = await Promise.all([
-    client().from("businesses").select(businessColumns).eq("status", "pending").order("submitted_at").limit(safeLimit),
+    client().from("businesses").select(ownerBusinessColumns).eq("status", "pending").order("submitted_at").limit(safeLimit),
     client().from("business_reports").select("*").is("resolved_at", null).order("created_at").limit(safeLimit),
   ]);
   fail(businesses.error); fail(reports.error); return { businesses: (businesses.data ?? []) as Business[], reports: reports.data ?? [] };

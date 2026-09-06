@@ -51,7 +51,7 @@ export default function BusinessDiscoveryScreen() {
     pageSize: 20
   }), [submitted, page]);
 
-  const { data: browseData, isLoading: loadingBusinesses, refetch, isRefetching } = useBrowseBusinesses(options);
+  const { data: browseData, isLoading: loadingBusinesses, error: businessesError, refetch, isRefetching } = useBrowseBusinesses(options);
   useEffect(() => {
     if (!browseData) return;
     setBusinesses((previous) => {
@@ -156,6 +156,13 @@ export default function BusinessDiscoveryScreen() {
 
       {loadingBusinesses && page === 0 ? (
         <ActivityIndicator style={styles.loader} color={colors.light.primary} />
+      ) : businessesError && page === 0 ? (
+        <View style={styles.empty}>
+          <Feather name="alert-circle" size={40} color={colors.light.destructive} />
+          <Text style={styles.emptyText}>Unable to load businesses</Text>
+          <Text style={styles.emptySub}>{businessesError instanceof Error ? businessesError.message : 'Please try again.'}</Text>
+          <Pressable style={styles.retryButton} onPress={() => void refetch()}><Text style={styles.retryText}>RETRY</Text></Pressable>
+        </View>
       ) : (
         <FlatList
           data={businesses}
@@ -392,4 +399,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 8,
   },
+   retryButton: { backgroundColor: colors.light.primary, borderRadius: 10, paddingHorizontal: 18, paddingVertical: 11, marginTop: 16 },
+   retryText: { color: colors.light.primaryForeground, fontSize: 12, fontWeight: '900' },
 });
