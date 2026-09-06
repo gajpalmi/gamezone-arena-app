@@ -251,6 +251,28 @@ export default function HomeScreen() {
         />
       </View>
 
+      <SectionHeader
+        title="Business & Services"
+        action="Explore"
+      />
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.horizontal}
+      >
+        <Pressable
+          style={styles.businessCard}
+          onPress={() => router.push('/(tabs)/business' as Href)}
+        >
+          <View style={styles.businessIcon}>
+            <Feather name="map-pin" size={24} color="#C66BFF" />
+          </View>
+          <Text style={styles.businessTitle}>Local Directory</Text>
+          <Text style={styles.businessDesc}>Find trusted shops & services near you</Text>
+        </Pressable>
+      </ScrollView>
+
       {/* =================================================
           CONTINUE PLAYING
       ================================================= */}
@@ -826,4 +848,37 @@ const styles = StyleSheet.create({
     marginLeft: 9,
     flex: 1,
   },
+
+  businessCard: {
+    width: 220,
+    backgroundColor: colors.light.card,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.light.border,
+    padding: 16,
+    marginBottom: 20,
+  },
+
+  businessIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: '#C66BFF20',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+
+  businessTitle: {
+    color: colors.light.foreground,
+    fontSize: 16,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+
+  businessDesc: {
+    color: colors.light.mutedForeground,
+    fontSize: 12,
+    lineHeight: 18,
+  }
 });

@@ -1,0 +1,83 @@
+अब मैं स्पष्ट रूप से अनुमति देता हूँ कि ऊपर दिए गए पूरे “GAMEZONE ARENA — Business & Local Services Platform Master Specification” के अनुसार पूरा implementation शुरू करें।
+
+उसी specification को follow करें। कोई feature कम न करें और अपनी तरफ से requirements बदलें नहीं।
+
+पहले existing GAMEZONE ARENA project को पूरी तरह inspect करें और फिर उसी existing architecture में पूरा module implement करें।
+
+Business & Local Services का पूरा system चाहिए:
+
+- Business/Service registration
+- Business profile
+- Categories
+- Search
+- Location/area discovery
+- Call Now
+- WhatsApp
+- Map/Location
+- Save/Share
+- Reviews/Ratings
+- Report
+- Block
+- Admin moderation
+- Business approval/rejection/suspension
+- Database
+- RLS/security
+- Image storage
+- Privacy Policy integration
+- Terms of Use
+- Account deletion
+- UGC safety
+- Data safety preparation
+- Featured/Sponsored business structure
+- Existing AdMob compatibility
+- Google Play policy-conscious implementation
+
+Existing GAMEZONE ARENA के सभी working features सुरक्षित रहने चाहिए।
+
+विशेष रूप से:
+
+- Ludo और सभी existing games सुरक्षित रखें।
+- Clerk सुरक्षित रखें।
+- Supabase सुरक्षित रखें।
+- Existing navigation सुरक्षित रखें।
+- Existing profiles/friends/leaderboard सुरक्षित रखें।
+- Existing virtual coins सुरक्षित रखें।
+- Existing AdMob/rewarded ads सुरक्षित रखें।
+- Existing package name और Expo project configuration न बदलें।
+- Existing UI/design को बिना जरूरत redesign न करें।
+- कोई existing feature delete या disable न करें।
+
+Privacy/Security:
+
+- Contacts permission न लें।
+- Call Log permission न लें।
+- Call recording न करें।
+- User contacts automatically read न करें।
+- Phone number user स्वयं enter करे।
+- Call button Android system dialer खोले।
+- Secrets/client-side credentials expose न हों।
+- Supabase/Clerk security और RLS properly लागू करें।
+- User केवल अपने business profile को modify कर सके।
+- Admin actions role-based authorization से सुरक्षित हों।
+
+Google Play:
+Implementation को current Google Play requirements के अनुसार policy-conscious रखें।
+Privacy Policy, Data Safety, UGC moderation, Report/Block, Account Deletion और permissions को सही तरीके से implement करें।
+
+IMPORTANT:
+किसी भी existing feature को हटाने, project structure को अनावश्यक रूप से rewrite करने या package/project IDs बदलने से पहले मुझे बताएं।
+
+कोई अतिरिक्त paid service, external paid API, नया subscription, payment integration या दूसरा AdMob account मेरी अनुमति के बिना न जोड़ें।
+
+अब पूरे specification के अनुसार implementation शुरू करें।
+
+काम के दौरान पहले project inspection करें और फिर चरणबद्ध तरीके से implementation करें। प्रत्येक major चरण पूरा होने पर मुझे बताएं:
+
+1. क्या बनाया गया
+2. कौन-सी files बदलीं
+3. database में क्या बदला
+4. security में क्या बदला
+5. कोई समस्या/limitation है या नहीं
+6. अगला चरण क्या है
+
+अंत में पूरा testing और security/Google Play compliance audit करें।

@@ -101,24 +101,42 @@ function serveLandingPage(req, res, landingPageTemplate, appName) {
 }
 
 function serveStaticFile(urlPath, res) {
-  const safePath = path.normalize(urlPath).replace(/^(\.\.(\/|\\|$))+/, '');
-  const filePath = path.join(STATIC_ROOT, safePath);
-
-  if (!filePath.startsWith(STATIC_ROOT)) {
+  // URL paths always use "/", but resolve and realpath checks are needed to
+  // defend both traversal and symlinks escaping the static build directory.
+  const relativePath = decodeURIComponent(urlPath).replace(/^[/\\]+/, '');
+  const filePath = path.resolve(STATIC_ROOT, relativePath);
+  const rootPrefix = STATIC_ROOT.endsWith(path.sep) ? STATIC_ROOT : `${STATIC_ROOT}${path.sep}`;
+  if (filePath !== STATIC_ROOT && !filePath.startsWith(rootPrefix)) {
     res.writeHead(403);
     res.end('Forbidden');
     return;
   }
 
-  if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
+  if (!fs.existsSync(filePath)) {
     res.writeHead(404);
     res.end('Not Found');
     return;
   }
+  let realRoot;
+  let realFile;
+  try {
+    realRoot = fs.realpathSync(STATIC_ROOT);
+    realFile = fs.realpathSync(filePath);
+  } catch {
+    res.writeHead(404);
+    res.end('Not Found');
+    return;
+  }
+  const realRootPrefix = realRoot.endsWith(path.sep) ? realRoot : `${realRoot}${path.sep}`;
+  if (!realFile.startsWith(realRootPrefix) || fs.statSync(realFile).isDirectory()) {
+    res.writeHead(403);
+    res.end('Forbidden');
+    return;
+  }
 
-  const ext = path.extname(filePath).toLowerCase();
+  const ext = path.extname(realFile).toLowerCase();
   const contentType = MIME_TYPES[ext] || 'application/octet-stream';
-  const content = fs.readFileSync(filePath);
+  const content = fs.readFileSync(realFile);
   res.writeHead(200, { 'content-type': contentType });
   res.end(content);
 }

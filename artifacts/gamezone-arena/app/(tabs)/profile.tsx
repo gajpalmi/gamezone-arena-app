@@ -13,14 +13,19 @@ import {
 } from '@clerk/expo';
 
 import {
-  useRouter,
+  useRouter, type Href
 } from 'expo-router';
+import { useDeleteUserData, useSupabaseAuth } from '@/hooks/useBusiness';
+import { Alert } from 'react-native';
+import { Feather } from '@/components/Feather';
 
 export default function ProfileScreen() {
   const router = useRouter();
 
   const { signOut } = useAuth();
   const { user } = useUser();
+  const deleteUserData = useDeleteUserData();
+  useSupabaseAuth();
 
   const [loggingOut, setLoggingOut] =
     useState(false);
@@ -58,6 +63,35 @@ export default function ProfileScreen() {
     user?.primaryEmailAddress
       ?.emailAddress ||
     'No email';
+
+  async function handleDeleteAccount() {
+    if (loggingOut) return;
+    Alert.alert(
+      'Delete Account',
+      'Are you sure you want to permanently delete your account, your game progress, and your business listings? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Permanently',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setLoggingOut(true);
+              // Clean up backend data via RPC
+              await deleteUserData.mutateAsync();
+              // Delete Clerk user
+              await user?.delete();
+              // Will automatically route away or we can push
+              router.replace('/(auth)/sign-in' as Href);
+            } catch (err: any) {
+              setLoggingOut(false);
+              Alert.alert('Error', err.message || 'Failed to delete account');
+            }
+          }
+        }
+      ]
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -110,26 +144,62 @@ export default function ProfileScreen() {
 
       </View>
 
-      {/* LOGOUT */}
-      <Pressable
-        onPress={logout}
-        disabled={loggingOut}
-        style={[
-          styles.logout,
-          loggingOut &&
-            styles.logoutDisabled,
-        ]}
-      >
-        {loggingOut ? (
-          <ActivityIndicator
-            color="#FFFFFF"
-          />
-        ) : (
-          <Text style={styles.logoutText}>
-            LOG OUT
-          </Text>
-        )}
-      </Pressable>
+      <View style={styles.menuLinks}>
+        <Pressable style={styles.menuLink} onPress={() => router.push('/business/mine' as Href)}>
+          <Feather name="briefcase" size={18} color="#FFFFFF" />
+          <Text style={styles.menuLinkText}>My Business Listings</Text>
+          <Feather name="chevron-right" size={18} color="#71809F" />
+        </Pressable>
+
+        <Pressable style={styles.menuLink} onPress={() => router.push('/business/saved' as Href)}>
+          <Feather name="bookmark" size={18} color="#FFFFFF" />
+          <Text style={styles.menuLinkText}>Saved Businesses</Text>
+          <Feather name="chevron-right" size={18} color="#71809F" />
+        </Pressable>
+
+        <Pressable style={styles.menuLink} onPress={() => router.push('/business/legal' as Href)}>
+          <Feather name="shield" size={18} color="#FFFFFF" />
+          <Text style={styles.menuLinkText}>Legal & Privacy</Text>
+          <Feather name="chevron-right" size={18} color="#71809F" />
+        </Pressable>
+
+        <Pressable style={styles.menuLink} onPress={() => router.push('/business/admin' as Href)}>
+          <Feather name="shield" size={18} color="#FFFFFF" />
+          <Text style={styles.menuLinkText}>Moderation Queue</Text>
+          <Feather name="chevron-right" size={18} color="#71809F" />
+        </Pressable>
+      </View>
+
+      {/* ACTIONS */}
+      <View style={styles.actionsContainer}>
+        <Pressable
+          onPress={handleDeleteAccount}
+          disabled={loggingOut}
+          style={styles.deleteBtn}
+        >
+          <Text style={styles.deleteBtnText}>DELETE ACCOUNT</Text>
+        </Pressable>
+
+        <Pressable
+          onPress={logout}
+          disabled={loggingOut}
+          style={[
+            styles.logout,
+            loggingOut &&
+              styles.logoutDisabled,
+          ]}
+        >
+          {loggingOut ? (
+            <ActivityIndicator
+              color="#FFFFFF"
+            />
+          ) : (
+            <Text style={styles.logoutText}>
+              LOG OUT
+            </Text>
+          )}
+        </Pressable>
+      </View>
 
     </View>
   );
@@ -191,13 +261,61 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
 
+  menuLinks: {
+    marginTop: 20,
+    backgroundColor: '#111C34',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#304162',
+    overflow: 'hidden',
+  },
+
+  menuLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 18,
+    borderBottomWidth: 1,
+    borderBottomColor: '#304162',
+  },
+
+  menuLinkText: {
+    flex: 1,
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+    marginLeft: 12,
+  },
+
+  actionsContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 20,
+  },
+
+  deleteBtn: {
+    flex: 1,
+    height: 54,
+    borderRadius: 17,
+    backgroundColor: '#EF334020',
+    borderWidth: 1,
+    borderColor: '#EF3340',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  deleteBtnText: {
+    color: '#EF3340',
+    fontSize: 13,
+    fontWeight: '900',
+  },
+
   logout: {
+    flex: 1,
     height: 54,
     borderRadius: 17,
     backgroundColor: '#EF3340',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 20,
   },
 
   logoutDisabled: {

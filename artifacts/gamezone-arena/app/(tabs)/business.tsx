@@ -1,0 +1,365 @@
+import React, { useState, useMemo, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  TextInput,
+  FlatList,
+  ActivityIndicator,
+  RefreshControl,
+  Image,
+} from 'react-native';
+import { useRouter, type Href } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Feather } from '@/components/Feather';
+import colors from '@/constants/colors';
+import { useBrowseBusinesses, useCategories, useSupabaseAuth } from '@/hooks/useBusiness';
+
+export default function BusinessDiscoveryScreen() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  
+  // Ensure auth is passed to supabase
+  useSupabaseAuth();
+
+  const [query, setQuery] = useState('');
+  const [city, setCity] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [debouncedCity, setDebouncedCity] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string | undefined>();
+  const [page, setPage] = useState(0);
+  const [businesses, setBusinesses] = useState<any[]>([]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(query);
+      setDebouncedCity(city);
+      setPage(0);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [query, city]);
+
+  const { data: categoriesData, isLoading: loadingCategories } = useCategories();
+  
+  const options = useMemo(() => ({
+    query: debouncedQuery || undefined,
+    city: debouncedCity || undefined,
+    categoryId: selectedCategory,
+    page,
+    pageSize: 20
+  }), [query, city, selectedCategory, page]);
+
+  const { data: browseData, isLoading: loadingBusinesses, refetch, isRefetching } = useBrowseBusinesses(options);
+  useEffect(() => {
+    if (!browseData) return;
+    setBusinesses((previous) => {
+      if (browseData.page === 0) return browseData.data;
+      const known = new Set(previous.map((business) => business.id));
+      return [...previous, ...browseData.data.filter((business) => !known.has(business.id))];
+    });
+  }, [browseData]);
+  
+  const handleLoadMore = () => {
+    if (browseData && browseData.count > (page + 1) * 20) {
+      setPage(p => p + 1);
+    }
+  };
+
+  const renderHeader = () => (
+    <View style={styles.header}>
+      <Text style={styles.title}>Local Directory</Text>
+      
+      <View style={styles.actions}>
+        <Pressable style={styles.actionBtn} onPress={() => router.push('/business/saved' as Href)}>
+          <Feather name="bookmark" size={20} color={colors.light.primary} />
+        </Pressable>
+        <Pressable style={styles.actionBtn} onPress={() => router.push('/business/mine' as Href)}>
+          <Feather name="briefcase" size={20} color={colors.light.accent} />
+        </Pressable>
+      </View>
+
+      <View style={styles.searchRow}>
+        <View style={styles.searchInputContainer}>
+          <Feather name="search" size={16} color={colors.light.mutedForeground} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search shops & services..."
+            placeholderTextColor={colors.light.mutedForeground}
+            value={query}
+            onChangeText={(t) => { setQuery(t); setPage(0); }}
+          />
+        </View>
+        <View style={styles.searchInputContainer}>
+          <Feather name="map-pin" size={16} color={colors.light.mutedForeground} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="City / Area"
+            placeholderTextColor={colors.light.mutedForeground}
+            value={city}
+            onChangeText={(t) => { setCity(t); setPage(0); }}
+          />
+        </View>
+      </View>
+
+      <View style={styles.categories}>
+        <FlatList
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          data={[{ id: undefined, name: 'All' }, ...(categoriesData || [])]}
+          keyExtractor={item => item.id || 'all'}
+          renderItem={({ item }) => {
+            const isSelected = selectedCategory === item.id;
+            return (
+              <Pressable
+                style={[styles.categoryBadge, isSelected && styles.categoryBadgeActive]}
+                onPress={() => { setSelectedCategory(item.id); setPage(0); }}
+              >
+                <Text style={[styles.categoryText, isSelected && styles.categoryTextActive]}>
+                  {item.name}
+                </Text>
+              </Pressable>
+            );
+          }}
+          contentContainerStyle={{ gap: 8, paddingBottom: 16 }}
+        />
+      </View>
+    </View>
+  );
+
+  return (
+    <View style={[styles.root, { paddingTop: insets.top }]}>
+      {renderHeader()}
+
+      {loadingBusinesses && page === 0 ? (
+        <ActivityIndicator style={styles.loader} color={colors.light.primary} />
+      ) : (
+        <FlatList
+          data={businesses}
+          keyExtractor={item => item.id}
+          renderItem={({ item }) => {
+            const isNew = new Date(item.created_at).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000;
+            return (
+            <Pressable
+              style={styles.businessCard}
+              onPress={() => router.push(`/business/${item.id}` as Href)}
+            >
+              <View style={styles.cardContent}>
+                <View style={styles.titleRow}>
+                  <Text style={styles.cardTitle}>{item.name}</Text>
+                  {isNew && <View style={styles.newBadge}><Text style={styles.newBadgeText}>NEW</Text></View>}
+                </View>
+                <View style={styles.cardMeta}>
+                  {item.business_categories?.name && (
+                    <View style={styles.metaBadge}>
+                      <Text style={styles.metaText}>{item.business_categories.name}</Text>
+                    </View>
+                  )}
+                  {item.city && (
+                    <View style={styles.metaBadgeLine}>
+                      <Feather name="map-pin" size={12} color={colors.light.mutedForeground} />
+                      <Text style={styles.metaTextLine}>{item.city}</Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={styles.cardDesc} numberOfLines={2}>
+                  {item.description}
+                </Text>
+              </View>
+              <Feather name="chevron-right" size={20} color={colors.light.mutedForeground} />
+            </Pressable>
+            );
+          }}
+          contentContainerStyle={styles.listContent}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.5}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefetching}
+              onRefresh={refetch}
+              tintColor={colors.light.primary}
+            />
+          }
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Feather name="search" size={40} color={colors.light.mutedForeground} />
+              <Text style={styles.emptyText}>No businesses found</Text>
+              <Text style={styles.emptySub}>Try adjusting your search or filters</Text>
+            </View>
+          }
+        />
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: colors.light.background,
+  },
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: colors.light.foreground,
+    marginBottom: 16,
+  },
+  actions: {
+    position: 'absolute',
+    right: 20,
+    top: 16,
+    flexDirection: 'row',
+    gap: 12,
+  },
+  actionBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.light.card,
+    borderWidth: 1,
+    borderColor: colors.light.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  searchRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  searchInputContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.light.card,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.light.border,
+    paddingHorizontal: 12,
+    height: 44,
+  },
+  searchInput: {
+    flex: 1,
+    color: colors.light.foreground,
+    fontSize: 14,
+    marginLeft: 8,
+  },
+  categories: {
+    marginBottom: 4,
+  },
+  categoryBadge: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: colors.light.card,
+    borderWidth: 1,
+    borderColor: colors.light.border,
+  },
+  categoryBadgeActive: {
+    backgroundColor: colors.light.primary,
+    borderColor: colors.light.primary,
+  },
+  categoryText: {
+    color: colors.light.mutedForeground,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  categoryTextActive: {
+    color: colors.light.primaryForeground,
+  },
+  listContent: {
+    padding: 20,
+    gap: 12,
+  },
+  businessCard: {
+    backgroundColor: colors.light.card,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.light.border,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  cardContent: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
+  },
+  cardTitle: {
+    color: colors.light.foreground,
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  newBadge: {
+    backgroundColor: colors.light.accent + '30',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  newBadgeText: {
+    color: colors.light.accent,
+    fontSize: 9,
+    fontWeight: '900',
+  },
+  cardMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 8,
+  },
+  metaBadge: {
+    backgroundColor: colors.light.primary + '20',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  metaText: {
+    color: colors.light.primary,
+    fontSize: 10,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  metaBadgeLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  metaTextLine: {
+    color: colors.light.mutedForeground,
+    fontSize: 12,
+  },
+  cardDesc: {
+    color: colors.light.mutedForeground,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  loader: {
+    flex: 1,
+  },
+  empty: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 40,
+    marginTop: 40,
+  },
+  emptyText: {
+    color: colors.light.foreground,
+    fontSize: 16,
+    fontWeight: '800',
+    marginTop: 16,
+  },
+  emptySub: {
+    color: colors.light.mutedForeground,
+    fontSize: 13,
+    marginTop: 8,
+  },
+});
