@@ -1,0 +1,110 @@
+GAMEZONE ARENA में Post a Job screen की समस्या ठीक करें।
+
+समस्या:
+
+- Post a Job form खुल रहा है।
+- सभी fields दिखाई दे रही हैं।
+- लेकिन Preview & Publish button दबाने पर कुछ नहीं होता।
+- कोई validation error, toast, alert या message भी दिखाई नहीं देता।
+- User आगे Preview screen पर नहीं जा पा रहा है।
+
+IMPORTANT:
+
+- केवल इस Preview & Publish flow को diagnose और fix करें।
+- Business, Products, Services, Jobs database, RLS/security, Settings, Notifications या existing screens को unnecessarily redesign या remove न करें।
+- कोई नया Android permission न जोड़ें।
+- कोई EAS build, APK/AAB build, deployment या paid operation शुरू न करें।
+
+पहले code को inspect करके वास्तविक कारण पहचानें।
+
+जाँचें:
+
+1. Preview & Publish button का onPress handler connected है या नहीं।
+2. Form validation silently fail तो नहीं हो रही।
+3. Required fields की validation में कोई hidden field तो नहीं है।
+4. Date validation सही है या नहीं।
+5. Category selection validation सही तरीके से काम कर रही है या नहीं।
+6. Numeric salary/vacancy parsing crash तो नहीं कर रही।
+7. Form state सही तरीके से update हो रही है या नहीं।
+8. Navigation route मौजूद है या नहीं।
+9. Preview screen को सही parameters/data मिल रहे हैं या नहीं।
+10. कोई uncaught JavaScript exception तो नहीं आ रही।
+11. Promise rejection silently swallow तो नहीं हो रही।
+12. Keyboard/input state के कारण button press block तो नहीं हो रहा।
+13. Loading state stuck तो नहीं हो रही।
+14. Submit/preview function में early return बिना user feedback के तो नहीं है।
+
+UX requirement:
+
+अगर form incomplete है तो Preview & Publish दबाने पर स्पष्ट error दिखे:
+
+"Please complete the required fields."
+
+और जिस field में समस्या है उसके नीचे स्पष्ट message दिखे।
+
+अगर form valid है:
+
+- Preview screen पर navigate करें।
+- सभी entered job details preview में दिखें।
+- Preview screen पर:
+  - Edit
+  - Publish Job
+  - Back
+    options हों।
+
+अगर कोई unexpected error आती है:
+
+- button silently fail नहीं होना चाहिए।
+- User-friendly error/toast दिखाएँ:
+  "Unable to open job preview. Please try again."
+- Development console में वास्तविक error log करें।
+
+Validation को robust बनाएं लेकिन existing database requirements से conflict न करें।
+
+Test करें:
+
+TEST 1:
+Valid test data भरकर Preview & Publish दबाएँ।
+Expected: Preview screen खुलनी चाहिए।
+
+TEST 2:
+Required field खाली रखकर Preview & Publish दबाएँ।
+Expected: स्पष्ट validation message दिखना चाहिए।
+
+TEST 3:
+Invalid application deadline डालें।
+Expected: स्पष्ट date validation message।
+
+TEST 4:
+Salary/vacancy values test करें।
+Expected: कोई crash नहीं।
+
+TEST 5:
+Back करके form पर आएँ।
+Expected: entered values सुरक्षित रहें।
+
+TEST 6:
+Preview से वापस form में जाएँ।
+Expected: navigation सही रहे।
+
+TEST 7:
+Existing Jobs navigation और My Job Posts पर regression test करें।
+
+TEST 8:
+TypeScript check चलाएँ।
+
+TEST 9:
+Expo Doctor चलाएँ।
+
+TEST 10:
+Metro startup और Jobs screen render test करें।
+
+अंत में मुझे केवल यह report दें:
+
+- Root cause क्या था
+- कौन-सी files बदलीं
+- क्या fix किया
+- कौन-कौन से tests PASS हुए
+- कोई database/security change हुआ या नहीं
+
+जब तक मैं अलग से न कहूँ, कोई build/deployment/publishing शुरू न करें।

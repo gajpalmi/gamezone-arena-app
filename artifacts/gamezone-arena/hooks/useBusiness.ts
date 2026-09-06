@@ -2,14 +2,20 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as api from '@/lib/business';
 import { useAuth } from '@clerk/expo';
 import { setSupabaseAccessTokenGetter } from '@/lib/supabase';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export function useSupabaseAuth() {
-  const { getToken } = useAuth();
+  const { getToken, isLoaded, isSignedIn } = useAuth();
+  const [ready, setReady] = useState(false);
   useEffect(() => {
     setSupabaseAccessTokenGetter(() => getToken());
-    return () => setSupabaseAccessTokenGetter(null);
-  }, [getToken]);
+    setReady(Boolean(isLoaded && isSignedIn));
+    return () => {
+      setReady(false);
+      setSupabaseAccessTokenGetter(null);
+    };
+  }, [getToken, isLoaded, isSignedIn]);
+  return { ready, isLoaded: Boolean(isLoaded), isSignedIn: Boolean(isSignedIn) };
 }
 
 export function useCategories() {
