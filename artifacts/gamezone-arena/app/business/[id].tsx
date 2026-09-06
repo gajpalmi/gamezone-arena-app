@@ -26,6 +26,7 @@ import {
 } from '@/hooks/useBusiness';
 import { businessLink, copyLink, shareLink } from '@/lib/share';
 import { type ReportReason } from '@/lib/business';
+import { useUser } from '@clerk/expo';
 
 export default function BusinessDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -33,7 +34,8 @@ export default function BusinessDetailScreen() {
   const insets = useSafeAreaInsets();
   useSupabaseAuth();
 
-  const { data, isLoading } = useBusinessDetail(id!);
+  const { data, isLoading, error } = useBusinessDetail(id!);
+  const { user } = useUser();
   const { data: favorites } = useFavorites();
   const setFavorite = useSetFavorite();
 
@@ -45,15 +47,19 @@ export default function BusinessDetailScreen() {
   const [reviewBody, setReviewBody] = useState('');
   const [rating, setRating] = useState(5);
 
-  if (isLoading || !data) {
+  if (isLoading) {
     return (
       <View style={[styles.root, styles.centered, { paddingTop: insets.top }]}>
         <ActivityIndicator color={colors.light.primary} size="large" />
       </View>
     );
   }
+  if (!data) {
+    return <View style={[styles.root, styles.centered, { paddingTop: insets.top, paddingHorizontal: 24 }]}><Feather name="alert-circle" size={36} color={colors.light.destructive} /><Text style={styles.loadError}>{error instanceof Error ? error.message : 'Unable to load this business.'}</Text><Pressable style={styles.retryBtn} onPress={() => router.back()}><Text style={styles.submitBtnText}>GO BACK</Text></Pressable></View>;
+  }
 
   const { business, hours, photos, reviews } = data;
+  const isOwner = user?.id === business.owner_id;
 
   const openExternal = async (url: string, unavailableMessage: string) => {
     try {
@@ -178,6 +184,7 @@ export default function BusinessDetailScreen() {
           <Feather name="arrow-left" size={20} color={colors.light.foreground} />
         </Pressable>
         <View style={styles.headerActions}>
+          {isOwner && business.status !== 'approved' && <Pressable accessibilityRole="button" accessibilityLabel={`Edit ${business.name}`} onPress={() => router.push(`/business/edit?id=${business.id}` as any)} style={styles.actionIcon}><Feather name="edit-2" size={20} color={colors.light.primary} /></Pressable>}
           <Pressable accessibilityRole="button" accessibilityLabel={`Share ${business.name}`} onPress={handleShare} style={styles.actionIcon}>
             <Feather name="share-2" size={20} color={colors.light.foreground} />
           </Pressable>
@@ -202,6 +209,8 @@ export default function BusinessDetailScreen() {
               <Text style={styles.badgeText}>{business.business_categories.name}</Text>
             </View>
           )}
+          {business.subcategory && <View style={styles.badge}><Text style={styles.badgeText}>{business.subcategory}</Text></View>}
+          {isOwner && <View style={styles.ownerStatus}><Text style={styles.ownerStatusText}>{business.status.toUpperCase()}</Text></View>}
           {todaysHours && (
             <View style={[styles.badge, todaysHours.is_closed ? styles.badgeClosed : styles.badgeOpen]}>
               <Text style={[styles.badgeText, todaysHours.is_closed ? styles.badgeTextClosed : styles.badgeTextOpen]}>
@@ -241,6 +250,12 @@ export default function BusinessDetailScreen() {
             <Pressable accessibilityRole="link" accessibilityLabel={`Open ${business.website}`} style={styles.infoRow} onPress={() => void openExternal(business.website!, 'This website cannot be opened on your device.')}>
               <Feather name="globe" size={16} color={colors.light.mutedForeground} />
               <Text style={[styles.infoText, styles.website]}>{business.website}</Text>
+            </Pressable>
+          )}
+          {business.email && (
+            <Pressable accessibilityRole="link" accessibilityLabel={`Email ${business.name}`} style={styles.infoRow} onPress={() => void openExternal(`mailto:${business.email}`, 'Your device cannot open an email app.')}>
+              <Feather name="mail" size={16} color={colors.light.mutedForeground} />
+              <Text style={[styles.infoText, styles.website]}>{business.email}</Text>
             </Pressable>
           )}
         </View>
@@ -360,6 +375,8 @@ const styles = StyleSheet.create({
   badgeTextOpen: { color: '#4ADE80' },
   badgeClosed: { backgroundColor: colors.light.destructive + '20' },
   badgeTextClosed: { color: colors.light.destructive },
+  ownerStatus: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: colors.light.foreground + '14' },
+  ownerStatusText: { color: colors.light.foreground, fontSize: 11, fontWeight: '900' },
   photosScroll: { gap: 12, marginBottom: 20 },
   photo: { width: 280, height: 180, borderRadius: 16, backgroundColor: colors.light.card },
   infoGroup: { gap: 10, marginBottom: 20, backgroundColor: colors.light.card, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: colors.light.border },
@@ -390,4 +407,6 @@ const styles = StyleSheet.create({
   reviewDate: { color: colors.light.mutedForeground, fontSize: 11 },
   reviewBody: { color: colors.light.foreground, fontSize: 14, lineHeight: 20 },
   noReviews: { color: colors.light.mutedForeground, fontSize: 14, fontStyle: 'italic' },
+  loadError: { color: colors.light.foreground, textAlign: 'center', fontSize: 15, lineHeight: 22, marginTop: 12, marginBottom: 16 },
+  retryBtn: { backgroundColor: colors.light.primary, borderRadius: 12, paddingHorizontal: 20, paddingVertical: 12 },
 });

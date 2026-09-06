@@ -18,10 +18,11 @@ export function useSupabaseAuth() {
   return { ready, isLoaded: Boolean(isLoaded), isSignedIn: Boolean(isSignedIn) };
 }
 
-export function useCategories() {
+export function useCategories(enabled = true) {
   return useQuery({
     queryKey: ['business-categories'],
     queryFn: () => api.listCategories(),
+    enabled,
   });
 }
 
@@ -177,6 +178,16 @@ export function useUploadBusinessImage() {
     mutationFn: ({ businessId, filename, file, contentType, altText }: { businessId: string; filename: string; file: Blob | ArrayBuffer; contentType: "image/jpeg" | "image/png" | "image/webp"; altText?: string }) => api.uploadBusinessImage(businessId, filename, file, contentType, altText),
     onSuccess: (_, { businessId }) => {
       queryClient.invalidateQueries({ queryKey: ['business', businessId] });
+    },
+  });
+}
+
+export function useDeleteBusinessImage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (photo: api.BusinessPhoto) => api.deleteBusinessImage(photo),
+    onSuccess: (_, photo) => {
+      queryClient.invalidateQueries({ queryKey: ['business', photo.business_id] });
     },
   });
 }

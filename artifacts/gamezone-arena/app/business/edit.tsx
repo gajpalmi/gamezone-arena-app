@@ -8,7 +8,7 @@ import {
   TextInput,
   ActivityIndicator,
   Alert,
-  Platform,
+  Image,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,6 +21,8 @@ import {
   useCreateBusiness,
   useUpdateBusiness,
   useUploadBusinessImage,
+  useDeleteBusinessImage,
+  useSubmitBusiness,
   useSupabaseAuth
 } from '@/hooks/useBusiness';
 import { useUser } from '@clerk/expo';
@@ -32,13 +34,15 @@ export default function BusinessEditScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user } = useUser();
-  useSupabaseAuth();
+  const auth = useSupabaseAuth();
 
-  const { data: categoriesData } = useCategories();
-  const { data: businessData, isLoading: loadingBusiness } = useBusinessDetail(id || '');
+  const { data: categoriesData } = useCategories(auth.ready);
+  const { data: businessData, isLoading: loadingBusiness, refetch: refetchBusiness } = useBusinessDetail(id || '');
   const createBusiness = useCreateBusiness();
   const updateBusiness = useUpdateBusiness(id || '');
   const uploadImage = useUploadBusinessImage();
+  const deleteImage = useDeleteBusinessImage();
+  const submitBusiness = useSubmitBusiness();
 
   const [form, setForm] = useState({
     name: '',
@@ -87,7 +91,7 @@ export default function BusinessEditScreen() {
     }
   }, [businessData]);
 
-  const handleSave = () => {
+  const handleSave = (afterSave?: (businessId: string) => void) => {
     if (!form.name || !form.category_id || !form.city || !form.phone) {
       Alert.alert('Missing fields', 'Name, category, city, and phone are required.');
       return;
@@ -120,8 +124,10 @@ export default function BusinessEditScreen() {
           Alert.alert('Business saved, hours failed', error instanceof Error ? error.message : 'Please retry saving weekly hours.');
         }
         if (!id) {
+          Alert.alert('Draft saved', 'Your listing is saved. Add a logo or photos, then preview or submit it for review.');
           router.replace(`/business/edit?id=${res.id}` as any);
         }
+        afterSave?.(res.id);
       },
       onError: (err: any) => {
         Alert.alert('Error', err.message || 'Failed to save business');
@@ -129,55 +135,68 @@ export default function BusinessEditScreen() {
     });
   };
 
-  const handlePickImage = async () => {
-    if (!id || !user) return;
-    
-    const result = await ImagePicker.launchImageLibraryAsync({
+  const uploadPickedAsset = async (asset: ImagePicker.ImagePickerAsset, kind: 'logo' | 'photo') => {
+    if (!id || !user) {
+      Alert.alert('Save your draft first', 'Save the required business details before adding a logo or photos.');
+      return;
+    }
+    setUploading(true);
+    try {
+      const uri = asset.uri;
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      const filename = asset.fileName || uri.split('/').pop() || 'image.jpg';
+      const lowerName = filename.toLowerCase();
+      const contentType: 'image/jpeg' | 'image/png' | 'image/webp' =
+        lowerName.endsWith('.png') ? 'image/png' : lowerName.endsWith('.webp') ? 'image/webp' : 'image/jpeg';
+      uploadImage.mutate({
+        businessId: id, filename, file: blob, contentType,
+        altText: kind === 'logo' ? 'Business logo' : 'Business photo',
+      }, {
+        onSuccess: async (photo) => {
+          try {
+            if (kind === 'logo') {
+              await setBusinessLogo(photo.id);
+              await refetchBusiness();
+            }
+            Alert.alert('Photo saved', kind === 'logo' ? 'Your business logo has been updated.' : 'Your business photo has been uploaded.');
+          } catch (error) {
+            Alert.alert('Photo uploaded', error instanceof Error ? `The image was saved, but the logo could not be set: ${error.message}` : 'The image was saved, but the logo could not be set.');
+          }
+        },
+        onError: (error: Error) => Alert.alert('Photo upload failed', error.message || 'Please try again.'),
+        onSettled: () => setUploading(false),
+      });
+    } catch (error) {
+      setUploading(false);
+      Alert.alert('Photo upload failed', error instanceof Error ? error.message : 'Please try again.');
+    }
+  };
+
+  const handlePickImage = async (source: 'camera' | 'library', kind: 'logo' | 'photo') => {
+    if (!id || !user) {
+      Alert.alert('Save your draft first', 'Save the required business details before adding media.');
+      return;
+    }
+    try {
+      if (source === 'camera') {
+        const permission = await ImagePicker.requestCameraPermissionsAsync();
+        if (!permission.granted) {
+          Alert.alert('Camera permission required', 'Allow camera access to take a business photo.');
+          return;
+        }
+      }
+      const result = source === 'camera' ? await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'], allowsEditing: true, aspect: [4, 3], quality: 0.5,
+      }) : await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.5,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      setUploading(true);
-      try {
-        const uri = result.assets[0].uri;
-        let blob: Blob;
-        
-        if (Platform.OS === 'web') {
-          const res = await fetch(uri);
-          blob = await res.blob();
-        } else {
-          // React Native
-          const res = await fetch(uri);
-          blob = await res.blob();
-        }
-        
-        const filename = uri.split('/').pop() || 'image.jpg';
-        let contentType: "image/jpeg" | "image/png" | "image/webp" = 'image/jpeg';
-        if (filename.endsWith('.png')) contentType = 'image/png';
-        if (filename.endsWith('.webp')) contentType = 'image/webp';
-
-        uploadImage.mutate({
-          businessId: id,
-          filename,
-          file: blob,
-          contentType,
-          altText: 'Business Photo',
-        }, {
-          onSuccess: () => {
-            Alert.alert('Success', 'Image uploaded.');
-          },
-          onError: (e: any) => {
-            Alert.alert('Upload failed', e.message);
-          },
-          onSettled: () => setUploading(false)
-        });
-      } catch (err: any) {
-        Alert.alert('Error', err.message);
-        setUploading(false);
-      }
+      });
+      if (!result.canceled && result.assets[0]) await uploadPickedAsset(result.assets[0], kind);
+    } catch (error) {
+      Alert.alert('Unable to open photo picker', error instanceof Error ? error.message : 'Please try again.');
     }
   };
 
@@ -189,7 +208,21 @@ export default function BusinessEditScreen() {
     );
   }
 
-  const isPending = createBusiness.isPending || updateBusiness.isPending;
+  const isPending = createBusiness.isPending || updateBusiness.isPending || submitBusiness.isPending;
+  const selectedCategory = categoriesData?.find((category) => category.id === form.category_id);
+  const subcategoriesBySlug: Record<string, string[]> = {
+    restaurants: ['Restaurant', 'Fast Food', 'Catering', 'Cloud Kitchen'],
+    cafes: ['Cafe', 'Bakery', 'Desserts', 'Juice & Beverages'],
+    'health-wellness': ['Clinic', 'Fitness', 'Pharmacy', 'Wellness'],
+    'home-services': ['Electrician', 'Plumber', 'Cleaning', 'Repair'],
+    automotive: ['Garage', 'Car Wash', 'Spare Parts', 'Two Wheeler Repair'],
+    'beauty-personal-care': ['Salon', 'Spa', 'Makeup', 'Barber'],
+    'professional-services': ['Legal', 'Accounting', 'Consulting', 'Insurance'],
+    retail: ['Grocery', 'Electronics', 'Clothing', 'Furniture'],
+    education: ['Tutor', 'Coaching', 'School', 'Computer Training'],
+    'arts-entertainment': ['Events', 'Photography', 'Gaming', 'Music'],
+  };
+  const suggestedSubcategories = selectedCategory ? (subcategoriesBySlug[selectedCategory.slug] || ['Other']) : [];
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -215,7 +248,6 @@ export default function BusinessEditScreen() {
             onChangeText={(t) => setForm({ ...form, name: t })}
           />
           <Text style={styles.label}>Display Name</Text><TextInput style={styles.input} placeholder="Public owner or business display name" placeholderTextColor={colors.light.mutedForeground} value={form.owner_display_name} onChangeText={(t) => setForm({ ...form, owner_display_name: t })} />
-          <Text style={styles.label}>Sub-category</Text><TextInput style={styles.input} placeholder="e.g. Laptop repair" placeholderTextColor={colors.light.mutedForeground} value={form.subcategory} onChangeText={(t) => setForm({ ...form, subcategory: t })} />
 
           <Text style={styles.label}>Category *</Text>
           <View style={styles.categories}>
@@ -223,7 +255,7 @@ export default function BusinessEditScreen() {
               <Pressable
                 key={cat.id}
                 style={[styles.catPill, form.category_id === cat.id && styles.catPillActive]}
-                onPress={() => setForm({ ...form, category_id: cat.id })}
+                onPress={() => setForm({ ...form, category_id: cat.id, subcategory: '' })}
               >
                 <Text style={[styles.catText, form.category_id === cat.id && styles.catTextActive]}>
                   {cat.name}
@@ -231,6 +263,9 @@ export default function BusinessEditScreen() {
               </Pressable>
             ))}
           </View>
+          <Text style={styles.label}>Sub-category</Text>
+          {selectedCategory ? <View style={styles.categories}>{suggestedSubcategories.map((subcategory) => <Pressable key={subcategory} style={[styles.catPill, form.subcategory === subcategory && styles.catPillActive]} onPress={() => setForm({ ...form, subcategory })}><Text style={[styles.catText, form.subcategory === subcategory && styles.catTextActive]}>{subcategory}</Text></Pressable>)}</View> : <Text style={styles.helperText}>Choose a category to see relevant sub-categories.</Text>}
+          <TextInput style={styles.input} placeholder="Or enter a more specific sub-category" placeholderTextColor={colors.light.mutedForeground} value={form.subcategory} onChangeText={(t) => setForm({ ...form, subcategory: t })} />
         </View>
 
         <View style={styles.section}>
@@ -308,21 +343,19 @@ export default function BusinessEditScreen() {
 
         {id && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Photos</Text>
-            <Text style={styles.helperText}>Add photos to make your listing stand out.</Text>
-            
-            <Pressable style={styles.photoBtn} onPress={handlePickImage} disabled={uploading}>
-              {uploading ? (
-                <ActivityIndicator color={colors.light.primary} />
-              ) : (
-                <>
-                  <Feather name="camera" size={20} color={colors.light.primary} />
-                  <Text style={styles.photoBtnText}>Upload Photo</Text>
-                </>
-              )}
-            </Pressable>
-            <Text style={styles.helperText}>Tap a photo to make it your logo.</Text>
-            <View style={styles.logoRow}>{businessData?.photos.map((photo) => <Pressable key={photo.id} onPress={() => void setBusinessLogo(photo.id).then(() => Alert.alert('Logo updated', 'This image is now your business logo.')).catch((error) => Alert.alert('Logo update failed', error.message))}><Text style={styles.logoItem}>{photo.is_logo ? '★ LOGO' : 'MAKE LOGO'}</Text></Pressable>)}</View>
+            <Text style={styles.sectionTitle}>Business logo & photos</Text>
+            <Text style={styles.helperText}>Add a logo and photos to make your listing stand out. Images are private until your listing is approved.</Text>
+            <View style={styles.mediaActions}>
+              <Pressable style={styles.mediaBtn} onPress={() => handlePickImage('camera', 'logo')} disabled={uploading}><Feather name="camera" size={18} color={colors.light.primary} /><Text style={styles.mediaBtnText}>TAKE LOGO PHOTO</Text></Pressable>
+              <Pressable style={styles.mediaBtn} onPress={() => handlePickImage('library', 'logo')} disabled={uploading}><Feather name="image" size={18} color={colors.light.primary} /><Text style={styles.mediaBtnText}>CHOOSE LOGO</Text></Pressable>
+              <Pressable style={styles.mediaBtn} onPress={() => handlePickImage('camera', 'photo')} disabled={uploading}><Feather name="camera" size={18} color={colors.light.primary} /><Text style={styles.mediaBtnText}>TAKE PHOTO</Text></Pressable>
+              <Pressable style={styles.mediaBtn} onPress={() => handlePickImage('library', 'photo')} disabled={uploading}><Feather name="image" size={18} color={colors.light.primary} /><Text style={styles.mediaBtnText}>GALLERY PHOTO</Text></Pressable>
+            </View>
+            {uploading && <View style={styles.uploading}><ActivityIndicator color={colors.light.primary} /><Text style={styles.helperText}>Uploading photo…</Text></View>}
+            <View style={styles.photoGrid}>
+              {businessData?.photos.filter((photo) => photo.signedUrl).map((photo) => <View key={photo.id} style={styles.photoWrap}><Image source={{ uri: photo.signedUrl! }} style={styles.photoPreview} /><View style={styles.photoControls}><Pressable onPress={() => void setBusinessLogo(photo.id).then(async () => { await refetchBusiness(); Alert.alert('Logo updated', 'This image is now your business logo.'); }).catch((error) => Alert.alert('Logo update failed', error.message))}><Text style={styles.logoItem}>{photo.is_logo ? '★ LOGO' : 'MAKE LOGO'}</Text></Pressable><Pressable disabled={deleteImage.isPending} onPress={() => Alert.alert('Remove photo', 'Remove this photo from your listing?', [{ text: 'Cancel', style: 'cancel' }, { text: 'Remove', style: 'destructive', onPress: () => deleteImage.mutate(photo, { onSuccess: () => Alert.alert('Photo removed', 'The photo was removed.'), onError: (error: Error) => Alert.alert('Remove failed', error.message) }) }])}><Feather name="trash-2" size={16} color={colors.light.destructive} /></Pressable></View></View>)}
+            </View>
+            {businessData?.photos.length === 0 && <Text style={styles.helperText}>No photos yet.</Text>}
           </View>
         )}
 
@@ -341,13 +374,19 @@ export default function BusinessEditScreen() {
           </Pressable>
         </View>
 
-        <Pressable style={styles.saveBtn} onPress={handleSave} disabled={isPending}>
+        <View style={styles.footerActions}>
+        <Pressable style={[styles.secondaryBtn, isPending && styles.disabledBtn]} onPress={() => id ? router.push(`/business/${id}` as any) : handleSave((businessId) => router.replace(`/business/${businessId}` as any))} disabled={isPending}>
+          <Text style={styles.secondaryBtnText}>PREVIEW</Text>
+        </Pressable>
+        <Pressable style={[styles.saveBtn, isPending && styles.disabledBtn]} onPress={() => handleSave()} disabled={isPending}>
           {isPending ? (
             <ActivityIndicator color="#050A17" />
           ) : (
-            <Text style={styles.saveBtnText}>SAVE LISTING</Text>
+            <Text style={styles.saveBtnText}>SAVE DRAFT</Text>
           )}
         </Pressable>
+        </View>
+        {id && <Pressable style={[styles.submitBtn, isPending && styles.disabledBtn]} disabled={isPending} onPress={() => submitBusiness.mutate(id, { onSuccess: () => { Alert.alert('Submitted for review', 'Your business is now pending moderation.'); router.replace('/business/mine' as any); }, onError: (error: Error) => Alert.alert('Unable to submit', error.message || 'Please try again.') })}><Text style={styles.submitBtnText}>{submitBusiness.isPending ? 'SUBMITTING…' : 'SUBMIT FOR REVIEW'}</Text></Pressable>}
 
       </ScrollView>
     </View>
@@ -374,8 +413,14 @@ const styles = StyleSheet.create({
   helperText: { color: colors.light.mutedForeground, fontSize: 13, marginBottom: 12 },
   logoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   logoItem: { color: colors.light.primary, fontSize: 11, fontWeight: '800' },
-  photoBtn: { height: 50, borderRadius: 12, borderWidth: 1, borderColor: colors.light.primary, borderStyle: 'dashed', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: colors.light.primary + '10' },
-  photoBtnText: { color: colors.light.primary, fontSize: 14, fontWeight: '700' },
+  mediaActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
+  mediaBtn: { width: '48%', minHeight: 44, padding: 8, borderRadius: 10, backgroundColor: colors.light.primary + '10', borderWidth: 1, borderColor: colors.light.primary + '40', alignItems: 'center', justifyContent: 'center', gap: 4 },
+  mediaBtnText: { color: colors.light.primary, fontSize: 10, fontWeight: '800', textAlign: 'center' },
+  uploading: { flexDirection: 'row', gap: 8, alignItems: 'center', marginBottom: 10 },
+  photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  photoWrap: { width: 130, backgroundColor: colors.light.input, borderRadius: 10, overflow: 'hidden' },
+  photoPreview: { width: 130, height: 96, backgroundColor: colors.light.border },
+  photoControls: { padding: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   checkboxRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   checkbox: { width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: colors.light.border, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.light.input },
   checkboxActive: { backgroundColor: colors.light.primary, borderColor: colors.light.primary },
@@ -387,6 +432,12 @@ const styles = StyleSheet.create({
   closedText: { color: colors.light.primary, fontSize: 9, fontWeight: '900' },
   timeInput: { flex: 1, height: 36, backgroundColor: colors.light.input, borderRadius: 7, color: colors.light.foreground, paddingHorizontal: 8, fontSize: 12 },
   to: { color: colors.light.mutedForeground, fontSize: 11 },
-  saveBtn: { height: 54, borderRadius: 16, backgroundColor: colors.light.primary, alignItems: 'center', justifyContent: 'center' },
+  footerActions: { flexDirection: 'row', gap: 10 },
+  saveBtn: { height: 54, borderRadius: 16, backgroundColor: colors.light.primary, alignItems: 'center', justifyContent: 'center', flex: 1 },
+  secondaryBtn: { height: 54, borderRadius: 16, backgroundColor: colors.light.card, borderWidth: 1, borderColor: colors.light.border, alignItems: 'center', justifyContent: 'center', flex: 1 },
+  secondaryBtnText: { color: colors.light.foreground, fontSize: 13, fontWeight: '900', letterSpacing: .5 },
   saveBtnText: { color: colors.light.primaryForeground, fontSize: 15, fontWeight: '900', letterSpacing: 1 },
+  submitBtn: { height: 54, borderRadius: 16, backgroundColor: colors.light.foreground, alignItems: 'center', justifyContent: 'center', marginTop: 12 },
+  submitBtnText: { color: colors.light.background, fontSize: 14, fontWeight: '900', letterSpacing: .7 },
+  disabledBtn: { opacity: .55 },
 });

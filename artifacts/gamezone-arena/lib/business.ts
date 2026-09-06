@@ -12,6 +12,7 @@ export type Business = {
   submitted_at: string | null; approved_at: string | null; rejection_reason: string | null;
   created_at: string; updated_at: string;
   business_categories?: { id: string; slug: string; name: string };
+  business_photos?: BusinessPhoto[];
 };
 export type BusinessCategory = { id: string; slug: string; name: string; description: string | null; sort_order: number };
 export type BusinessHours = { day_of_week: number; opens_at: string | null; closes_at: string | null; is_closed: boolean };
@@ -90,12 +91,19 @@ export async function getBusinessDetail(id: string) {
   const { data: signed, error: signedError } = rawPhotos.length ? await db.storage.from("business-media").createSignedUrls(rawPhotos.map((photo) => photo.storage_path), 60 * 10) : { data: [], error: null };
   fail(signedError);
   const signedByPath = new Map((signed ?? []).map((item) => [item.path, item.signedUrl]));
-  return { business: business as unknown as Business, hours: (hours ?? []) as BusinessHours[], photos: rawPhotos.map((photo) => ({ ...photo, signedUrl: signedByPath.get(photo.storage_path) })), reviews: (reviews ?? []) as BusinessReview[] };
+  return { business: business as unknown as Business, hours: (hours ?? []) as BusinessHours[], photos: rawPhotos.map((photo) => ({ ...photo, signedUrl: signedByPath.get(photo.storage_path) ?? undefined })), reviews: (reviews ?? []) as BusinessReview[] };
 }
 
 export async function listMyBusinesses(): Promise<Business[]> {
-  const { data, error } = await client().from("businesses").select(businessColumns).order("updated_at", { ascending: false });
-  fail(error); return (data ?? []) as Business[];
+  const db = client();
+  const { data, error } = await db.from("businesses").select(`${businessColumns},business_photos(id,business_id,storage_path,alt_text,sort_order,is_logo,created_at)`).order("updated_at", { ascending: false });
+  fail(error);
+  const businesses = (data ?? []) as unknown as Business[];
+  const paths = businesses.flatMap((business) => business.business_photos ?? []).map((photo) => photo.storage_path);
+  const { data: signed, error: signedError } = paths.length ? await db.storage.from("business-media").createSignedUrls(paths, 60 * 10) : { data: [], error: null };
+  fail(signedError);
+  const signedByPath = new Map((signed ?? []).map((item) => [item.path, item.signedUrl]));
+  return businesses.map((business) => ({ ...business, business_photos: (business.business_photos ?? []).map((photo) => ({ ...photo, signedUrl: signedByPath.get(photo.storage_path) ?? undefined })) }));
 }
 export async function createBusiness(input: BusinessInput): Promise<Business> {
   const { data, error } = await client().from("businesses").insert(normalizedInput(input)).select(businessColumns).single();
@@ -211,8 +219,18 @@ export async function deleteUserData() {
     pendingAccountPhotoDeletion = (paths ?? []) as string[];
   }
   if (pendingAccountPhotoDeletion.length) {
-    const { error: storageError } = await db.storage.from("business-media").remove(pendingAccountPhotoDeletion);
-    if (storageError) throw new Error(`Account data was removed, but private photos could not be removed. Retry before deleting your account: ${storageError.message}`);
+    const businessMediaPaths = pendingAccountPhotoDeletion.filter((path) => !path.startsWith("job-seekers/") && !path.startsWith("job-resumes/"));
+    const jobMediaPaths = pendingAccountPhotoDeletion.filter((path) => path.startsWith("job-seekers/") || path.startsWith("job-resumes/"));
+    const failures: string[] = [];
+    if (businessMediaPaths.length) {
+      const { error } = await db.storage.from("business-media").remove(businessMediaPaths);
+      if (error) failures.push(`business media: ${error.message}`);
+    }
+    if (jobMediaPaths.length) {
+      const { error } = await db.storage.from("job-private-media").remove(jobMediaPaths);
+      if (error) failures.push(`job private media: ${error.message}`);
+    }
+    if (failures.length) throw new Error(`Account data was removed, but private photos could not be removed. Retry before deleting your account: ${failures.join("; ")}`);
   }
   pendingAccountPhotoDeletion = null;
 }

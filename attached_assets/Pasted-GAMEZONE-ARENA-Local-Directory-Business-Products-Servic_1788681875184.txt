@@ -1,0 +1,744 @@
+GAMEZONE ARENA के Local Directory + Business + Products + Services + Jobs & Hiring सिस्टम का complete functional audit और fix करें।
+
+यह केवल UI सुधार नहीं है। हर option का पूरा flow काम करना चाहिए:
+
+Open → Fill → Select → Save → Continue/Next → Preview → Submit/Publish → Database Save → वापस खोलने पर Data दिखाई देना
+
+किसी भी button पर tap करने के बाद कुछ भी silently fail नहीं होना चाहिए।
+
+IMPORTANT:
+
+- Existing Business, Products, Services, Jobs, Ludo, Games, Profile, Friends, Leaderboard, Settings, Clerk और Supabase functionality को हटाना या तोड़ना नहीं है।
+- Existing RLS/security को कमजोर नहीं करना है।
+- Existing package, Expo project identity और navigation को preserve करें।
+- कोई unnecessary Android permission नहीं जोड़ें।
+- Contacts, Call Log, SMS, Microphone या background location permission नहीं चाहिए।
+- Camera और photo picker केवल user action के बाद इस्तेमाल हों।
+- अभी कोई EAS build, APK/AAB, deployment, publishing या paid operation शुरू न करें।
+
+1. GLOBAL REQUIREMENT — EVERY FORM MUST WORK
+
+Local Directory के सभी forms/screens को audit करें।
+
+हर form में:
+
+- Required fields clearly marked हों।
+- Category selection काम करे।
+- Dropdown/select controls वास्तव में options दिखाएँ।
+- Save button काम करे।
+- Continue/Next button काम करे जहाँ multi-step form है।
+- Preview button काम करे।
+- Publish/Submit button काम करे।
+- Loading state दिखाई दे।
+- Success message दिखाई दे।
+- Error होने पर exact field/error दिखाई दे।
+- कोई silent failure नहीं।
+- Back करने पर entered data unnecessarily गायब न हो।
+- Database में save होने के बाद उसी screen/list में item दिखाई दे।
+- App reopen करने पर saved data वापस load हो।
+
+यदि कोई button अभी placeholder है तो उसे functional बनाएं।
+
+2. CATEGORY SYSTEM — EVERYWHERE
+
+Categories किसी एक screen तक सीमित नहीं होनी चाहिए।
+
+Business:
+
+- Category
+- Subcategory
+
+Product:
+
+- Product Category
+- Subcategory
+
+Service:
+
+- Service Category
+- Subcategory
+
+Jobs:
+
+- Job Category
+- Job Role
+
+Find Jobs:
+
+- Category filter
+
+Find Workers:
+
+- Worker/Job Category filter
+
+Search Listings:
+
+- Category filter
+
+Find Products:
+
+- Product Category
+
+Find Services:
+
+- Service Category
+
+Categories database-driven हों।
+
+जहाँ applicable हो वहाँ categories में उदाहरण:
+
+Business:
+
+- Grocery
+- Electronics
+- Clothing
+- Restaurant/Food
+- Repair
+- Education
+- Health & Wellness
+- Beauty
+- Automotive
+- Construction
+- Home Services
+- Other
+
+Products:
+
+- Grocery
+- Electronics
+- Mobile
+- Clothing
+- Furniture
+- Home & Kitchen
+- Automotive
+- Tools
+- Other
+
+Services:
+
+- Electrician
+- Plumber
+- Carpenter
+- Mechanic
+- Cleaning
+- Repair
+- Tutor
+- Beauty
+- Delivery
+- Construction
+- Other
+
+Jobs:
+
+- Electrical
+- Plumbing
+- Construction
+- Driver
+- Delivery
+- Sales
+- Office
+- Computer/IT
+- Teaching
+- Restaurant
+- Security
+- Other
+
+IMPORTANT:
+Existing seeded categories को unnecessarily delete न करें।
+Duplicate categories create न हों।
+Category selection database value के साथ correctly save हो।
+
+3. PRODUCT — PHOTO/CAMERA MUST WORK
+
+Product बेचने वाला user product की photo डाल सके।
+
+Add Product में:
+
+Add Product Photo
+
+Options:
+
+- 📷 Take Photo
+- 🖼️ Choose from Gallery
+
+Camera:
+
+- User button दबाए तभी camera permission/request हो।
+- Photo capture हो।
+- Preview दिखाई दे।
+- Retake option हो।
+- Remove photo option हो।
+- Multiple product photos support करें यदि existing architecture अनुमति देता है।
+
+Gallery:
+
+- Existing image picker use करें।
+- Selected image का preview दिखे।
+- Remove/replace option हो।
+
+Product fields:
+
+- Product Name
+- Category
+- Subcategory
+- Description
+- Photos
+- Price
+- Unit
+- Availability
+- City
+- Area
+- Location
+- Contact
+- WhatsApp
+- Delivery Information
+
+Save/Continue properly काम करें।
+
+Product save होने के बाद:
+
+- My Listings में दिखाई दे।
+- Product discovery में approved होने के बाद दिखाई दे।
+- Product detail में photo दिखाई दे।
+- Share करने पर product information और image/link सही तरीके से handle हो।
+
+4. SERVICE — PHOTO SUPPORT
+
+Add Service में भी:
+
+- 📷 Take Photo
+- 🖼️ Choose from Gallery
+
+Service provider अपनी service/business की photo डाल सके।
+
+Fields:
+
+- Service Name
+- Category
+- Subcategory
+- Description
+- Photos
+- Service Area
+- Price
+- City
+- Area
+- Hours
+- Contact
+- WhatsApp
+
+Save/Preview/Submit functional हो।
+
+5. BUSINESS — PHOTO/LOGO
+
+Add/Edit Business में:
+
+- Business Logo
+- Business Photos
+
+के लिए:
+
+📷 Take Photo
+🖼️ Choose from Gallery
+
+हो।
+
+Selected photo का preview दिखे।
+
+Save होने के बाद:
+
+- Business detail में photo/logo दिखे।
+- My Listings में दिखे।
+- Public discovery में approved होने के बाद दिखे।
+
+Existing private storage/security rules preserve करें।
+
+6. JOBS — CATEGORY + FULL FORM FLOW
+
+Post a Job में Category वास्तव में खुलनी चाहिए।
+
+Required:
+
+- Job Title
+- Company/Business Name
+- Contact Person
+- Category
+- Job Role
+- Job Description
+- Required Skills
+- Required Experience
+- Education
+- Vacancies
+- Salary
+- City
+- Area
+- Work Location
+- Working Hours
+- Benefits
+- Requirements
+- Application Deadline
+
+Additional selectors यदि existing architecture में planned हैं:
+
+- Full Time
+- Part Time
+- Temporary
+- Contract
+- Internship
+- Freelance
+- Remote
+- On-site
+- Hybrid
+
+Preview & Publish button:
+
+- Valid data → Preview screen
+- Invalid data → exact validation message
+- No silent failure
+
+Save Draft:
+
+- Database में draft save हो।
+- My Job Posts में दिखाई दे।
+- बाद में खोलकर edit किया जा सके।
+
+Publish:
+
+- Existing moderation workflow में जाए।
+- Pending status दिखाई दे।
+- Approval के बाद Find Jobs में दिखाई दे।
+
+7. FIND JOBS
+
+Find Jobs में:
+
+Search
+
+Category
+
+Subcategory/Role
+
+City
+
+Area
+
+Job Type
+
+Work Type
+
+Salary
+
+Experience
+
+Education
+
+Remote/On-site/Hybrid
+
+Recent Jobs
+
+Verified Employer
+
+filters काम करें।
+
+Filter लगाने पर results वास्तव में बदलें।
+
+No results होने पर clear message दिखाएँ।
+
+8. FIND WORKERS
+
+Find Workers में Category जरूर हो।
+
+Filters:
+
+- Category
+- Job Role
+- Skills
+- Experience
+- City
+- Area
+- Work Type
+- Expected Salary
+- Availability
+
+Worker profile में public-approved information दिखे।
+
+Private contact केवल consent/security rules के अनुसार दिखे।
+
+9. SAVE SYSTEM — EVERYWHERE
+
+Save functionality का complete audit करें।
+
+Save/Unsave काम करना चाहिए:
+
+- Business
+- Product
+- Service
+- Job
+- Worker/Profile जहाँ applicable हो
+
+Button states:
+
+♡ Save
+
+❤️ Saved
+
+दोनों state तुरंत UI में reflect हों।
+
+Database में सही user/listing relation save हो।
+
+App reload के बाद Saved state बनी रहे।
+
+Saved screens में saved items दिखाई दें।
+
+यदि item deleted/rejected/closed हो तो appropriate status दिखाएँ।
+
+Cross-user save manipulation संभव नहीं होना चाहिए।
+
+10. MY LISTINGS
+
+My Listings में user की सभी अपनी listings properly दिखें:
+
+- Businesses
+- Products
+- Services
+- Jobs
+
+हर item:
+
+- View
+- Edit
+- Save state
+- Enable/Disable
+- Share
+- Delete
+- Status
+
+दिखाए।
+
+Pending / Approved / Rejected / Suspended / Draft status स्पष्ट हो।
+
+11. SAVE DRAFT / CONTINUE
+
+जहाँ form लंबा है वहाँ:
+
+Save Draft
+
+काम करे।
+
+User बाद में वापस आकर:
+
+Continue Editing
+
+कर सके।
+
+Draft incomplete होने पर उसे public discovery में नहीं दिखाना है।
+
+12. PREVIEW SYSTEM
+
+हर applicable listing में:
+
+Preview
+
+screen बनाएं/ठीक करें।
+
+Preview में वही information दिखाई जाए जो public listing में दिखाई जाएगी।
+
+Buttons:
+
+- Edit
+- Save Draft
+- Publish/Submit
+- Back
+
+सभी functional हों।
+
+13. IMAGE STORAGE
+
+Existing private "business-media"/media security architecture को preserve करें।
+
+Photo upload:
+
+- authenticated user
+- owner-scoped path
+- allowed image types
+- size validation
+- secure storage
+- signed URL जहां required
+- cross-user upload/read/delete denied
+
+Existing security policies को न तोड़ें।
+
+यदि Product/Service/Job photos के लिए अलग storage path चाहिए तो उसी security model को follow करें।
+
+14. CAMERA PERMISSION
+
+Camera permission केवल:
+
+Take Photo
+
+button दबाने पर request करें।
+
+App startup पर camera permission request न करें।
+
+Gallery picker existing Expo architecture से काम करे।
+
+No Contacts/Call Log/SMS/Microphone permissions।
+
+15. CONTACT ACTIONS
+
+Business/Product/Service/Job/Worker में जहाँ contact allowed हो:
+
+- Call
+- WhatsApp
+- Email
+- Copy contact
+
+काम करें।
+
+Call → system dialer
+
+WhatsApp → WhatsApp deep link/fallback
+
+Email → system email app
+
+No call recording.
+No call log access.
+
+16. SHARE
+
+हर listing के लिए:
+
+- Share
+- Copy Link
+
+काम करें।
+
+Existing GAMEZONE ARENA native share system reuse करें।
+
+Deep links:
+
+Business:
+"gamezone-arena://business/{id}"
+
+Product/Service:
+appropriate existing listing route
+
+Job:
+"gamezone-arena://jobs/{jobId}"
+
+Worker:
+appropriate worker route
+
+17. ERROR HANDLING
+
+सबसे महत्वपूर्ण:
+
+किसी button को दबाने पर यदि action fail हो तो blank/silent behavior नहीं होना चाहिए।
+
+हर async action:
+
+try/catch
+
+और user-friendly error feedback दे।
+
+Examples:
+
+"Please select a category."
+
+"Please complete the required fields."
+
+"Photo upload failed. Please try again."
+
+"Unable to save. Please try again."
+
+"Unable to open preview. Please try again."
+
+"Unable to publish. Please try again."
+
+Development console में वास्तविक error भी log करें।
+
+18. DATABASE SAVE VERIFICATION
+
+हर create/update flow के बाद verify करें:
+
+UI state update
+
+→ Supabase mutation
+
+→ mutation success
+
+→ database row exists
+
+→ screen refetch/invalidate query
+
+→ saved data दिखाई दे।
+
+React Query/cache को properly invalidate/refetch करें जहाँ existing architecture इसका उपयोग करता है।
+
+19. MODERATION
+
+Existing moderation workflow preserve करें:
+
+Business
+Product
+Service
+Job
+
+के लिए:
+
+Draft
+Pending
+Approved
+Rejected
+Suspended
+
+states सही तरह से handle हों।
+
+Public discovery में केवल allowed/approved active listings दिखें।
+
+20. SECURITY REGRESSION TEST
+
+Fix के बाद verify करें:
+
+- User A cannot edit User B listing.
+- User A cannot delete User B listing.
+- Private media cross-user access denied.
+- Pending listing public नहीं।
+- Approved listing public।
+- Anonymous private data access denied।
+- Anonymous RPC execution denied।
+- Block rules work।
+- Report rules work।
+- Duplicate reports controlled।
+- Existing Business/Product/Service/Jobs RLS intact।
+
+21. COMPLETE USER FLOW TEST
+
+इन सभी flows को वास्तविक test data से test करें:
+
+Business
+
+Add Business
+→ Category
+→ Photo
+→ Save
+→ My Listings
+→ Edit
+→ View
+
+Product
+
+Add Product
+→ Category
+→ Take Photo
+→ Photo Preview
+→ Save
+→ My Listings
+→ Edit
+→ View
+
+Service
+
+Add Service
+→ Category
+→ Take Photo
+→ Save
+→ My Listings
+→ View
+
+Jobs
+
+Post Job
+→ Category
+→ Save Draft
+→ My Job Posts
+→ Continue Editing
+→ Preview
+→ Submit
+→ Pending
+
+Job Seeker
+
+Find Jobs
+→ Category filter
+→ Open Job
+→ Apply
+→ My Applications
+
+Worker
+
+Find Workers
+→ Category
+→ Open Profile
+→ Contact
+
+Saved
+
+Open Business/Product/Service/Job
+→ Save
+→ Saved screen
+→ Reload app
+→ Saved state still present
+→ Unsave
+
+Sharing
+
+Business/Product/Service/Job
+→ Share
+→ Native Android share sheet
+
+22. FINAL VALIDATION
+
+Run:
+
+- TypeScript
+- Expo dependency compatibility
+- Expo Doctor
+- Navigation validation
+- Metro startup
+- Android JS/Hermes bundle export
+- Database/RLS tests
+- Storage tests
+- Image picker/camera code-path tests
+- Save/unsave tests
+- Draft/continue tests
+- Preview tests
+- Publish/moderation tests
+- Deep-link route tests
+- Forbidden permission scan
+
+IMPORTANT:
+Physical Android device पर camera, gallery, dialer, WhatsApp, Maps, native share sheet, notification और haptics का final hardware acceptance test अलग रहेगा।
+
+23. DO NOT BUILD
+
+इस task के दौरान:
+
+- EAS build शुरू न करें।
+- APK/AAB build शुरू न करें।
+- Deployment न करें।
+- Play Store publish न करें।
+- कोई paid service activate न करें।
+- कोई billing upgrade न करें।
+
+केवल code/database validation और existing local testing करें।
+
+FINAL REPORT
+
+काम पूरा होने के बाद मुझे बताएं:
+
+1. कौन-कौन से screens/folders/files बदले।
+2. Category कहाँ-कहाँ functional हुई।
+3. Camera/gallery कहाँ-कहाँ काम करती है।
+4. Save/Unsave कहाँ-कहाँ काम करता है।
+5. Draft/Continue कहाँ-कहाँ काम करता है।
+6. Preview/Publish कहाँ-कहाँ काम करता है।
+7. Database save verification।
+8. Security/RLS tests।
+9. सभी validation results।
+10. कोई remaining limitation हो तो साफ बताएं।
+
+किसी feature को केवल UI में दिखाकर functional मानना स्वीकार नहीं है।
+
+हर option को वास्तव में:
+काम करना → save होना → database में रहना → वापस दिखाई देना
+चाहिए।

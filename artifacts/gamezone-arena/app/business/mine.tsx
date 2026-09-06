@@ -7,6 +7,7 @@ import {
   Pressable,
   ActivityIndicator,
   Alert,
+  Image,
 } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,6 +15,7 @@ import { Feather } from '@/components/Feather';
 import colors from '@/constants/colors';
 import { useMyBusinesses, useDeleteBusiness, useSubmitBusiness, useSupabaseAuth } from '@/hooks/useBusiness';
 import { BUSINESS_STATUS_LABELS } from '@/constants/business';
+import { businessLink, shareLink } from '@/lib/share';
 
 export default function MyBusinessesScreen() {
   const router = useRouter();
@@ -27,14 +29,14 @@ export default function MyBusinessesScreen() {
   const handleDelete = (id: string, name: string) => {
     Alert.alert('Delete Business', `Are you sure you want to delete ${name}?`, [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => deleteBusiness.mutate(id) }
+      { text: 'Delete', style: 'destructive', onPress: () => deleteBusiness.mutate(id, { onSuccess: () => Alert.alert('Listing deleted', `${name} has been deleted.`), onError: (error: Error) => Alert.alert('Unable to delete', error.message || 'Please try again.') }) }
     ]);
   };
 
   const handleSubmit = (id: string, name: string) => {
     Alert.alert('Submit for Review', `Submit ${name} for moderation? You won't be able to edit it while pending.`, [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Submit', onPress: () => submitBusiness.mutate(id) }
+      { text: 'Submit', onPress: () => submitBusiness.mutate(id, { onSuccess: () => Alert.alert('Submitted for review', `${name} is pending moderation.`), onError: (error: Error) => Alert.alert('Unable to submit', error.message || 'Please try again.') }) }
     ]);
   };
 
@@ -85,6 +87,7 @@ export default function MyBusinessesScreen() {
             businesses?.map((b) => (
               <View key={b.id} style={styles.card}>
                 <View style={styles.cardHeader}>
+                  {b.business_photos?.[0]?.signedUrl && <Image source={{ uri: b.business_photos.find((photo) => photo.is_logo)?.signedUrl || b.business_photos[0].signedUrl }} style={styles.thumbnail} />}
                   <Text style={styles.cardTitle}>{b.name}</Text>
                   {renderStatusBadge(b.status)}
                 </View>
@@ -104,6 +107,13 @@ export default function MyBusinessesScreen() {
                       <Text style={styles.actionText}>EDIT</Text>
                     </Pressable>
                   )}
+                  <Pressable style={styles.actionBtn} onPress={() => router.push(`/business/${b.id}` as Href)}>
+                    <Feather name="eye" size={16} color={colors.light.foreground} />
+                    <Text style={styles.actionText}>VIEW</Text>
+                  </Pressable>
+                  <Pressable style={styles.actionBtnIcon} onPress={() => void shareLink(b.name, `Check out ${b.name} on GAMEZONE ARENA: ${businessLink(b.id)}`).catch(() => Alert.alert('Share unavailable', 'Your device could not open the share sheet.'))}>
+                    <Feather name="share-2" size={16} color={colors.light.primary} />
+                  </Pressable>
                   {['draft', 'rejected'].includes(b.status) && (
                     <Pressable style={[styles.actionBtn, styles.actionBtnSubmit]} onPress={() => handleSubmit(b.id, b.name)}>
                       <Feather name="send" size={16} color={colors.light.primaryForeground} />
@@ -113,12 +123,6 @@ export default function MyBusinessesScreen() {
                   {['draft', 'pending', 'rejected'].includes(b.status) && (
                     <Pressable style={styles.actionBtnIcon} onPress={() => handleDelete(b.id, b.name)}>
                       <Feather name="trash-2" size={16} color={colors.light.destructive} />
-                    </Pressable>
-                  )}
-                  {b.status === 'approved' && (
-                    <Pressable style={[styles.actionBtn, { flex: 1 }]} onPress={() => router.push(`/business/${b.id}` as Href)}>
-                      <Feather name="eye" size={16} color={colors.light.foreground} />
-                      <Text style={styles.actionText}>VIEW LISTING</Text>
                     </Pressable>
                   )}
                 </View>
@@ -141,6 +145,7 @@ const styles = StyleSheet.create({
   scrollContent: { padding: 20, gap: 16 },
   card: { backgroundColor: colors.light.card, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.light.border },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 },
+  thumbnail: { width: 42, height: 42, borderRadius: 10, marginRight: 10, backgroundColor: colors.light.input },
   cardTitle: { color: colors.light.foreground, fontSize: 18, fontWeight: '800', flex: 1, marginRight: 12 },
   statusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
   statusText: { fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },

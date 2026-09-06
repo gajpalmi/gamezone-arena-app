@@ -8,6 +8,8 @@ import { useJob, useJobCategories, useJobMutation } from "@/hooks/useJobs";
 import type { Job, JobInput } from "@/lib/jobs";
 
 const legal = "2026-09-10";
+const workTypes = [["full_time", "Full time"], ["part_time", "Part time"], ["temporary", "Temporary"], ["contract", "Contract"], ["internship", "Internship"], ["freelance", "Freelance"]] as const;
+const workplaceTypes = [["on_site", "On-site"], ["remote", "Remote"], ["hybrid", "Hybrid"]] as const;
 const blank = () => ({
   business_id: null,
   title: "",
@@ -121,7 +123,19 @@ export default function EditJob() {
       ["category_id", "Please choose a job category."],
       ["role", "Job role is required."],
       ["description", "Job description is required."],
+      ["required_skills", "Required skills are required."],
+      ["required_experience", "Required experience is required."],
+      ["education_requirement", "Education requirement is required."],
+      ["vacancies", "Vacancies are required."],
+      ["salary_min", "Minimum salary is required."],
+      ["salary_max", "Maximum salary is required."],
       ["city", "City is required."],
+      ["area", "Area is required."],
+      ["location_text", "Work location is required."],
+      ["working_hours", "Working hours are required."],
+      ["benefits", "Benefits are required."],
+      ["requirements", "Requirements are required."],
+      ["application_deadline", "Application deadline is required."],
     ];
     required.forEach(([key, message]) => {
       if (!String(form[key] ?? "").trim()) next[key] = message;
@@ -225,11 +239,12 @@ export default function EditJob() {
       <Text style={s.title}>{id ? "Edit job" : "Post a job"}</Text>
       <Text style={s.subtitle}>Never request OTPs, passwords, PINs, or financial information. New posts are reviewed before public discovery.</Text>
       {formError ? <Text style={{ color: "#ef4444", fontWeight: "700" }}>{formError}</Text> : null}
-      {field("title", "Job title")}
-      {field("company_name", "Company / business name")}
-      {field("contact_person", "Contact person")}
+      <Text style={s.subtitle}>Fields marked * are required. Save draft keeps this post private; Preview checks all required posting fields.</Text>
+      {field("title", "Job title *")}
+      {field("company_name", "Company / business name *")}
+      {field("contact_person", "Contact person *")}
       <View>
-        <Text style={s.label}>Job category</Text>
+         <Text style={s.label}>Job category *</Text>
         <View style={s.row}>
           {(categories.data ?? []).map(category => (
             <Pressable key={category.id} onPress={() => setValue("category_id", category.id)} style={[s.card, form.category_id === category.id && { borderColor: s.buttonText.color }]}>
@@ -243,22 +258,30 @@ export default function EditJob() {
         {categories.error ? <Text style={{ color: "#ef4444", fontSize: 12 }}>Unable to load job categories.</Text> : null}
         {errors.category_id ? <Text style={{ color: "#ef4444", fontSize: 12 }}>{errors.category_id}</Text> : null}
       </View>
-      {field("role", "Job role")}
-      {field("description", "Job description", true)}
-      {field("required_skills", "Required skills (comma separated)")}
-      {field("required_experience", "Required experience (months)")}
-      {field("education_requirement", "Education requirement")}
-      {field("vacancies", "Vacancies")}
-      {field("salary_min", "Minimum salary")}
-      {field("salary_max", "Maximum salary")}
-      {field("city", "City")}
-      {field("area", "Area")}
-      {field("location_text", "Work location / landmark")}
-      {field("working_hours", "Working hours")}
-      {field("benefits", "Benefits")}
-      {field("requirements", "Requirements", true)}
+       {field("role", "Job role *")}
+       <View>
+         <Text style={s.label}>Job type *</Text>
+         <View style={s.row}>{workTypes.map(([value, label]) => <Pressable key={value} onPress={() => setValue("work_type", value)} style={[s.card, form.work_type === value && { borderColor: s.buttonText.color }]}><Text style={s.meta}>{form.work_type === value ? "✓ " : ""}{label}</Text></Pressable>)}</View>
+       </View>
+       <View>
+         <Text style={s.label}>Workplace *</Text>
+         <View style={s.row}>{workplaceTypes.map(([value, label]) => <Pressable key={value} onPress={() => setValue("work_mode", value)} style={[s.card, form.work_mode === value && { borderColor: s.buttonText.color }]}><Text style={s.meta}>{form.work_mode === value ? "✓ " : ""}{label}</Text></Pressable>)}</View>
+       </View>
+       {field("description", "Job description *", true)}
+       {field("required_skills", "Required skills (comma separated) *")}
+       {field("required_experience", "Required experience (months) *")}
+       {field("education_requirement", "Education requirement *")}
+       {field("vacancies", "Vacancies *")}
+       {field("salary_min", "Minimum salary *")}
+       {field("salary_max", "Maximum salary *")}
+       {field("city", "City *")}
+       {field("area", "Area *")}
+       {field("location_text", "Work location / landmark *")}
+       {field("working_hours", "Working hours *")}
+       {field("benefits", "Benefits *")}
+       {field("requirements", "Requirements *", true)}
       {field("joining_date", "Joining date (YYYY-MM-DD)")}
-      {field("application_deadline", "Application deadline (YYYY-MM-DD)")}
+       {field("application_deadline", "Application deadline (YYYY-MM-DD) *")}
       {field("contact_phone", "Phone (optional)")}
       {field("whatsapp", "WhatsApp (optional)")}
       {field("email", "Email (optional)")}
