@@ -11,7 +11,9 @@ export function useSupabaseAuth() {
     // Supabase verifies the Clerk JWT template configured for this project.
     // The default Clerk session token has a different signing contract and is
     // rejected by PostgREST with PGRST301 ("wrong key type").
-    setSupabaseAccessTokenGetter(() => getToken({ template: 'supabase' }));
+    // Replit-managed Clerk projects do not necessarily expose custom JWT
+    // templates. Supabase's Clerk integration accepts the normal session JWT.
+    setSupabaseAccessTokenGetter(() => getToken());
     setReady(Boolean(isLoaded && isSignedIn));
     return () => {
       setReady(false);
