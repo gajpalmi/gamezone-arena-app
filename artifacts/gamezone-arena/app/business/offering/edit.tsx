@@ -38,7 +38,7 @@ export default function OfferingEdit() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const scroll = useRef<ScrollView>(null);
-  useSupabaseAuth();
+  const auth = useSupabaseAuth();
 
   const detail = useOffering(id ?? "");
   const save = useSaveOffering(id);
@@ -47,6 +47,7 @@ export default function OfferingEdit() {
   const [terms, setTerms] = useState(false);
   const [consent, setConsent] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
+  const [saveError, setSaveError] = useState("");
   const [prior, setPrior] = useState({
     termsVersion: null as string | null,
     termsAt: null as string | null,
@@ -170,7 +171,16 @@ export default function OfferingEdit() {
     }
   };
 
-  const submit = (preview = false) => {
+  const submit = async (preview = false) => {
+    setSaveError("");
+    if (!auth.isLoaded) {
+      setSaveError("Your account is still loading. Please wait a moment, then press Save Draft again.");
+      return;
+    }
+    if (!auth.isSignedIn) {
+      setSaveError("You must sign in before saving a product. Sign in, return to this form, and press Save Draft again.");
+      return;
+    }
     const validation = validate(preview);
     if (!validation) return;
     const now = new Date().toISOString();
@@ -198,29 +208,31 @@ export default function OfferingEdit() {
       terms_version: validation.sameTerms ? prior.termsVersion : terms ? legal : null,
       terms_accepted_at: validation.sameTerms ? prior.termsAt : terms ? now : null,
     };
-    save.mutate(payload, {
-      onSuccess: async result => {
-        router.replace((preview ? `/business/offering/preview?id=${result.id}` : "/business/offerings-mine") as never);
-        let photoUploadFailed = false;
-        try {
-          await uploadPhotos(result.id);
-        } catch (error) {
-          console.error("Offering photo upload failed", error);
-          photoUploadFailed = true;
-        }
-        setLocalPhotos([]);
-        setTimeout(() => Alert.alert(
-          photoUploadFailed ? "Draft saved" : "Saved successfully",
-          photoUploadFailed
-            ? "The product was saved in My Listings, but one or more photos could not be uploaded."
-            : preview ? "Opening listing preview." : "Your draft is now visible in My Listings.",
-        ), 250);
-      },
-      onError: error => {
-        console.error("Offering save failed", error);
-        Alert.alert("Unable to save", "Please check the red required fields and try again.");
-      },
-    });
+    try {
+      const result = await save.mutateAsync(payload);
+      router.replace((preview ? `/business/offering/preview?id=${result.id}` : "/business/offerings-mine") as never);
+      let photoUploadFailed = false;
+      try {
+        await uploadPhotos(result.id);
+      } catch (error) {
+        console.error("Offering photo upload failed", error);
+        photoUploadFailed = true;
+      }
+      setLocalPhotos([]);
+      setTimeout(() => Alert.alert(
+        photoUploadFailed ? "Draft saved" : "Saved successfully",
+        photoUploadFailed
+          ? "The product was saved in My Listings, but one or more photos could not be uploaded."
+          : preview ? "Opening listing preview." : "Your draft is now visible in My Listings.",
+      ), 250);
+    } catch (error) {
+      console.error("Offering save failed", error);
+      const message = error instanceof Error ? error.message : "The database did not accept this product.";
+      const authFailure = /row-level security|jwt|unauthorized|permission denied|authenticated/i.test(message);
+      setSaveError(authFailure
+        ? "Your sign-in session was not accepted. Sign out, sign in again, then press Save Draft. Your entered information will remain on this screen."
+        : `Unable to save: ${message.replace(/^Offering service error:\s*/i, "")}`);
+    }
   };
 
   if (id && detail.isLoading) {
@@ -340,10 +352,17 @@ export default function OfferingEdit() {
         <Text style={[s.text, errors.terms && s.errorLabel]}>I accept the Terms and listing rules.</Text>
       </Pressable>
       {errors.terms ? <Text style={s.errorText}>↑ {errors.terms}</Text> : null}
-      <Pressable testID="save-offering" style={s.button} onPress={() => submit(false)} disabled={save.isPending || photo.isPending}>
+      {saveError ? <View style={s.saveError} accessibilityRole="alert">
+        <Text style={s.saveErrorTitle}>Product was not saved</Text>
+        <Text style={s.saveErrorText}>{saveError}</Text>
+        {!auth.isSignedIn && auth.isLoaded ? <Pressable style={s.signInButton} onPress={() => router.push("/sign-in" as never)}>
+          <Text style={s.signInButtonText}>SIGN IN</Text>
+        </Pressable> : null}
+      </View> : null}
+      <Pressable testID="save-offering" style={[s.button, (save.isPending || photo.isPending) && s.buttonDisabled]} onPress={() => void submit(false)} disabled={save.isPending || photo.isPending}>
         <Text style={s.buttonText}>{save.isPending ? "SAVING..." : "SAVE DRAFT"}</Text>
       </Pressable>
-      <Pressable testID="preview-offering" style={s.button} onPress={() => submit(true)} disabled={save.isPending || photo.isPending}>
+      <Pressable testID="preview-offering" style={[s.button, (save.isPending || photo.isPending) && s.buttonDisabled]} onPress={() => void submit(true)} disabled={save.isPending || photo.isPending}>
         <Text style={s.buttonText}>{save.isPending ? "OPENING..." : "PREVIEW"}</Text>
       </Pressable>
     </ScrollView>
@@ -374,6 +393,11 @@ const s = StyleSheet.create({
   errorSummary: { borderWidth: 1, borderColor: colors.light.destructive, backgroundColor: colors.light.destructive + "12", borderRadius: 12, padding: 12, marginBottom: 18, gap: 4 },
   errorTitle: { color: colors.light.destructive, fontWeight: "900" },
   errorSummaryText: { color: colors.light.destructive, fontSize: 12 },
+  saveError: { borderWidth: 2, borderColor: colors.light.destructive, backgroundColor: colors.light.destructive + "12", borderRadius: 12, padding: 12, marginTop: 14, gap: 6 },
+  saveErrorTitle: { color: colors.light.destructive, fontWeight: "900", fontSize: 14 },
+  saveErrorText: { color: colors.light.destructive, fontSize: 13, lineHeight: 19 },
+  signInButton: { alignSelf: "flex-start", borderRadius: 9, backgroundColor: colors.light.destructive, paddingHorizontal: 16, paddingVertical: 10, marginTop: 4 },
+  signInButtonText: { color: colors.light.primaryForeground, fontWeight: "900" },
   toggle: { backgroundColor: colors.light.card, padding: 14, borderRadius: 12, flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
   check: { flexDirection: "row", gap: 10, alignItems: "center", marginVertical: 8 },
   checkbox: { width: 24, height: 24, borderRadius: 5, borderWidth: 2, borderColor: colors.light.primary, alignItems: "center", justifyContent: "center" },
@@ -382,6 +406,7 @@ const s = StyleSheet.create({
   checkboxMark: { color: colors.light.primaryForeground, fontSize: 17, lineHeight: 19, fontWeight: "900" },
   text: { color: colors.light.foreground, flex: 1, fontSize: 13 },
   button: { backgroundColor: colors.light.primary, borderRadius: 14, alignItems: "center", padding: 17, marginTop: 18 },
+  buttonDisabled: { opacity: 0.65 },
   photo: { backgroundColor: colors.light.primary, borderRadius: 10, padding: 12, alignItems: "center", marginBottom: 10 },
   photos: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
   image: { height: 70, width: 70, borderRadius: 8 },
