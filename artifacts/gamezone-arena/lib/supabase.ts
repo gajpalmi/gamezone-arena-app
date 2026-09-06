@@ -22,6 +22,7 @@ type ClerkTokenOptions = { skipCache?: boolean };
 type AccessTokenGetter = (options?: ClerkTokenOptions) => Promise<string | null>;
 
 let accessTokenGetter: AccessTokenGetter | null = null;
+let nextAccessToken: string | null = null;
 
 export function setSupabaseAccessTokenGetter(
   getter: AccessTokenGetter | null,
@@ -38,13 +39,21 @@ export async function refreshSupabaseAccessToken() {
   if (!token) {
     throw new Error("The Clerk session did not return an access token.");
   }
+  nextAccessToken = token;
   supabase?.realtime.setAuth(token);
 }
 
 export const supabase =
   !isPlaceholderUrl && !isPlaceholderKey
     ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        accessToken: async () => accessTokenGetter?.() ?? null,
+        accessToken: async () => {
+          if (nextAccessToken) {
+            const token = nextAccessToken;
+            nextAccessToken = null;
+            return token;
+          }
+          return accessTokenGetter?.() ?? null;
+        },
       })
     : null;
 
