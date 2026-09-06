@@ -17,6 +17,7 @@ import { Feather } from '@/components/Feather';
 import { CategoryPicker } from '@/components/CategoryPicker';
 import colors from '@/constants/colors';
 import { useBrowseBusinesses, useCategories, useSupabaseAuth } from '@/hooks/useBusiness';
+import { useOfferingBasketCount } from '@/hooks/useOfferings';
 import { appLink, shareLink } from '@/lib/share';
 
 export default function BusinessDiscoveryScreen() {
@@ -24,7 +25,8 @@ export default function BusinessDiscoveryScreen() {
   const insets = useSafeAreaInsets();
   
   // Ensure auth is passed to supabase
-  useSupabaseAuth();
+  const auth = useSupabaseAuth();
+  const basketCount = useOfferingBasketCount(auth.ready);
 
   const [query, setQuery] = useState('');
   const [city, setCity] = useState('');
@@ -85,7 +87,8 @@ export default function BusinessDiscoveryScreen() {
         {[
           ['🔎 Find Jobs', '/business/jobs/discover'], ['💼 Post a Job', '/business/jobs/edit'], ['👤 Find Workers', '/business/jobs/workers'],
           ['📋 My Job Posts', '/business/jobs/mine'], ['📄 My Applications', '/business/jobs/applications'], ['❤️ Saved Jobs', '/business/jobs/saved'],
-          ['📩 Job Messages', '/business/jobs/messages'], ['🔔 Job Notifications', '/business/jobs/settings'],
+           ['📩 Job Messages', '/business/jobs/messages'], ['🔔 Job Notifications', '/business/jobs/settings'],
+           [`🛒 My Basket${(basketCount.data ?? 0) > 0 ? ` (${basketCount.data})` : ''}`, '/business/offering/basket'],
           ['➕ Add Business', '/business/edit'], ['🛍️ Add Product', '/business/offering/edit?kind=product'],
           ['🛠️ Add Service', '/business/offering/edit?kind=service'], ['📋 My Listings', '/business/offerings-mine'],
           ['❤️ Saved', '/business/offerings-saved'], ['🔍 Search Listings', '/business/offerings'],
