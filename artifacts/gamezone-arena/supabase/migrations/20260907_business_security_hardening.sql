@@ -131,6 +131,7 @@ grant execute on function public.business_admin_moderate(public.business_moderat
 
 -- Return object paths before cascading rows disappear.  The client must
 -- delete every returned private object and only then delete its Clerk user.
+drop function if exists public.business_delete_user_data();
 create or replace function public.business_delete_user_data() returns text[] language plpgsql security definer set search_path = public as $$
 declare v_actor text := auth.jwt() ->> 'sub'; v_paths text[];
 begin
