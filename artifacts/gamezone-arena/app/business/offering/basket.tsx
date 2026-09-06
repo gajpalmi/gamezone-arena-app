@@ -1,5 +1,5 @@
 import React from "react";
-import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, FlatList, Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Feather } from "@/components/Feather";
 import colors from "@/constants/colors";
@@ -11,6 +11,7 @@ export default function BuyerBasket() {
   const router = useRouter();
   const basket = useOfferingBasket(auth.ready);
   const action = useOfferingBasketAction();
+  const open = (url:string) => void Linking.openURL(url).catch(() => Alert.alert("Unavailable", "No compatible contact app is available."));
 
   return <View style={styles.root}>
     <View style={styles.header}>
@@ -34,11 +35,14 @@ export default function BuyerBasket() {
           <Text style={styles.meta}>Added {new Date(item.created_at).toLocaleDateString()}</Text>
           <View style={styles.actions}>
             <Pressable style={styles.primary} onPress={() => router.push(`/business/offering/${product.id}` as never)}><Text style={styles.primaryText}>VIEW PRODUCT</Text></Pressable>
-            <Pressable style={styles.secondary} disabled={action.isPending} onPress={() => Alert.alert("Remove from basket", "Cancel this purchase request?", [
-              { text: "Keep" },
-              { text: "Remove", style: "destructive", onPress: () => action.mutate({ type: "cancel", id: item.id }) },
-            ])}><Text style={styles.removeText}>REMOVE</Text></Pressable>
+            <Pressable style={styles.contact} onPress={() => open(`tel:${product.contact_phone.replace(/[ ()-]/g, "")}`)}><Text style={styles.contactText}>CALL</Text></Pressable>
+            <Pressable style={styles.contact} onPress={() => open(`sms:${product.contact_phone.replace(/[ ()-]/g, "")}`)}><Text style={styles.contactText}>MESSAGE</Text></Pressable>
+            {product.whatsapp ? <Pressable style={styles.contact} onPress={() => open(`https://wa.me/${product.whatsapp!.replace(/\D/g, "")}`)}><Text style={styles.contactText}>WHATSAPP</Text></Pressable> : null}
           </View>
+          <Pressable style={styles.cancel} disabled={action.isPending} onPress={() => Alert.alert("Cancel purchase request", "Remove this product from your basket?", [
+              { text: "Keep" },
+              { text: "Cancel Request", style: "destructive", onPress: () => action.mutate({ type: "cancel", id: item.id }) },
+            ])}><Text style={styles.removeText}>CANCEL / REMOVE PURCHASE REQUEST</Text></Pressable>
         </View>;
       }}
     />}
@@ -56,10 +60,12 @@ const styles = StyleSheet.create({
   name:{color:colors.light.foreground,fontSize:18,fontWeight:"900"},
   meta:{color:colors.light.mutedForeground,fontSize:12,marginTop:5},
   price:{color:colors.light.foreground,fontWeight:"800",marginTop:8},
-  actions:{flexDirection:"row",gap:8,marginTop:14},
+  actions:{flexDirection:"row",flexWrap:"wrap",gap:8,marginTop:14},
   primary:{flex:1,backgroundColor:colors.light.primary,padding:12,borderRadius:10,alignItems:"center"},
   primaryText:{color:colors.light.primaryForeground,fontSize:11,fontWeight:"900"},
-  secondary:{padding:12,borderRadius:10,borderWidth:1,borderColor:colors.light.destructive},
+  contact:{padding:12,borderRadius:10,borderWidth:1,borderColor:colors.light.primary},
+  contactText:{color:colors.light.primary,fontSize:11,fontWeight:"900"},
+  cancel:{marginTop:10,padding:11,borderRadius:10,borderWidth:1,borderColor:colors.light.destructive,alignItems:"center"},
   removeText:{color:colors.light.destructive,fontSize:11,fontWeight:"900"},
   empty:{alignItems:"center",paddingTop:80,gap:10},
   emptyTitle:{color:colors.light.foreground,fontSize:18,fontWeight:"900"},

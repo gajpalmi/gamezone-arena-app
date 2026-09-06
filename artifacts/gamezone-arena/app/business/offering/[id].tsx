@@ -32,8 +32,12 @@ export default function Detail() {
   });
   const buy = () => basket.mutate({ type:"add", id:offering.id }, {
     onSuccess:() => {
-      Alert.alert("Added to basket", "Your private purchase request was saved.");
-      router.push("/business/offering/basket" as never);
+      const phone = offering.contact_phone.replace(/[ ()-]/g, "");
+      Alert.alert("Added to basket", "Purchase request saved. You can contact the seller now.", [
+        { text:"View Basket", onPress:() => router.push("/business/offering/basket" as never) },
+        { text:"Message Seller", onPress:() => open(`sms:${phone}`) },
+        { text:"Call Seller", onPress:() => open(`tel:${phone}`) },
+      ]);
     },
     onError:error => {
       console.error("Add product to basket failed", error);
