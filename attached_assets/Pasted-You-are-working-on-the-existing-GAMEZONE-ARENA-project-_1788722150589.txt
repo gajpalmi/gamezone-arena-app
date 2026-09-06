@@ -1,0 +1,382 @@
+You are working on the existing GAMEZONE ARENA project.
+
+IMPORTANT: This task is DESIGN/AUDIT ONLY.
+
+DO NOT:
+
+- Apply any SQL migration to live Supabase.
+- Create or modify live database schema.
+- Change existing RLS policies.
+- Change Clerk configuration.
+- Change authentication.
+- Change AdMob.
+- Add paid services.
+- Run an EAS build.
+- Deploy anything.
+- Remove or redesign existing UI/features.
+- Bypass authentication or security.
+- We do NOT want a workaround that exposes private contact information.
+
+GOAL:
+Design the database-level security solution for the two remaining backend issues found in the previous security audit:
+
+1. Public Business/Product/Service contact exposure.
+2. Employer-to-worker contact authorization.
+
+Do a READ-ONLY investigation first and then provide a detailed implementation design. Do not apply anything.
+
+==================================================
+PART 1 — CURRENT DATABASE AUDIT
+
+Inspect the existing Supabase migrations and application code.
+
+Identify:
+
+- businesses table
+- business_offerings table
+- business_reviews
+- business_reports
+- business_blocks
+- business_verification
+- business_admins
+- job_applications
+- jobs
+- seeker/worker profile tables
+- private seeker/employer contact tables
+- existing contact RPCs
+- existing RLS policies
+- existing grants/revokes
+- existing storage policies
+
+For every relevant table, document:
+
+- Which columns contain private phone/email/contact information.
+- Who can currently SELECT those columns.
+- Which RLS policy allows the SELECT.
+- Whether RLS prevents column-level exposure.
+- Whether any RPC can expose the same data.
+- Whether the RPC is SECURITY DEFINER or SECURITY INVOKER.
+- Whether auth.uid() or JWT sub is used.
+- Whether owner/admin checks exist.
+- Whether consent is checked.
+
+DO NOT change anything.
+
+==================================================
+PART 2 — PUBLIC BUSINESS / PRODUCT / SERVICE CONTACT DESIGN
+
+Design a secure database-level solution where public users can contact an approved Business/Product/Service listing ONLY when:
+
+- Listing is approved/public.
+- Owner has explicitly enabled contact sharing.
+- Contact value exists.
+- The contact value belongs to that listing owner.
+- User is not blocked where blocking is applicable.
+- Only the minimum required contact field is returned.
+
+The public client must NOT be able to directly SELECT private contact columns from the raw tables.
+
+Design:
+
+A) Safe RPC/projection for public contact.
+
+Example concept:
+
+get_public_business_contact(business_id)
+
+and/or
+
+get_public_offering_contact(offering_id)
+
+But choose the correct names and structure after inspecting the existing schema.
+
+The RPC must return only:
+
+- listing ID
+- contact type
+- contact value
+- optional display name if genuinely required
+
+NEVER return:
+
+- private owner profile data
+- consent internals unnecessarily
+- auth IDs
+- unrelated phone/email
+- private application information
+- admin information
+
+Explain whether SECURITY DEFINER or SECURITY INVOKER is safer here and why.
+
+If SECURITY DEFINER is required, design:
+
+- fixed search_path
+- strict auth checks
+- explicit grants
+- EXECUTE only for intended roles
+- no PUBLIC execution
+- no dynamic SQL unless absolutely necessary
+- no privilege escalation
+
+==================================================
+PART 3 — EMPLOYER → WORKER CONTACT SECURITY
+
+The existing worker contact RPC is profile-ID based.
+
+Design a replacement that is relationship-bound.
+
+The employer should receive worker contact information ONLY when ALL required conditions pass:
+
+1. Employer is authenticated.
+2. Employer owns the relevant job.
+3. Worker is the applicant for that job.
+4. The application belongs to that exact job.
+5. Application status permits employer-worker contact.
+6. Worker has explicitly allowed contact according to the existing consent model.
+7. Neither side is blocked where applicable.
+8. Contact information exists.
+9. The requested contact belongs to that worker.
+10. The caller cannot substitute another worker/profile ID to obtain contact data.
+
+Design a safe RPC such as:
+
+get_authorized_worker_contact(application_id)
+
+Use the actual existing schema/naming after inspection.
+
+The RPC must verify the complete chain:
+
+authenticated user
+→ employer
+→ owned job
+→ application
+→ correct worker
+→ valid application status
+→ consent
+→ block rules
+→ contact availability
+
+It must NOT trust a raw profile_id supplied by the client.
+
+Explain exactly how User A attempting to access User B's worker contact is rejected.
+
+==================================================
+PART 4 — JOB APPLICATION CONTACT COLUMNS
+
+Inspect whether job_applications contains phone/email/contact columns that employers can currently read directly.
+
+If raw SELECT exposes those columns:
+
+Design the required protection.
+
+Explain:
+
+- which raw columns should become private
+- which existing SELECT policies must be restricted
+- what minimum projection employers actually need
+- whether a secure RPC should replace raw column access
+- what frontend queries must change
+
+DO NOT APPLY THE CHANGES.
+
+==================================================
+PART 5 — RAW TABLE GRANTS / RLS / RPC SECURITY
+
+For every proposed change, provide:
+
+1. Table name
+2. Current exposure
+3. Security problem
+4. Proposed fix
+5. Required RLS change
+6. Required GRANT/REVOKE
+7. Required RPC
+8. RPC execution role
+9. SECURITY DEFINER vs INVOKER
+10. Required auth checks
+11. Required consent checks
+12. Required block checks
+13. Required status checks
+
+Important:
+
+RLS controls rows, not individual columns.
+
+Therefore explicitly verify whether direct raw-table SELECT can still expose private phone/email columns even when RLS is correct.
+
+==================================================
+PART 6 — ADMIN EXCEPTION
+
+Determine how administrators currently access moderation data.
+
+Admins may need additional access for legitimate moderation purposes, but:
+
+- Do not expose admin/private data to normal users.
+- Keep admin access separate from public contact RPCs.
+- Do not weaken public RLS for the sake of admin access.
+- Use explicit admin authorization.
+
+Document the safest design.
+
+==================================================
+PART 7 — SECURITY TEST PLAN
+
+Create exact adversarial SQL/test scenarios WITHOUT executing them against live production.
+
+At minimum include:
+
+TEST 1:
+Anonymous user attempts public contact.
+
+TEST 2:
+Authenticated User A requests User B's private business contact.
+
+TEST 3:
+User A requests contact for an unapproved listing.
+
+TEST 4:
+Listing owner has contact consent = false.
+
+TEST 5:
+Listing owner has consent = true but contact value is empty.
+
+TEST 6:
+Blocked user attempts contact.
+
+TEST 7:
+Employer A requests Worker B's contact using only profile_id.
+
+Expected: DENIED.
+
+TEST 8:
+Employer A owns Job A and Worker B applied to Job A with allowed status and consent.
+
+Expected: ALLOWED only through authorized RPC.
+
+TEST 9:
+Employer A owns Job A but supplies an application belonging to Job B.
+
+Expected: DENIED.
+
+TEST 10:
+Employer A owns Job A but tries to access Worker C's application/contact.
+
+Expected: DENIED.
+
+TEST 11:
+Employer A owns Job A but application status does not permit contact.
+
+Expected: DENIED.
+
+TEST 12:
+Direct raw-table SELECT attempts to retrieve private phone/email.
+
+Expected: DENIED or private columns unavailable to that role.
+
+TEST 13:
+Admin legitimate moderation access.
+
+Expected: ALLOWED only through admin authorization.
+
+TEST 14:
+Unauthenticated direct RPC call.
+
+Expected: DENIED.
+
+TEST 15:
+User changes account/session and attempts to reuse an old contact identifier.
+
+Expected: DENIED unless independently authorized.
+
+For each test provide:
+
+- setup
+- caller
+- attempted operation
+- expected result
+- security property being tested
+
+==================================================
+PART 8 — ROLLBACK PLAN
+
+Design a complete rollback plan before any future implementation.
+
+Include:
+
+- policies to restore
+- grants/revokes to restore
+- RPCs to remove/restore
+- frontend functions to revert
+- migration ordering
+- safe deployment order
+- verification after rollback
+
+Do not actually execute rollback or migration.
+
+==================================================
+PART 9 — FUTURE IMPLEMENTATION PLAN
+
+Provide the safest future implementation sequence:
+
+PHASE 1:
+Database migration.
+
+PHASE 2:
+RPC and grant verification.
+
+PHASE 3:
+Frontend query replacement.
+
+PHASE 4:
+Security tests.
+
+PHASE 5:
+Native app testing.
+
+PHASE 6:
+Only after explicit approval, production migration.
+
+Clearly mark every step that requires explicit approval.
+
+==================================================
+FINAL RESPONSE FORMAT
+
+At the end provide:
+
+A) CURRENT FINDINGS
+
+B) EXACT SECURITY RISKS
+
+C) PROPOSED DATABASE DESIGN
+
+D) EXACT RPC DESIGNS
+
+E) REQUIRED RLS/GRANT/REVOKE CHANGES
+
+F) FRONTEND CHANGES REQUIRED
+
+G) 15 SECURITY TESTS
+
+H) ROLLBACK PLAN
+
+I) MIGRATION ORDER
+
+J) FILES THAT WOULD NEED TO CHANGE
+
+K) WHAT MUST NOT CHANGE
+
+L) CONFIRMATION THAT NOTHING WAS APPLIED
+
+IMPORTANT FINAL RULE:
+
+Do not modify files unless absolutely necessary for documenting the design. Prefer a completely read-only audit and report.
+
+Do not apply any SQL.
+
+Do not touch live Supabase.
+
+Do not touch Clerk.
+
+Do not build or deploy.
+
+Do not use paid services.
