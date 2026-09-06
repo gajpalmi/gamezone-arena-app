@@ -9,6 +9,7 @@ import {
   ClerkLoaded,
   ClerkLoading,
   ClerkProvider,
+  useAuth,
 } from '@clerk/expo';
 import { tokenCache } from '@clerk/expo/token-cache';
 
@@ -20,11 +21,21 @@ import {
 import { BusinessQueryProvider } from '@/components/BusinessQueryProvider';
 import { AdService } from '@/services/AdService';
 import { PreferencesProvider } from '@/context/PreferencesContext';
+import { setSupabaseAccessTokenGetter } from '@/lib/supabase';
 
 const CLERK_PUBLISHABLE_KEY =
   process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
 const CLERK_PROXY_URL =
   process.env.EXPO_PUBLIC_CLERK_PROXY_URL || undefined;
+
+function SupabaseAuthBridge({ children }: { children: React.ReactNode }) {
+  const { getToken, isLoaded } = useAuth();
+  React.useEffect(() => {
+    if (!isLoaded) return;
+    setSupabaseAccessTokenGetter(() => getToken());
+  }, [getToken, isLoaded]);
+  return <>{children}</>;
+}
 
 export default function RootLayout() {
   React.useEffect(() => {
@@ -58,13 +69,15 @@ export default function RootLayout() {
       </ClerkLoading>
 
       <ClerkLoaded>
-        <AppSessionProvider>
-          <PreferencesProvider>
-            <BusinessQueryProvider>
-              <Slot />
-            </BusinessQueryProvider>
-          </PreferencesProvider>
-        </AppSessionProvider>
+        <SupabaseAuthBridge>
+          <AppSessionProvider>
+            <PreferencesProvider>
+              <BusinessQueryProvider>
+                <Slot />
+              </BusinessQueryProvider>
+            </PreferencesProvider>
+          </AppSessionProvider>
+        </SupabaseAuthBridge>
       </ClerkLoaded>
     </ClerkProvider>
   );

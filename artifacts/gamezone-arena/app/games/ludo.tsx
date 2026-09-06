@@ -28,7 +28,6 @@ import { usePreferences } from "@/context/PreferencesContext";
 import { copyLink, gameLink, shareLink } from "@/lib/share";
 import {
   refreshSupabaseRealtimeAuth,
-  setSupabaseAccessTokenGetter,
   supabase as supabaseMaybe,
 } from "@/lib/supabase";
 
@@ -480,11 +479,6 @@ export default function Ludo() {
     if (typeof state.gameStarted === "boolean") setGameStarted(state.gameStarted);
     return true;
   }
-
-  useEffect(() => {
-    setSupabaseAccessTokenGetter(() => getToken());
-    return () => setSupabaseAccessTokenGetter(null);
-  }, [getToken]);
 
   useEffect(
     () => RewardedAdService.subscribeToAvailability(setRewardedAdReady),
