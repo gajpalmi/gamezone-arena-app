@@ -19,6 +19,7 @@ import {
 } from '@/context/AppSessionContext';
 import { BusinessQueryProvider } from '@/components/BusinessQueryProvider';
 import { AdService } from '@/services/AdService';
+import { PreferencesProvider } from '@/context/PreferencesContext';
 
 const CLERK_PUBLISHABLE_KEY =
   process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
@@ -58,9 +59,11 @@ export default function RootLayout() {
 
       <ClerkLoaded>
         <AppSessionProvider>
-          <BusinessQueryProvider>
-            <Slot />
-          </BusinessQueryProvider>
+          <PreferencesProvider>
+            <BusinessQueryProvider>
+              <Slot />
+            </BusinessQueryProvider>
+          </PreferencesProvider>
         </AppSessionProvider>
       </ClerkLoaded>
     </ClerkProvider>

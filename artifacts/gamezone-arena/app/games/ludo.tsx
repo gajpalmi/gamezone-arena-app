@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   AppState,
+  Alert,
   SafeAreaView,
   ScrollView,
   View,
@@ -14,7 +15,6 @@ import {
   Vibration,
 } from "react-native";
 import { useAuth, useUser } from "@clerk/expo";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { Asset } from "expo-asset";
 import { setAudioModeAsync, useAudioPlayer } from "expo-audio";
@@ -24,6 +24,8 @@ import { AdBannerPlaceholder } from "@/components/AdBannerPlaceholder";
 import { AdService } from "@/services/AdService";
 import { RewardedAdService } from "@/services/RewardedAdService";
 import { SubscriptionService } from "@/services/SubscriptionService";
+import { usePreferences } from "@/context/PreferencesContext";
+import { copyLink, gameLink, shareLink } from "@/lib/share";
 import {
   refreshSupabaseRealtimeAuth,
   setSupabaseAccessTokenGetter,
@@ -176,8 +178,6 @@ const SOUND_FILES = {
 } as const;
 type SoundFileKey = keyof typeof SOUND_FILES;
 
-const SOUND_SETTING_KEY = "@gamezone/ludo/sound-enabled/v1";
-const VIBRATION_SETTING_KEY = "@gamezone/ludo/vibration-enabled/v1";
 const NATIVE_AUDIO_OPTIONS = { keepAudioSessionActive: true } as const;
 
 const EMPTY_DICE: DiceMap = {
@@ -303,6 +303,8 @@ export default function Ludo() {
   const { user, isLoaded } = useUser();
   const { getToken } = useAuth();
   const router = useRouter();
+  const { preferences, canPlayGameSound, canUseGameHaptics, updatePreferences } =
+    usePreferences();
 
   const boardSize = Math.min(width - 20, 500);
   const cell = boardSize / 15;
@@ -432,6 +434,12 @@ export default function Ludo() {
   });
   const nativePlayersPlayed = useRef<Set<number>>(new Set());
 
+  useEffect(() => {
+    Object.values(nativeSoundPools).forEach((pool) =>
+      pool.forEach((sound) => { sound.volume = preferences.volume; }),
+    );
+  }, [preferences.volume]);
+
   const activePlayers = PLAYER_SETS[playerCount];
   const currentDice = diceValues[player];
   const currentTokens = useMemo(
@@ -484,19 +492,18 @@ export default function Ludo() {
   );
 
   useEffect(() => {
+    setSoundOn(canPlayGameSound);
+    setVibrationOn(canUseGameHaptics);
+  }, [canPlayGameSound, canUseGameHaptics]);
+
+  useEffect(() => {
     void Promise.all([
-      AsyncStorage.getItem(SOUND_SETTING_KEY),
-      AsyncStorage.getItem(VIBRATION_SETTING_KEY),
       SubscriptionService.initialize(),
       SubscriptionService.isPremium(),
       AdService.showBanner("ludo"),
       RewardedAdService.loadRewardedAd(),
     ])
-      .then(([storedSound, storedVibration, , premium, , rewardedReady]) => {
-        if (storedSound !== null) setSoundOn(storedSound === "true");
-        if (storedVibration !== null) {
-          setVibrationOn(storedVibration === "true");
-        }
+      .then(([, premium, , rewardedReady]) => {
         setPremiumActive(premium);
         setRewardedAdReady(rewardedReady);
       })
@@ -524,7 +531,8 @@ export default function Ludo() {
       }
 
       await setAudioModeAsync({
-        playsInSilentMode: true,
+        // Do not override the device's silent-mode choice.
+        playsInSilentMode: false,
         interruptionMode: "doNotMix",
         allowsRecording: false,
         shouldPlayInBackground: false,
@@ -532,7 +540,7 @@ export default function Ludo() {
       });
       Object.values(nativeSoundPools).forEach((pool) =>
         pool.forEach((player) => {
-          player.volume = 1;
+          player.volume = preferences.volume;
           player.muted = false;
           player.loop = false;
         }),
@@ -620,21 +628,21 @@ export default function Ludo() {
     playSound("click", true);
     vibrate("click");
     setSoundOn(next);
-    void AsyncStorage.setItem(SOUND_SETTING_KEY, String(next)).catch((error) => {
-      if (__DEV__) console.warn("Ludo sound setting could not be saved.", error);
+    void updatePreferences({ gameSound: next }).catch((error) => {
+      if (__DEV__) console.warn("Ludo sound preference could not be saved.", error);
     });
   }
 
   function toggleVibration() {
     const next = !vibrationOn;
     setVibrationOn(next);
-    void AsyncStorage.setItem(VIBRATION_SETTING_KEY, String(next)).catch((error) => {
-      if (__DEV__) console.warn("Ludo vibration setting could not be saved.", error);
+    void updatePreferences({ gameHaptics: next }).catch((error) => {
+      if (__DEV__) console.warn("Ludo haptic preference could not be saved.", error);
     });
   }
 
   function playSound(type: GameSound, force = false) {
-    if (!soundOn && !force) return;
+    if (!soundOn || !preferences.masterSound) return;
 
     const map: Record<GameSound, SoundFileKey> = {
       dice: "dice",
@@ -661,7 +669,7 @@ export default function Ludo() {
         new window.Audio(Asset.fromModule(SOUND_FILES[soundKey]).uri);
       webSoundsRef.current[soundKey] = template;
       const sound = template.cloneNode(true) as HTMLAudioElement;
-      sound.volume = 1;
+      sound.volume = preferences.volume;
       activeWebSoundsRef.current.add(sound);
       const releaseSound = () => activeWebSoundsRef.current.delete(sound);
       sound.addEventListener("ended", releaseSound, { once: true });
@@ -699,7 +707,7 @@ export default function Ludo() {
           sound.pause();
           await sound.seekTo(0);
         }
-        sound.volume = 1;
+        sound.volume = preferences.volume;
         sound.muted = false;
         sound.play();
         nativePlayersPlayed.current.add(sound.id);
@@ -741,8 +749,11 @@ export default function Ludo() {
   }
 
   function vibrate(type: GameSound) {
-    if (!vibrationOn) return;
+    if (!vibrationOn || !canUseGameHaptics) return;
     try {
+      const important = type === "win" || type === "victory" || type === "home" ||
+        type === "capture" || type === "warning";
+      if (important && !preferences.importantHaptics) return;
       if (type === "dice" || type === "diceResult") vibrateDice();
       else if (type === "move" || type === "tokenOpen" || type === "click") vibrateMove();
       else if (type === "capture" || type === "warning") vibrateCapture();
@@ -1865,6 +1876,20 @@ export default function Ludo() {
       ? "PLAYER 3"
       : "PLAYER 4";
 
+  async function shareGame() {
+    try {
+      await shareLink("Play Ludo on GAMEZONE ARENA", `Join me for Ludo on GAMEZONE ARENA: ${gameLink("ludo")}`);
+    } catch (error) {
+      if (__DEV__) console.warn("Ludo share could not be opened.", error);
+    }
+  }
+
+  function copyGameLink() {
+    void copyLink(gameLink("ludo"))
+      .then(() => Alert.alert("Link copied", "The Ludo link is ready to paste."))
+      .catch(() => Alert.alert("Copy unavailable", "Your device could not copy the Ludo link."));
+  }
+
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView
@@ -1907,6 +1932,22 @@ export default function Ludo() {
               style={styles.iconButton}
             >
               <Text style={styles.iconText}>⚙️</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Share Ludo"
+              onPress={() => void shareGame()}
+              style={styles.iconButton}
+            >
+              <Text style={styles.iconText}>↗</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Copy Ludo link"
+              onPress={copyGameLink}
+              style={styles.iconButton}
+            >
+              <Text style={styles.iconText}>⧉</Text>
             </Pressable>
             <Pressable onPress={resetGame} style={styles.reset}>
               <Text style={styles.resetText}>RESET</Text>

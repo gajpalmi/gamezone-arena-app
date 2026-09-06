@@ -7,7 +7,6 @@ import {
   Pressable,
   ActivityIndicator,
   Linking,
-  Share,
   Alert,
   TextInput,
   Image,
@@ -25,6 +24,8 @@ import {
   useSupabaseAuth,
   useFavorites
 } from '@/hooks/useBusiness';
+import { businessLink, copyLink, shareLink } from '@/lib/share';
+import { type ReportReason } from '@/lib/business';
 
 export default function BusinessDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -54,23 +55,52 @@ export default function BusinessDetailScreen() {
 
   const { business, hours, photos, reviews } = data;
 
+  const openExternal = async (url: string, unavailableMessage: string) => {
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (!supported) {
+        Alert.alert('Unavailable', unavailableMessage);
+        return;
+      }
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert('Unable to open', unavailableMessage);
+    }
+  };
+
   const handleCall = () => {
-    if (business.phone) Linking.openURL(`tel:${business.phone}`);
+    if (!business.phone) return Alert.alert('Phone unavailable', 'This business has not provided a phone number.');
+    void openExternal(`tel:${business.phone.replace(/[^\d+]/g, '')}`, 'Your device cannot place a call.');
   };
 
   const handleWhatsApp = () => {
-    if (business.phone) Linking.openURL(`https://wa.me/${business.phone.replace(/[^0-9]/g, '')}`);
+    const whatsappNumber = (business as { whatsapp?: string }).whatsapp || business.phone;
+    const number = whatsappNumber?.replace(/[^0-9]/g, '');
+    if (!number) return Alert.alert('WhatsApp unavailable', 'This business has not provided a WhatsApp number.');
+    void openExternal(`https://wa.me/${number}`, 'WhatsApp is unavailable for this number on this device.');
   };
 
   const handleMap = () => {
-    const q = business.address ? encodeURIComponent(`${business.name}, ${business.address}, ${business.city || ''}`) : encodeURIComponent(`${business.name}, ${business.city || ''}`);
-    Linking.openURL(`https://maps.google.com/?q=${q}`);
+    const hasCoordinates = business.latitude != null && business.longitude != null;
+    const q = hasCoordinates
+      ? `${business.latitude},${business.longitude}`
+      : encodeURIComponent(business.address ? `${business.name}, ${business.address}, ${business.city || ''}` : `${business.name}, ${business.city || ''}`);
+    void openExternal(`https://maps.google.com/?q=${q}`, 'No maps app or browser is available.');
   };
 
-  const handleShare = () => {
-    Share.share({
-      message: `Check out ${business.name} on GAMEZONE ARENA Local Directory!`,
-    });
+  const handleShare = async () => {
+    const link = businessLink(business.id);
+    try {
+      await shareLink(business.name, `Check out ${business.name} on GAMEZONE ARENA Local Directory: ${link}`);
+    } catch {
+      Alert.alert('Share unavailable', 'Your device could not open the share sheet.');
+    }
+  };
+
+  const handleCopyLink = () => {
+    void copyLink(businessLink(business.id))
+      .then(() => Alert.alert('Link copied', 'The business profile link is ready to paste.'))
+      .catch(() => Alert.alert('Copy unavailable', 'Your device could not copy the business link.'));
   };
 
   const handleBlock = () => {
@@ -78,24 +108,50 @@ export default function BusinessDetailScreen() {
       { text: 'Cancel', style: 'cancel' },
       { text: 'Block', style: 'destructive', onPress: () => {
           setBusinessBlocked.mutate({ id: business.id, blocked: true }, {
-            onSuccess: () => router.back()
+            onSuccess: () => {
+              Alert.alert('Business blocked', 'This business will no longer appear in your results.');
+              router.back();
+            },
+            onError: (error: Error) => Alert.alert('Could not block business', error.message || 'Please try again.')
           });
       }}
     ]);
   };
 
   const handleReport = () => {
-    Alert.alert('Report Business', 'Is this business violating our rules?', [
+    Alert.alert('Report Business', 'Choose the closest reason. You can send feedback after reporting.', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Spam', onPress: () => submitReport('spam') },
-      { text: 'Inappropriate', onPress: () => submitReport('inappropriate_content') },
-      { text: 'Fake Info', onPress: () => submitReport('incorrect_information') },
+      { text: 'More reasons', onPress: handleMoreReportReasons },
     ]);
   };
 
-  const submitReport = (reason: any) => {
+  const handleMoreReportReasons = () => {
+    Alert.alert('More report reasons', 'Select a reason.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Inappropriate content', onPress: () => submitReport('inappropriate_content') },
+      { text: 'More', onPress: () => handleIncorrectReportReason() },
+    ]);
+  };
+  const handleIncorrectReportReason = () => Alert.alert('More report reasons', 'Select a reason.', [
+    { text: 'Cancel', style: 'cancel' },
+    { text: 'Fake or incorrect information', onPress: () => submitReport('incorrect_information') },
+    { text: 'More', onPress: () => handleFinalReportReasons() },
+  ]);
+  const handleFinalReportReasons = () => Alert.alert('Final report reasons', 'Select a reason.', [
+    { text: 'Cancel', style: 'cancel' },
+    { text: 'Fraud', onPress: () => submitReport('fraud') },
+    { text: 'More', onPress: () => Alert.alert('Final report reasons', 'Select a reason.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Harassment', onPress: () => submitReport('harassment') },
+      { text: 'Other', onPress: () => submitReport('other') },
+    ]) },
+  ]);
+
+  const submitReport = (reason: ReportReason) => {
     reportBusiness.mutate({ id: business.id, reason }, {
-      onSuccess: () => Alert.alert('Reported', 'Thank you for keeping our directory safe.')
+      onSuccess: () => Alert.alert('Reported', 'Thank you for keeping our directory safe. For follow-up feedback, contact support from Settings.'),
+      onError: (error: Error) => Alert.alert('Could not submit report', error.message || 'Please try again.')
     });
   };
 
@@ -118,17 +174,20 @@ export default function BusinessDetailScreen() {
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.backBtn}>
           <Feather name="arrow-left" size={20} color={colors.light.foreground} />
         </Pressable>
         <View style={styles.headerActions}>
-          <Pressable onPress={handleShare} style={styles.actionIcon}>
+          <Pressable accessibilityRole="button" accessibilityLabel={`Share ${business.name}`} onPress={handleShare} style={styles.actionIcon}>
             <Feather name="share-2" size={20} color={colors.light.foreground} />
           </Pressable>
-          <Pressable onPress={handleReport} style={styles.actionIcon}>
+          <Pressable accessibilityRole="button" accessibilityLabel={`Copy ${business.name} business profile link`} onPress={handleCopyLink} style={styles.actionIcon}>
+            <Feather name="copy" size={20} color={colors.light.foreground} />
+          </Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel={`Report ${business.name}`} onPress={handleReport} style={styles.actionIcon}>
             <Feather name="alert-triangle" size={20} color={colors.light.destructive} />
           </Pressable>
-          <Pressable onPress={handleBlock} style={styles.actionIcon}>
+          <Pressable accessibilityRole="button" accessibilityLabel={`Block ${business.name}`} onPress={handleBlock} style={styles.actionIcon}>
             <Feather name="slash" size={20} color={colors.light.mutedForeground} />
           </Pressable>
         </View>
@@ -179,7 +238,7 @@ export default function BusinessDetailScreen() {
             </View>
           )}
           {business.website && (
-            <Pressable style={styles.infoRow} onPress={() => Linking.openURL(business.website!)}>
+            <Pressable accessibilityRole="link" accessibilityLabel={`Open ${business.website}`} style={styles.infoRow} onPress={() => void openExternal(business.website!, 'This website cannot be opened on your device.')}>
               <Feather name="globe" size={16} color={colors.light.mutedForeground} />
               <Text style={[styles.infoText, styles.website]}>{business.website}</Text>
             </Pressable>
@@ -189,20 +248,22 @@ export default function BusinessDetailScreen() {
         <View style={styles.actionRow}>
           {business.phone && (
             <>
-              <Pressable style={[styles.primaryBtn, { backgroundColor: '#4ADE80' }]} onPress={handleCall}>
+              <Pressable accessibilityRole="button" accessibilityLabel={`Call ${business.name}`} style={[styles.primaryBtn, { backgroundColor: '#4ADE80' }]} onPress={handleCall}>
                 <Feather name="phone" size={16} color="#050A17" />
                 <Text style={styles.primaryBtnText}>CALL</Text>
               </Pressable>
-              <Pressable style={[styles.primaryBtn, { backgroundColor: '#25D366' }]} onPress={handleWhatsApp}>
-                <Text style={styles.primaryBtnText}>WHATSAPP</Text>
-              </Pressable>
             </>
           )}
-          <Pressable style={[styles.primaryBtn, { backgroundColor: colors.light.card }]} onPress={handleMap}>
+          {(business.whatsapp || business.phone) && (
+            <Pressable accessibilityRole="button" accessibilityLabel={`Message ${business.name} on WhatsApp`} style={[styles.primaryBtn, { backgroundColor: '#25D366' }]} onPress={handleWhatsApp}>
+              <Text style={styles.primaryBtnText}>WHATSAPP</Text>
+            </Pressable>
+          )}
+          <Pressable accessibilityRole="button" accessibilityLabel={`Find ${business.name} on a map`} style={[styles.primaryBtn, { backgroundColor: colors.light.card }]} onPress={handleMap}>
             <Feather name="map" size={16} color={colors.light.foreground} />
             <Text style={[styles.primaryBtnText, { color: colors.light.foreground }]}>MAP</Text>
           </Pressable>
-          <Pressable style={[styles.primaryBtn, { backgroundColor: colors.light.card }]} onPress={() => setFavorite.mutate({ id: business.id, favorite: !isFavorited })}>
+          <Pressable disabled={setFavorite.isPending} accessibilityRole="button" accessibilityLabel={isFavorited ? `Remove ${business.name} from saved businesses` : `Save ${business.name}`} style={[styles.primaryBtn, { backgroundColor: colors.light.card }, setFavorite.isPending && { opacity: 0.55 }]} onPress={() => setFavorite.mutate({ id: business.id, favorite: !isFavorited }, { onSuccess: () => Alert.alert(isFavorited ? 'Removed from saved' : 'Saved', `${business.name} has been ${isFavorited ? 'removed from' : 'added to'} your saved businesses.`), onError: (error: Error) => Alert.alert('Could not update saved businesses', error.message || 'Please try again.') })}>
              <Feather name="bookmark" size={16} color={isFavorited ? colors.light.primary : colors.light.foreground} />
           </Pressable>
         </View>

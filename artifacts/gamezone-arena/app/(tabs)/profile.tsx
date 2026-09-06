@@ -145,6 +145,12 @@ export default function ProfileScreen() {
       </View>
 
       <View style={styles.menuLinks}>
+        <Pressable style={styles.menuLink} onPress={() => router.push('/settings' as Href)}>
+          <Feather name="settings" size={18} color="#FFFFFF" />
+          <Text style={styles.menuLinkText}>Settings & Preferences</Text>
+          <Feather name="chevron-right" size={18} color="#71809F" />
+        </Pressable>
+
         <Pressable style={styles.menuLink} onPress={() => router.push('/business/mine' as Href)}>
           <Feather name="briefcase" size={18} color="#FFFFFF" />
           <Text style={styles.menuLinkText}>My Business Listings</Text>
