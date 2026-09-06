@@ -1,0 +1,141 @@
+GAMEZONE ARENA — FREE-ONLY CLERK + SUPABASE INVESTIGATION
+
+IMPORTANT:
+This is a READ-ONLY / SAFE investigation first.
+
+DO NOT:
+- ask me to buy Replit Pro
+- create a new Clerk account
+- create a new Clerk application
+- delete or recreate the existing Replit-managed Clerk
+- migrate to another Clerk instance
+- disable RLS
+- weaken existing RLS policies
+- make database tables publicly writable
+- use the anon role to bypass authentication
+- expose JWTs, tokens, secrets, passwords, API keys, or private credentials
+- use the deprecated Clerk JWT-template integration
+- run an EAS build
+- build APK/AAB
+- deploy
+- perform any paid operation
+
+CURRENT SETUP:
+
+GAMEZONE ARENA uses the existing Replit-managed Clerk.
+
+Clerk development domain:
+https://select-kitten-72.clerk.accounts.dev
+
+Supabase:
+Authentication → Third-Party Auth → Clerk
+is already ENABLED.
+
+Product Save currently fails because the Clerk session token is not being accepted as the Supabase authenticated role.
+
+The previous diagnosis says the missing piece may be Clerk-side:
+"Activate Supabase integration"
+
+However, the Replit-managed Clerk dashboard is behind Personal Pro and the user does NOT want to purchase Pro.
+
+GOAL:
+
+Find out whether there is ANY officially supported FREE way to make the existing Replit-managed Clerk session compatible with Supabase Third-Party Auth without:
+
+- Replit Pro
+- a new Clerk account
+- a new Clerk app
+- changing authentication provider
+- weakening RLS
+- exposing secrets
+- deprecated JWT templates
+
+IMPORTANT:
+Do not assume that Pro is the only solution.
+Do not assume an unsupported workaround is safe.
+
+INVESTIGATE THESE POSSIBILITIES:
+
+1. Does the existing Replit-managed Clerk already support Supabase compatibility through a configuration that is available from:
+   - Replit Auth panel
+   - environment/configuration already exposed to the Agent
+   - existing Clerk runtime configuration
+   - existing public Clerk metadata
+
+2. Can the existing Clerk session token already contain:
+   role = authenticated
+
+without using Clerk Dashboard?
+
+3. Can the existing application request a Supabase-compatible Clerk session token through the normal Clerk SDK/session API?
+
+4. Is there any supported configuration in the existing Replit-managed Clerk integration that enables the required Supabase role claim without requiring Clerk Dashboard access?
+
+5. Is there any supported Supabase-side configuration that can work with the EXISTING Clerk tokens as they currently are, while keeping RLS secure?
+
+6. Can Supabase Third-Party Auth accept the existing Clerk JWT without the missing Clerk-side activation?
+
+7. Check the CURRENT official Supabase Clerk integration requirements.
+
+Do not implement anything yet.
+
+RETURN A CLEAR REPORT:
+
+A. FREE SUPPORTED SOLUTION FOUND
+- Exact solution
+- Exact steps
+- Why it is supported
+- What needs to change
+
+OR
+
+B. NO FREE SUPPORTED SOLUTION FOUND
+State clearly:
+"No supported free configuration is available with the current Replit-managed Clerk access."
+
+Then explain exactly which required capability is unavailable.
+
+ALSO CHECK:
+
+Whether the Product Save code itself is already correct:
+- ClerkProvider
+- current Clerk session
+- getToken()
+- Supabase accessToken callback
+- authenticated request
+- Product insert
+- existing owner/RLS policy
+
+Do not change those files unless you find an actual code defect independent of the missing Clerk configuration.
+
+SECURITY REQUIREMENT:
+
+The existing security architecture must remain intact.
+
+The correct final architecture must remain:
+
+Clerk authentication
+→ valid Clerk session JWT
+→ Supabase Third-Party Auth
+→ role = authenticated
+→ existing RLS
+→ authenticated user's own Product row
+
+Do NOT replace this with:
+
+anon access
+or
+public INSERT
+or
+service_role from the client
+or
+bypassing RLS.
+
+FINAL RESPONSE MUST SAY:
+
+1. Is there a FREE supported solution?
+2. If yes, exact steps.
+3. If no, exact blocker.
+4. Is Replit Pro genuinely required for the missing capability?
+5. What should we NOT change?
+6. No code/settings changes were made during this investigation.
