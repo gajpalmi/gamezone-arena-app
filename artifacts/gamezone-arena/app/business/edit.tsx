@@ -16,6 +16,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { openImageMediaPicker } from '@/lib/imageMediaPicker';
 import { Feather } from '@/components/Feather';
 import { CategoryPicker } from '@/components/CategoryPicker';
+import { LocationAutocomplete } from '@/components/LocationAutocomplete';
 import colors from '@/constants/colors';
 import {
   useCategories,
@@ -128,11 +129,11 @@ export default function BusinessEditScreen() {
         } catch (error) {
           Alert.alert('Business saved, hours failed', error instanceof Error ? error.message : 'Please retry saving weekly hours.');
         }
-        if (!id) {
-          Alert.alert('Draft saved', 'Your listing is saved. Add a logo or photos, then preview or submit it for review.');
-          router.replace(`/business/edit?id=${res.id}` as any);
+        if (afterSave) afterSave(res.id);
+        else {
+          Alert.alert('Draft saved', 'Your business is now visible in My Businesses.');
+          router.replace('/business/mine' as any);
         }
-        afterSave?.(res.id);
       },
       onError: (err: any) => {
         Alert.alert('Error', err.message || 'Failed to save business');
@@ -277,12 +278,15 @@ export default function BusinessEditScreen() {
           <Text style={styles.label}>Email (Optional)</Text><TextInput style={styles.input} placeholder="name@example.com" placeholderTextColor={colors.light.mutedForeground} keyboardType="email-address" value={form.email} onChangeText={(t) => setForm({ ...form, email: t })} />
 
           <Text style={styles.label}>Full Address (Optional)</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Shop 12, Main Street..."
-            placeholderTextColor={colors.light.mutedForeground}
+          <LocationAutocomplete
             value={form.address}
-            onChangeText={(t) => setForm({ ...form, address: t })}
+            onChangeText={(address) => setForm((current) => ({ ...current, address }))}
+            onSelect={(location) => setForm((current) => ({
+              ...current,
+              address: location.address,
+              city: location.city || current.city,
+              service_areas: current.service_areas || location.area,
+            }))}
           />
           <Text style={styles.label}>Service Areas (Optional)</Text>
           <TextInput style={styles.input} placeholder="e.g. Andheri, Bandra (comma-separated)" placeholderTextColor={colors.light.mutedForeground} value={form.service_areas} onChangeText={(t) => setForm({ ...form, service_areas: t })} />
@@ -354,7 +358,7 @@ export default function BusinessEditScreen() {
         </View>
 
         <View style={styles.footerActions}>
-        <Pressable style={[styles.secondaryBtn, isPending && styles.disabledBtn]} onPress={() => id ? router.push(`/business/${id}` as any) : handleSave((businessId) => router.replace(`/business/${businessId}` as any), true)} disabled={isPending}>
+        <Pressable style={[styles.secondaryBtn, isPending && styles.disabledBtn]} onPress={() => handleSave((businessId) => router.replace(`/business/${businessId}` as any), true)} disabled={isPending}>
           <Text style={styles.secondaryBtnText}>PREVIEW</Text>
         </Pressable>
         <Pressable style={[styles.saveBtn, isPending && styles.disabledBtn]} onPress={() => handleSave()} disabled={isPending}>

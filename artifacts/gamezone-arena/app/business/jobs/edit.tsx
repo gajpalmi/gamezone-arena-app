@@ -3,6 +3,7 @@ import { ActivityIndicator, Alert, Pressable, Text, TextInput, View } from "reac
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { CategoryPicker } from "@/components/CategoryPicker";
+import { LocationAutocomplete } from "@/components/LocationAutocomplete";
 import { Button, styles as s } from "@/components/JobsUi";
 import { useSupabaseAuth } from "@/hooks/useBusiness";
 import { useJob, useJobCategories, useJobMutation } from "@/hooks/useJobs";
@@ -217,8 +218,8 @@ export default function EditJob() {
           onSuccess: result => {
             try {
               const job = result as Job;
-              if (!preview) Alert.alert("Saved successfully", "Your private job draft was saved.");
-              router.push((preview ? `/business/jobs/preview?id=${job.id}` : `/business/jobs/${job.id}`) as never);
+              if (!preview) Alert.alert("Saved successfully", "Your job draft is now visible in My Job Posts.");
+              router.replace((preview ? `/business/jobs/preview?id=${job.id}` : "/business/jobs/mine") as never);
             } catch (error) {
               console.error("Unable to navigate to job preview", error);
               setFormError("Unable to open job preview. Please try again.");
@@ -281,9 +282,22 @@ export default function EditJob() {
        {field("vacancies", "Vacancies *")}
        {field("salary_min", "Minimum salary *")}
        {field("salary_max", "Maximum salary *")}
-       {field("city", "City *")}
-       {field("area", "Area *")}
-       {field("location_text", "Work location / landmark *")}
+        <LocationAutocomplete
+          value={form.location_text}
+          error={errors.location_text}
+          onChangeText={value => setValue("location_text", value)}
+          onSelect={location => {
+            setForm((current: ReturnType<typeof blank>) => ({
+              ...current,
+              location_text: location.address,
+              city: location.city || current.city,
+              area: location.area || current.area,
+            }));
+            setErrors(current => ({ ...current, location_text: "", city: "", area: "" }));
+          }}
+        />
+        {field("city", "City *")}
+        {field("area", "Area *")}
        {field("working_hours", "Working hours *")}
        {field("benefits", "Benefits *")}
        {field("requirements", "Requirements *", true)}

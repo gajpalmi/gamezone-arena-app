@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
 import { CategoryPicker } from "@/components/CategoryPicker";
+import { LocationAutocomplete } from "@/components/LocationAutocomplete";
 import { Button, Card, styles as s } from "@/components/JobsUi";
 import { useJobCategories, useJobs } from "@/hooks/useJobs";
 import type { WorkType, WorkplaceType } from "@/lib/jobs";
@@ -64,8 +65,15 @@ export default function Discover() {
         placeholderTextColor={s.subtitle.color}
         style={s.input}
       />
-      <TextInput value={draft.city} onChangeText={value => update("city", value)} placeholder="City" placeholderTextColor={s.subtitle.color} style={s.input} />
-      <TextInput value={draft.area} onChangeText={value => update("area", value)} placeholder="Area" placeholderTextColor={s.subtitle.color} style={s.input} />
+      <LocationAutocomplete
+        value={draft.city}
+        onChangeText={value => update("city", value)}
+        onSelect={location => {
+          setDraft(current => ({ ...current, city: location.city, area: location.area }));
+          setSubmitted(current => ({ ...current, city: location.city, area: location.area }));
+        }}
+      />
+      <TextInput value={draft.area} onChangeText={value => update("area", value)} placeholder="Area (optional refinement)" placeholderTextColor={s.subtitle.color} style={s.input} />
       <View style={s.row}>
         <TextInput value={draft.minSalary} keyboardType="numeric" onChangeText={value => update("minSalary", value)} placeholder="Min salary" placeholderTextColor={s.subtitle.color} style={[s.input, { flex: 1 }]} />
         <TextInput value={draft.maxSalary} keyboardType="numeric" onChangeText={value => update("maxSalary", value)} placeholder="Max salary" placeholderTextColor={s.subtitle.color} style={[s.input, { flex: 1 }]} />
