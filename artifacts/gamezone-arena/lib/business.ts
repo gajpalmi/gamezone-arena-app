@@ -7,7 +7,7 @@ export type Business = {
   id: string; owner_id: string; category_id: string; name: string; description: string;
   phone: string | null; email: string | null; website: string | null; address: string | null;
   city: string | null; latitude: number | null; longitude: number | null; status: BusinessStatus;
-  owner_name: string | null; whatsapp: string | null; service_areas: string[];
+  owner_name: string | null; owner_display_name: string | null; subcategory: string | null; whatsapp: string | null; service_areas: string[]; services_offered: string[]; price_range: string | null; public_contact_consent_at: string | null;
   terms_version: string | null; terms_accepted_at: string | null; privacy_version: string | null; privacy_accepted_at: string | null; listing_rules_version: string | null; listing_rules_accepted_at: string | null;
   submitted_at: string | null; approved_at: string | null; rejection_reason: string | null;
   created_at: string; updated_at: string;
@@ -15,13 +15,13 @@ export type Business = {
 };
 export type BusinessCategory = { id: string; slug: string; name: string; description: string | null; sort_order: number };
 export type BusinessHours = { day_of_week: number; opens_at: string | null; closes_at: string | null; is_closed: boolean };
-export type BusinessPhoto = { id: string; business_id: string; storage_path: string; alt_text: string | null; sort_order: number; created_at: string; signedUrl?: string };
+export type BusinessPhoto = { id: string; business_id: string; storage_path: string; alt_text: string | null; sort_order: number; is_logo?: boolean; created_at: string; signedUrl?: string };
 export type BusinessReview = { id: string; business_id: string; user_id: string; rating: number; body: string; is_approved: boolean; created_at: string; updated_at: string };
 export type BrowseOptions = { categoryId?: string; city?: string; query?: string; page?: number; pageSize?: number };
-export type BusinessInput = Pick<Business, "category_id" | "name" | "city" | "phone" | "terms_version" | "terms_accepted_at" | "privacy_version" | "privacy_accepted_at" | "listing_rules_version" | "listing_rules_accepted_at"> & Partial<Pick<Business, "description" | "email" | "website" | "address" | "latitude" | "longitude" | "owner_name" | "whatsapp" | "service_areas">>;
+export type BusinessInput = Pick<Business, "category_id" | "name" | "city" | "phone" | "terms_version" | "terms_accepted_at" | "privacy_version" | "privacy_accepted_at" | "listing_rules_version" | "listing_rules_accepted_at"> & Partial<Pick<Business, "description" | "email" | "website" | "address" | "latitude" | "longitude" | "owner_name" | "owner_display_name" | "subcategory" | "whatsapp" | "service_areas" | "services_offered" | "price_range" | "public_contact_consent_at">>;
 
 const MAX_PAGE_SIZE = 50;
-const businessColumns = "id,owner_id,category_id,name,description,phone,email,website,address,city,latitude,longitude,owner_name,whatsapp,service_areas,terms_version,terms_accepted_at,privacy_version,privacy_accepted_at,listing_rules_version,listing_rules_accepted_at,status,submitted_at,approved_at,rejection_reason,created_at,updated_at";
+const businessColumns = "id,owner_id,category_id,name,description,phone,email,website,address,city,latitude,longitude,owner_name,owner_display_name,subcategory,whatsapp,service_areas,services_offered,price_range,public_contact_consent_at,terms_version,terms_accepted_at,privacy_version,privacy_accepted_at,listing_rules_version,listing_rules_accepted_at,status,submitted_at,approved_at,rejection_reason,created_at,updated_at";
 const LEGAL_VERSION = "2026-09-06";
 let pendingAccountPhotoDeletion: string[] | null = null;
 
@@ -53,8 +53,9 @@ function normalizedInput(input: BusinessInput) {
   validateBusiness(input);
   const serviceAreas = (input.service_areas ?? []).map((area) => area.trim()).filter(Boolean);
   if (serviceAreas.length > 20 || serviceAreas.some((area) => area.length > 120)) throw new Error("Provide at most 20 service areas of 120 characters each.");
-  return { ...input, name: input.name.trim(), description: input.description?.trim() ?? "", phone: cleanText(input.phone, 40), email: cleanText(input.email, 254), website: cleanText(input.website, 2048), address: cleanText(input.address, 500), city: cleanText(input.city, 120), owner_name: cleanText(input.owner_name, 120), whatsapp: cleanText(input.whatsapp, 40), service_areas: serviceAreas };
+  return { ...input, name: input.name.trim(), description: input.description?.trim() ?? "", phone: cleanText(input.phone, 40), email: cleanText(input.email, 254), website: cleanText(input.website, 2048), address: cleanText(input.address, 500), city: cleanText(input.city, 120), owner_name: cleanText(input.owner_name, 120), owner_display_name: cleanText(input.owner_display_name,120), subcategory: cleanText(input.subcategory,120), whatsapp: cleanText(input.whatsapp, 40), service_areas: serviceAreas, services_offered:(input.services_offered??[]).map(x=>x.trim()).filter(Boolean),price_range:cleanText(input.price_range,120) };
 }
+export async function saveBusinessHours(businessId: string, hours: BusinessHours[]) { const { error } = await client().from("business_hours").upsert(hours.map(hour => ({ ...hour, business_id: businessId })), { onConflict: "business_id,day_of_week" }); fail(error); }
 
 export async function listCategories(): Promise<BusinessCategory[]> {
   const { data, error } = await client().from("business_categories").select("id,slug,name,description,sort_order").order("sort_order");
@@ -81,7 +82,7 @@ export async function getBusinessDetail(id: string) {
   const [{ data: business, error }, { data: hours, error: hoursError }, { data: photos, error: photosError }, { data: reviews, error: reviewsError }] = await Promise.all([
     db.from("businesses").select(`${businessColumns},business_categories(id,slug,name)`).eq("id", id).single(),
     db.from("business_hours").select("day_of_week,opens_at,closes_at,is_closed").eq("business_id", id).order("day_of_week"),
-    db.from("business_photos").select("id,business_id,storage_path,alt_text,sort_order,created_at").eq("business_id", id).order("sort_order"),
+    db.from("business_photos").select("id,business_id,storage_path,alt_text,sort_order,is_logo,created_at").eq("business_id", id).order("sort_order"),
     db.from("business_reviews").select("id,business_id,user_id,rating,body,is_approved,created_at,updated_at").eq("business_id", id).eq("is_approved", true).order("created_at", { ascending: false }),
   ]);
   fail(error); fail(hoursError); fail(photosError); fail(reviewsError);
@@ -194,6 +195,12 @@ export async function deleteBusinessImage(photo: BusinessPhoto) {
   fail(storageError);
   const { error } = await db.from("business_photos").delete().eq("id", photo.id);
   fail(error);
+}
+export async function setBusinessLogo(photoId: string) {
+  const { data: photo, error: readError } = await client().from("business_photos").select("id,business_id").eq("id", photoId).single(); fail(readError);
+  if (!photo) throw new Error("Business photo was not found.");
+  const { error: clearError } = await client().from("business_photos").update({ is_logo: false }).eq("business_id", photo.business_id); fail(clearError);
+  const { error } = await client().from("business_photos").update({ is_logo: true }).eq("id", photoId); fail(error);
 }
 
 export async function deleteUserData() {

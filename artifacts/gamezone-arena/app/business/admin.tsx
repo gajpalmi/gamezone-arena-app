@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@/components/Feather';
 import colors from '@/constants/colors';
 import { useAdminQueue, useAdminModerate, useBusinessAdmin, useSupabaseAuth } from '@/hooks/useBusiness';
+import { useOfferingAction, useOfferingAdminQueue } from '@/hooks/useOfferings';
 
 export default function AdminScreen() {
   const router = useRouter();
@@ -21,6 +22,8 @@ export default function AdminScreen() {
   const { data: isAdmin, isLoading: checkingAdmin } = useBusinessAdmin();
   const { data, isLoading, error } = useAdminQueue(isAdmin === true);
   const adminModerate = useAdminModerate();
+  const { data: offeringData } = useOfferingAdminQueue(isAdmin === true);
+  const offeringAction = useOfferingAction();
 
   if (checkingAdmin) {
     return <View style={[styles.root, styles.centered, { paddingTop: insets.top }]}><ActivityIndicator color={colors.light.primary} size="large" /></View>;
@@ -99,6 +102,21 @@ export default function AdminScreen() {
           ))}
 
           <View style={styles.divider} />
+           <Text style={styles.sectionTitle}>Pending Products & Services ({offeringData?.offerings?.length || 0})</Text>
+           {offeringData?.offerings?.length === 0 && <Text style={styles.emptyText}>No pending product or service listings.</Text>}
+           {offeringData?.offerings?.map((offering) => (
+             <View key={offering.id} style={styles.card}>
+               <Text style={styles.cardTitle}>{offering.name}</Text>
+               <Text style={styles.cardDesc}>{offering.kind.toUpperCase()} · {offering.category} · {offering.city}</Text>
+               <View style={styles.actionRow}>
+                 <Pressable testID="approve-offering" style={[styles.actionBtn, { backgroundColor: '#4ADE8020' }]} onPress={() => offeringAction.mutate({ type: 'moderate', id: offering.id, value: 'approve' })}><Text style={[styles.actionText, { color: '#4ADE80' }]}>APPROVE</Text></Pressable>
+                 <Pressable style={[styles.actionBtn, { backgroundColor: colors.light.destructive + '20' }]} onPress={() => offeringAction.mutate({ type: 'moderate', id: offering.id, value: 'reject', reason: 'Violates guidelines' })}><Text style={[styles.actionText, { color: colors.light.destructive }]}>REJECT</Text></Pressable>
+                 <Pressable style={[styles.actionBtn, { backgroundColor: colors.light.destructive + '20' }]} onPress={() => offeringAction.mutate({ type: 'moderate', id: offering.id, value: 'suspend', reason: 'Moderation action' })}><Text style={[styles.actionText, { color: colors.light.destructive }]}>SUSPEND</Text></Pressable>
+               </View>
+             </View>
+           ))}
+           <Text style={styles.sectionTitle}>Offering Reports ({offeringData?.reports?.length || 0})</Text>
+           {offeringData?.reports?.map((report: any) => <View key={report.id} style={styles.card}><Text style={styles.reportReason}>{report.reason.toUpperCase()}</Text><Text style={styles.cardDesc}>{report.details || 'No details provided'}</Text><Pressable style={[styles.actionBtn, { backgroundColor: colors.light.primary + '20' }]} onPress={() => offeringAction.mutate({ type: 'resolve-report', id: report.id })}><Text style={[styles.actionText, { color: colors.light.primary }]}>RESOLVE</Text></Pressable></View>)}
 
           <Text style={styles.sectionTitle}>Reports ({data?.reports?.length || 0})</Text>
           {data?.reports?.length === 0 && <Text style={styles.emptyText}>No open reports.</Text>}

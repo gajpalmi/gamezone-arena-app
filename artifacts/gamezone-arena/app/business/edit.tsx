@@ -24,6 +24,8 @@ import {
   useSupabaseAuth
 } from '@/hooks/useBusiness';
 import { useUser } from '@clerk/expo';
+import { saveBusinessHours, type BusinessHours } from '@/lib/business';
+import { setBusinessLogo } from '@/lib/business';
 
 export default function BusinessEditScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
@@ -44,6 +46,11 @@ export default function BusinessEditScreen() {
     city: '',
     phone: '',
     owner_name: '',
+    owner_display_name: '',
+    subcategory: '',
+    email: '',
+    services_offered: '',
+    price_range: '',
     whatsapp: '',
     service_areas: '',
     address: '',
@@ -52,6 +59,8 @@ export default function BusinessEditScreen() {
   });
 
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [publicContactConsent, setPublicContactConsent] = useState(false);
+  const [hours, setHours] = useState<BusinessHours[]>(() => Array.from({ length: 7 }, (_, day_of_week) => ({ day_of_week, opens_at: '09:00', closes_at: '18:00', is_closed: false })));
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
@@ -62,13 +71,19 @@ export default function BusinessEditScreen() {
         city: businessData.business.city || '',
         phone: businessData.business.phone || '',
         owner_name: businessData.business.owner_name || '',
+        owner_display_name: businessData.business.owner_display_name || '',
+        subcategory: businessData.business.subcategory || '',
+        email: businessData.business.email || '',
+        services_offered: businessData.business.services_offered?.join(', ') || '',
+        price_range: businessData.business.price_range || '',
         whatsapp: businessData.business.whatsapp || '',
         service_areas: businessData.business.service_areas?.join(', ') || '',
         address: businessData.business.address || '',
         description: businessData.business.description || '',
         website: businessData.business.website || '',
       });
-      setAcceptedTerms(true); // if already exists, they accepted
+      setPublicContactConsent(!!businessData.business.public_contact_consent_at);
+      if (businessData.hours?.length) setHours(Array.from({ length: 7 }, (_, day_of_week) => businessData.hours.find((hour) => hour.day_of_week === day_of_week) ?? { day_of_week, opens_at: '09:00', closes_at: '18:00', is_closed: false }));
     }
   }, [businessData]);
 
@@ -77,7 +92,7 @@ export default function BusinessEditScreen() {
       Alert.alert('Missing fields', 'Name, category, city, and phone are required.');
       return;
     }
-    if (!acceptedTerms) {
+    if (!acceptedTerms || !publicContactConsent) {
       Alert.alert('Terms Required', 'You must accept the Listing Rules, Terms, and Privacy Policy.');
       return;
     }
@@ -86,6 +101,8 @@ export default function BusinessEditScreen() {
     const payload = {
       ...form,
       service_areas: form.service_areas.split(',').map((area) => area.trim()).filter(Boolean),
+      services_offered: form.services_offered.split(',').map((area) => area.trim()).filter(Boolean),
+      public_contact_consent_at: acceptedAt,
       terms_version: '2026-09-06',
       terms_accepted_at: acceptedAt,
       privacy_version: '2026-09-06',
@@ -95,8 +112,13 @@ export default function BusinessEditScreen() {
     };
     const mutation = id ? updateBusiness : createBusiness;
     mutation.mutate(payload, {
-      onSuccess: (res) => {
-        Alert.alert('Success', 'Business saved as draft.');
+      onSuccess: async (res) => {
+        try {
+          await saveBusinessHours(res.id, hours.map((hour) => ({ ...hour, opens_at: hour.is_closed ? null : hour.opens_at, closes_at: hour.is_closed ? null : hour.closes_at })));
+          Alert.alert('Success', 'Business and weekly hours saved as draft.');
+        } catch (error) {
+          Alert.alert('Business saved, hours failed', error instanceof Error ? error.message : 'Please retry saving weekly hours.');
+        }
         if (!id) {
           router.replace(`/business/edit?id=${res.id}` as any);
         }
@@ -192,6 +214,8 @@ export default function BusinessEditScreen() {
             value={form.name}
             onChangeText={(t) => setForm({ ...form, name: t })}
           />
+          <Text style={styles.label}>Display Name</Text><TextInput style={styles.input} placeholder="Public owner or business display name" placeholderTextColor={colors.light.mutedForeground} value={form.owner_display_name} onChangeText={(t) => setForm({ ...form, owner_display_name: t })} />
+          <Text style={styles.label}>Sub-category</Text><TextInput style={styles.input} placeholder="e.g. Laptop repair" placeholderTextColor={colors.light.mutedForeground} value={form.subcategory} onChangeText={(t) => setForm({ ...form, subcategory: t })} />
 
           <Text style={styles.label}>Category *</Text>
           <View style={styles.categories}>
@@ -234,6 +258,7 @@ export default function BusinessEditScreen() {
           <TextInput style={styles.input} placeholder="Who should customers ask for?" placeholderTextColor={colors.light.mutedForeground} value={form.owner_name} onChangeText={(t) => setForm({ ...form, owner_name: t })} />
           <Text style={styles.label}>WhatsApp Number (Optional)</Text>
           <TextInput style={styles.input} placeholder="+91..." placeholderTextColor={colors.light.mutedForeground} keyboardType="phone-pad" value={form.whatsapp} onChangeText={(t) => setForm({ ...form, whatsapp: t })} />
+          <Text style={styles.label}>Email (Optional)</Text><TextInput style={styles.input} placeholder="name@example.com" placeholderTextColor={colors.light.mutedForeground} keyboardType="email-address" value={form.email} onChangeText={(t) => setForm({ ...form, email: t })} />
 
           <Text style={styles.label}>Full Address (Optional)</Text>
           <TextInput
@@ -245,6 +270,8 @@ export default function BusinessEditScreen() {
           />
           <Text style={styles.label}>Service Areas (Optional)</Text>
           <TextInput style={styles.input} placeholder="e.g. Andheri, Bandra (comma-separated)" placeholderTextColor={colors.light.mutedForeground} value={form.service_areas} onChangeText={(t) => setForm({ ...form, service_areas: t })} />
+          <Text style={styles.label}>Services Offered</Text><TextInput style={styles.input} placeholder="Comma-separated services" placeholderTextColor={colors.light.mutedForeground} value={form.services_offered} onChangeText={(t) => setForm({ ...form, services_offered: t })} />
+          <Text style={styles.label}>Price Range</Text><TextInput style={styles.input} placeholder="e.g. ₹500–₹2,000" placeholderTextColor={colors.light.mutedForeground} value={form.price_range} onChangeText={(t) => setForm({ ...form, price_range: t })} />
         </View>
 
         <View style={styles.section}>
@@ -271,6 +298,13 @@ export default function BusinessEditScreen() {
             onChangeText={(t) => setForm({ ...form, website: t })}
           />
         </View>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Weekly opening hours</Text>
+          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => {
+            const hour = hours[index];
+            return <View key={day} style={styles.hoursRow}><Text style={styles.day}>{day}</Text><Pressable style={styles.closedToggle} onPress={() => setHours(hours.map((item, i) => i === index ? { ...item, is_closed: !item.is_closed } : item))}><Text style={styles.closedText}>{hour.is_closed ? 'CLOSED' : 'OPEN'}</Text></Pressable>{!hour.is_closed && <><TextInput style={styles.timeInput} value={hour.opens_at ?? ''} onChangeText={(opens_at) => setHours(hours.map((item, i) => i === index ? { ...item, opens_at } : item))} placeholder="09:00" placeholderTextColor={colors.light.mutedForeground} /><Text style={styles.to}>to</Text><TextInput style={styles.timeInput} value={hour.closes_at ?? ''} onChangeText={(closes_at) => setHours(hours.map((item, i) => i === index ? { ...item, closes_at } : item))} placeholder="18:00" placeholderTextColor={colors.light.mutedForeground} /></>}</View>;
+          })}
+        </View>
 
         {id && (
           <View style={styles.section}>
@@ -287,10 +321,16 @@ export default function BusinessEditScreen() {
                 </>
               )}
             </Pressable>
+            <Text style={styles.helperText}>Tap a photo to make it your logo.</Text>
+            <View style={styles.logoRow}>{businessData?.photos.map((photo) => <Pressable key={photo.id} onPress={() => void setBusinessLogo(photo.id).then(() => Alert.alert('Logo updated', 'This image is now your business logo.')).catch((error) => Alert.alert('Logo update failed', error.message))}><Text style={styles.logoItem}>{photo.is_logo ? '★ LOGO' : 'MAKE LOGO'}</Text></Pressable>)}</View>
           </View>
         )}
 
         <View style={styles.section}>
+          <Pressable style={styles.checkboxRow} onPress={() => setPublicContactConsent(!publicContactConsent)}>
+            <View style={[styles.checkbox, publicContactConsent && styles.checkboxActive]}>{publicContactConsent && <Feather name="check" size={14} color="#050A17" />}</View>
+            <Text style={styles.termsText}>I consent to show my phone, WhatsApp, and email publicly.</Text>
+          </Pressable>
           <Pressable style={styles.checkboxRow} onPress={() => setAcceptedTerms(!acceptedTerms)}>
             <View style={[styles.checkbox, acceptedTerms && styles.checkboxActive]}>
               {acceptedTerms && <Feather name="check" size={14} color="#050A17" />}
@@ -332,6 +372,8 @@ const styles = StyleSheet.create({
   catText: { color: colors.light.mutedForeground, fontSize: 13, fontWeight: '600' },
   catTextActive: { color: colors.light.primaryForeground },
   helperText: { color: colors.light.mutedForeground, fontSize: 13, marginBottom: 12 },
+  logoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  logoItem: { color: colors.light.primary, fontSize: 11, fontWeight: '800' },
   photoBtn: { height: 50, borderRadius: 12, borderWidth: 1, borderColor: colors.light.primary, borderStyle: 'dashed', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: colors.light.primary + '10' },
   photoBtnText: { color: colors.light.primary, fontSize: 14, fontWeight: '700' },
   checkboxRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -339,6 +381,12 @@ const styles = StyleSheet.create({
   checkboxActive: { backgroundColor: colors.light.primary, borderColor: colors.light.primary },
   termsText: { flex: 1, color: colors.light.mutedForeground, fontSize: 13, lineHeight: 20 },
   link: { color: colors.light.primary, fontWeight: '700' },
+  hoursRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 10 },
+  day: { color: colors.light.foreground, width: 30, fontSize: 12, fontWeight: '800' },
+  closedToggle: { borderWidth: 1, borderColor: colors.light.primary, borderRadius: 6, padding: 6, width: 57, alignItems: 'center' },
+  closedText: { color: colors.light.primary, fontSize: 9, fontWeight: '900' },
+  timeInput: { flex: 1, height: 36, backgroundColor: colors.light.input, borderRadius: 7, color: colors.light.foreground, paddingHorizontal: 8, fontSize: 12 },
+  to: { color: colors.light.mutedForeground, fontSize: 11 },
   saveBtn: { height: 54, borderRadius: 16, backgroundColor: colors.light.primary, alignItems: 'center', justifyContent: 'center' },
   saveBtnText: { color: colors.light.primaryForeground, fontSize: 15, fontWeight: '900', letterSpacing: 1 },
 });

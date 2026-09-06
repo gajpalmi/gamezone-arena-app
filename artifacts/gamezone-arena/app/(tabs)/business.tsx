@@ -9,12 +9,14 @@ import {
   ActivityIndicator,
   RefreshControl,
   Image,
+  Alert,
 } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@/components/Feather';
 import colors from '@/constants/colors';
 import { useBrowseBusinesses, useCategories, useSupabaseAuth } from '@/hooks/useBusiness';
+import { appLink, shareLink } from '@/lib/share';
 
 export default function BusinessDiscoveryScreen() {
   const router = useRouter();
@@ -69,6 +71,27 @@ export default function BusinessDiscoveryScreen() {
   const renderHeader = () => (
     <View style={styles.header}>
       <Text style={styles.title}>Local Directory</Text>
+      <View style={styles.quickActions}>
+        {[
+          ['➕ Add Business', '/business/edit'], ['🛍️ Add Product', '/business/offering/edit?kind=product'],
+          ['🛠️ Add Service', '/business/offering/edit?kind=service'], ['📋 My Listings', '/business/offerings-mine'],
+          ['❤️ Saved', '/business/offerings-saved'], ['🔍 Search Listings', '/business/offerings'],
+          ['⚙️ Settings', '/settings'],
+        ].map(([label, path]) => <Pressable key={label} testID={`business-${label.replace(/\W/g, '-').toLowerCase()}`} style={styles.quickAction} onPress={() => router.push(path as Href)}><Text style={styles.quickText}>{label}</Text></Pressable>)}
+        <Pressable testID="business-location-area" style={styles.quickAction} onPress={() => router.push('/business/offerings' as Href)}>
+          <Text style={styles.quickText}>📍 Location / City / Area</Text>
+        </Pressable>
+        <Pressable testID="business-contact" style={styles.quickAction} onPress={() => router.push('/business/offerings' as Href)}>
+          <Text style={styles.quickText}>📞 Contact Business</Text>
+        </Pressable>
+        <Pressable
+          testID="business-share"
+          style={styles.quickAction}
+          onPress={() => void shareLink('GAMEZONE ARENA Local Directory', `Discover local businesses, products, and services on GAMEZONE ARENA: ${appLink}`).catch(() => Alert.alert('Share unavailable', 'Your device could not open the share sheet.'))}
+        >
+          <Text style={styles.quickText}>📤 Share</Text>
+        </Pressable>
+      </View>
       
       <View style={styles.actions}>
         <Pressable style={styles.actionBtn} onPress={() => router.push('/business/saved' as Href)}>
@@ -208,6 +231,9 @@ const styles = StyleSheet.create({
     color: colors.light.foreground,
     marginBottom: 16,
   },
+  quickActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
+  quickAction: { backgroundColor: colors.light.card, borderColor: colors.light.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 9 },
+  quickText: { color: colors.light.primary, fontSize: 11, fontWeight: '800' },
   actions: {
     position: 'absolute',
     right: 20,

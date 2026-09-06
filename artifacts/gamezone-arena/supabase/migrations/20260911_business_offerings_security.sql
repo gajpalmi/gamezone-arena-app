@@ -1,0 +1,11 @@
+-- Runs after 20260910 so the moderation enum value is safely committed.
+create or replace function public.business_offering_admin_moderate(p_offering_id uuid,p_action text,p_reason text default null) returns void language plpgsql security definer set search_path=public as $$
+declare v public.business_offerings%rowtype; begin if not public.business_is_admin() then raise exception 'BUSINESS_ADMIN_REQUIRED'; end if; select * into v from business_offerings where id=p_offering_id for update;
+if p_action='approve' and v.status='pending' then update business_offerings set status='approved',approved_at=now(),approved_by=auth.jwt()->>'sub',rejection_reason=null,updated_at=now() where id=p_offering_id;
+elsif p_action='reject' and v.status='pending' then update business_offerings set status='rejected',rejection_reason=left(coalesce(p_reason,''),1000),updated_at=now() where id=p_offering_id;
+elsif p_action='suspend' and v.status='approved' then update business_offerings set status='suspended',updated_at=now() where id=p_offering_id; else raise exception 'OFFERING_INVALID_TRANSITION'; end if;
+insert into moderation_actions(admin_id,target_type,target_id,action,reason,metadata) values(auth.jwt()->>'sub','offering'::public.business_moderation_target,p_offering_id,p_action,left(p_reason,2000),'{"domain":"business_offerings"}'); end $$;
+create or replace function public.business_offering_admin_resolve_report(p_report_id uuid) returns void language plpgsql security definer set search_path=public as $$
+begin if not public.business_is_admin() then raise exception 'BUSINESS_ADMIN_REQUIRED'; end if; update business_offering_reports set resolved_at=now(),resolved_by=auth.jwt()->>'sub' where id=p_report_id and resolved_at is null; if not found then raise exception 'OFFERING_REPORT_NOT_FOUND'; end if; end $$;
+revoke all on function public.business_offering_admin_moderate(uuid,text,text),public.business_offering_admin_resolve_report(uuid) from public,anon;
+grant execute on function public.business_offering_admin_moderate(uuid,text,text),public.business_offering_admin_resolve_report(uuid) to authenticated;

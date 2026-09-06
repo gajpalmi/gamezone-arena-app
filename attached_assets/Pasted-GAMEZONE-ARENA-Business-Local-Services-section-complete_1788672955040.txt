@@ -1,0 +1,276 @@
+GAMEZONE ARENA में Business & Local Services section को complete करो। अभी केवल कुछ options दिख रहे हैं; मुझे सभी जरूरी Add, Customer, Contact, Sharing और Settings options चाहिए।
+
+IMPORTANT:
+पहले existing implementation को inspect करो। जो functionality पहले से बनी है उसे हटाना या redesign करना नहीं है। केवल missing functionality additive तरीके से जोड़ो।
+
+1. MAIN BUSINESS SCREEN
+
+स्पष्ट और बड़े buttons/cards बनाओ:
+
+- ➕ Add Business
+- 🛍️ Add Product
+- 🛠️ Add Service
+- 📋 My Listings
+- ❤️ Saved
+- 🔍 Search
+- 📍 Location / City / Area
+- 📞 Contact Business
+- 📤 Share
+- ⚙️ Settings
+
+2. ADD BUSINESS
+
+Business owner यह जानकारी जोड़ सके:
+
+- Business name
+- Owner/display name
+- Category
+- Sub-category
+- Description
+- Mobile/contact number
+- WhatsApp number
+- Address
+- City
+- Area/locality
+- Opening hours
+- Closing hours
+- Business photos
+- Logo
+- Website/social link (optional)
+- Services offered
+- Price range
+- Terms acceptance
+
+Contact number को public दिखाने से पहले appropriate privacy/consent handling रखें।
+
+3. ADD PRODUCT / SELL SOMETHING
+
+Business owner/customer के लिए अलग “Add Product” option दें।
+
+Fields:
+
+- Product name
+- Category
+- Description
+- Product photos
+- Price
+- Unit
+- Available / Out of stock
+- Location
+- Contact number
+- WhatsApp
+- Optional delivery information
+
+IMPORTANT:
+यह real-money transaction/payment system अभी activate नहीं करना है। केवल product listing, enquiry/contact और sharing functionality रखें।
+
+4. ADD SERVICE
+
+Service provider अपना service listing बना सके:
+
+- Service name
+- Category
+- Description
+- Service area
+- Price/rate (optional)
+- Photos
+- Contact number
+- WhatsApp
+- Availability/hours
+
+Examples:
+Plumber, Electrician, Carpenter, Mechanic, Tutor, Repair, Cleaning आदि।
+
+5. CUSTOMER OPTIONS
+
+हर approved Business/Product/Service detail page पर स्पष्ट buttons:
+
+- 📞 Call
+- 💬 WhatsApp
+- 📤 Share
+- 📍 Open Map
+- ❤️ Save
+- 🚫 Block
+- ⚠️ Report
+- ⭐ Review/Rating
+- 🔗 Copy Link
+
+Call button Android native dialer खोले।
+कोई Call Log या SMS permission नहीं चाहिए।
+
+6. SHARING
+
+हर Business/Product/Service को Android native Share Sheet से share करने का option दें।
+
+Share options:
+
+- Share listing
+- Share product
+- Share service
+- Share app
+- Copy link
+
+7. COMPLETE SETTINGS
+
+GAMEZONE ARENA में proper Settings screen बनाओ:
+
+Account
+
+- Profile
+- Edit Profile
+- Security
+- Account deletion
+
+Notifications
+
+- Notifications ON/OFF
+- Notification preferences
+
+Sounds
+
+- Master Sound ON/OFF
+- Game Sounds ON/OFF
+- UI/Button Sounds ON/OFF
+- Notification Sound ON/OFF
+- Music ON/OFF
+- Volume controls where supported
+
+Haptics
+
+- Vibration ON/OFF
+- Game vibration
+- UI haptics
+
+Appearance
+
+- Theme
+- Language
+
+Privacy
+
+- Privacy settings
+- Data controls
+- Privacy Policy
+- Terms
+- UGC/listing rules
+
+Business
+
+- My Business
+- My Products
+- My Services
+- Saved listings
+- Manage listings
+
+Support
+
+- Help & Support
+- Report a problem
+- About GAMEZONE ARENA
+
+8. MY LISTINGS
+
+Owner को अपने सभी listings एक जगह दिखें:
+
+- Business
+- Products
+- Services
+
+हर listing में:
+
+- Edit
+- Delete
+- Enable/Disable
+- View
+- Share
+- Status: Pending / Approved / Rejected / Suspended
+
+9. ADMIN MODERATION
+
+Existing Business moderation system को preserve करो।
+
+Products और Services को भी moderation के अधीन रखो:
+
+Pending → Approved / Rejected / Suspended
+
+Admin:
+
+- View
+- Approve
+- Reject
+- Suspend
+- Review reports
+
+10. CUSTOMER DISCOVERY
+
+Search/filter:
+
+- Business
+- Products
+- Services
+- Category
+- City
+- Area
+- Nearby/manual location
+- Price range where applicable
+
+केवल approved public listings सामान्य users को दिखें।
+
+11. SECURITY & PRIVACY
+
+Existing Supabase RLS और Business security को preserve करो।
+
+Cross-user data access नहीं होना चाहिए।
+
+User A दूसरे user की private/pending listing edit/delete नहीं कर सके।
+
+No Contacts permission.
+No Call Log permission.
+No SMS permission.
+No unnecessary location permission.
+No microphone permission unless an existing feature genuinely requires it.
+
+12. EXISTING GAMEZONE FEATURES
+
+किसी भी हालत में इनको हटाना/तोड़ना नहीं है:
+
+- Ludo
+- सभी existing games
+- Profiles
+- Coins
+- Friends
+- Leaderboard
+- Clerk
+- Supabase
+- AdMob
+- Existing navigation
+- Existing UI
+
+13. IMPORTANT WORKFLOW
+
+पहले existing app inspect करो और बताओ कि कौन-कौन से options पहले से मौजूद हैं और कौन missing हैं।
+
+फिर missing options implement करो।
+
+कोई existing database migration rewrite मत करो।
+
+जरूरत हो तो केवल नई additive migrations बनाओ।
+
+हर बदलाव के बाद:
+
+- TypeScript check
+- Expo Doctor
+- navigation check
+- Business RLS/security check
+- real UI flow check
+
+कोई paid operation, build, deployment या publishing शुरू मत करो।
+
+अंत में मुझे स्पष्ट report दो:
+
+1. कौन-कौन से buttons/options जोड़े
+2. कौन-कौन से screens जोड़े
+3. कौन-कौन से database changes किए
+4. security tests
+5. existing features unchanged verification
+6. कोई remaining issue
