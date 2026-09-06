@@ -218,8 +218,8 @@ export default function EditJob() {
           onSuccess: result => {
             try {
               const job = result as Job;
-              if (!preview) Alert.alert("Saved successfully", "Your job draft is now visible in My Job Posts.");
               router.replace((preview ? `/business/jobs/preview?id=${job.id}` : "/business/jobs/mine") as never);
+               if (!preview) setTimeout(() => Alert.alert("Saved successfully", "Your job draft is now visible in My Job Posts."), 250);
             } catch (error) {
               console.error("Unable to navigate to job preview", error);
               setFormError("Unable to open job preview. Please try again.");

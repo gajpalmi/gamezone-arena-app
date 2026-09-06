@@ -123,16 +123,13 @@ export default function BusinessEditScreen() {
     const mutation = id ? updateBusiness : createBusiness;
     mutation.mutate(payload, {
       onSuccess: async (res) => {
+        if (afterSave) afterSave(res.id);
+        else router.replace('/business/mine' as any);
         try {
           await saveBusinessHours(res.id, hours.map((hour) => ({ ...hour, opens_at: hour.is_closed ? null : hour.opens_at, closes_at: hour.is_closed ? null : hour.closes_at })));
-          Alert.alert('Success', 'Business and weekly hours saved as draft.');
+          setTimeout(() => Alert.alert('Success', 'Business and weekly hours saved as draft.'), 250);
         } catch (error) {
-          Alert.alert('Business saved, hours failed', error instanceof Error ? error.message : 'Please retry saving weekly hours.');
-        }
-        if (afterSave) afterSave(res.id);
-        else {
-          Alert.alert('Draft saved', 'Your business is now visible in My Businesses.');
-          router.replace('/business/mine' as any);
+          setTimeout(() => Alert.alert('Business saved, hours failed', error instanceof Error ? error.message : 'Please retry saving weekly hours.'), 250);
         }
       },
       onError: (err: any) => {
