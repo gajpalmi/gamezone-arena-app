@@ -2,8 +2,8 @@ import { publicSupabase, supabase } from "@/lib/supabase";
 import type { BusinessStatus, ReportReason } from "@/lib/business";
 
 export type OfferingKind = "product" | "service";
-export type BusinessOffering = { id: string; owner_user_id: string; business_id: string | null; kind: OfferingKind; name: string; category: string; subcategory: string | null; description: string; price: number | null; price_unit: string; in_stock: boolean; city: string; area: string | null; location_text: string | null; service_area: string | null; contact_phone: string; whatsapp: string | null; delivery_info: string | null; availability_hours: string | null; is_enabled: boolean; contact_public_consent_at:string; terms_version:string; terms_accepted_at:string; status: BusinessStatus; rejection_reason: string | null; created_at: string; updated_at: string };
-export type OfferingInput = Omit<BusinessOffering, "id" | "owner_user_id" | "status" | "rejection_reason" | "created_at" | "updated_at"> & { contact_public_consent_at: string; terms_version: string; terms_accepted_at: string };
+export type BusinessOffering = { id: string; owner_user_id: string; business_id: string | null; kind: OfferingKind; name: string; category: string; subcategory: string | null; description: string; price: number | null; price_unit: string; in_stock: boolean; city: string; area: string | null; location_text: string | null; service_area: string | null; contact_phone: string; whatsapp: string | null; delivery_info: string | null; availability_hours: string | null; is_enabled: boolean; contact_public_consent_at:string|null; terms_version:string|null; terms_accepted_at:string|null; status: BusinessStatus; rejection_reason: string | null; created_at: string; updated_at: string };
+export type OfferingInput = Omit<BusinessOffering, "id" | "owner_user_id" | "status" | "rejection_reason" | "created_at" | "updated_at">;
 export type OfferingFilters = { query?: string; kind?: OfferingKind; category?: string; city?: string; area?: string; minPrice?: number; maxPrice?: number };
 const columns = "id,owner_user_id,business_id,kind,name,category,subcategory,description,price,price_unit,in_stock,city,area,location_text,service_area,contact_phone,whatsapp,delivery_info,availability_hours,is_enabled,contact_public_consent_at,terms_version,terms_accepted_at,status,rejection_reason,created_at,updated_at";
 const db = () => { if (!supabase) throw new Error("Offerings are unavailable: Supabase is not configured."); return supabase; };
@@ -18,7 +18,6 @@ function valid(input: OfferingInput) {
   if (!input.name.trim() || !input.category.trim() || !input.subcategory?.trim() || !input.description.trim() || !input.city.trim() || !input.contact_phone.trim()) throw new Error("Name, category, subcategory, description, city, and contact phone are required.");
   if (!/^\+?[0-9][0-9 ()-]{6,38}$/.test(input.contact_phone.trim())) throw new Error("Enter a valid contact phone.");
   if (input.whatsapp?.trim() && !/^\+?[0-9][0-9 ()-]{6,38}$/.test(input.whatsapp.trim())) throw new Error("Enter a valid WhatsApp number.");
-  if (!input.contact_public_consent_at || !input.terms_accepted_at || !input.terms_version) throw new Error("Public contact consent and Terms acceptance are required.");
   if (input.price != null && (!Number.isFinite(input.price) || input.price < 0)) throw new Error("Price must be a positive number.");
 }
 function clean(input: OfferingInput) {
