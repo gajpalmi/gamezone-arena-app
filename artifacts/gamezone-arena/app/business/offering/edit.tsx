@@ -28,6 +28,7 @@ import {
 } from "@/hooks/useOfferings";
 import { openImageMediaPicker } from "@/lib/imageMediaPicker";
 import type { OfferingInput } from "@/lib/offerings";
+import { refreshSupabaseAccessToken } from "@/lib/supabase";
 
 const legal = "2026-09-10";
 type Field = "name" | "category" | "subcategory" | "description" | "price" | "city" | "contact_phone" | "whatsapp" | "consent" | "terms";
@@ -209,7 +210,16 @@ export default function OfferingEdit() {
       terms_accepted_at: validation.sameTerms ? prior.termsAt : terms ? now : null,
     };
     try {
-      const result = await save.mutateAsync(payload);
+      let result;
+      try {
+        result = await save.mutateAsync(payload);
+      } catch (firstError) {
+        const firstMessage = firstError instanceof Error ? firstError.message : "";
+        const jwtRejected = /PGRST301|no suitable key|wrong key type|invalid jwt|jwt expired/i.test(firstMessage);
+        if (!jwtRejected) throw firstError;
+        await refreshSupabaseAccessToken();
+        result = await save.mutateAsync(payload);
+      }
       router.replace((preview ? `/business/offering/preview?id=${result.id}` : "/business/offerings-mine") as never);
       let photoUploadFailed = false;
       try {
@@ -230,7 +240,7 @@ export default function OfferingEdit() {
       const message = error instanceof Error ? error.message : "The database did not accept this product.";
       const authFailure = /row-level security|jwt|unauthorized|permission denied|authenticated/i.test(message);
       setSaveError(authFailure
-        ? "Your sign-in session was not accepted. Sign out, sign in again, then press Save Draft. Your entered information will remain on this screen."
+        ? `Your refreshed sign-in session was not accepted: ${message.replace(/^Offering service error:\s*/i, "")}`
         : `Unable to save: ${message.replace(/^Offering service error:\s*/i, "")}`);
     }
   };

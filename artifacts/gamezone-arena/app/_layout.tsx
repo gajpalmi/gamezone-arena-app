@@ -32,7 +32,7 @@ function SupabaseAuthBridge({ children }: { children: React.ReactNode }) {
   const { getToken, isLoaded } = useAuth();
   React.useEffect(() => {
     if (!isLoaded) return;
-    setSupabaseAccessTokenGetter(() => getToken());
+    setSupabaseAccessTokenGetter(options => getToken(options));
   }, [getToken, isLoaded]);
   return <>{children}</>;
 }

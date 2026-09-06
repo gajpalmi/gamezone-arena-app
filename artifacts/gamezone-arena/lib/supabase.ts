@@ -18,13 +18,27 @@ if (isPlaceholderUrl || isPlaceholderKey) {
   );
 }
 
-let accessTokenGetter: (() => Promise<string | null>) | null = null;
+type ClerkTokenOptions = { skipCache?: boolean };
+type AccessTokenGetter = (options?: ClerkTokenOptions) => Promise<string | null>;
+
+let accessTokenGetter: AccessTokenGetter | null = null;
 
 export function setSupabaseAccessTokenGetter(
-  getter: (() => Promise<string | null>) | null,
+  getter: AccessTokenGetter | null,
 ) {
   accessTokenGetter = getter;
   void refreshSupabaseRealtimeAuth();
+}
+
+export async function refreshSupabaseAccessToken() {
+  if (!accessTokenGetter) {
+    throw new Error("The Clerk session is not ready.");
+  }
+  const token = await accessTokenGetter({ skipCache: true });
+  if (!token) {
+    throw new Error("The Clerk session did not return an access token.");
+  }
+  supabase?.realtime.setAuth(token);
 }
 
 export const supabase =

@@ -1,0 +1,130 @@
+GAMEZONE ARENA — FIX PRODUCT SAVE AUTH SESSION ERROR
+
+Fix ONLY the Product Save/Draft authentication session problem.
+Do not redesign the UI and do not remove any existing functionality.
+
+CURRENT ERROR:
+When a signed-in user opens:
+
+Gaming Zone Area → Product → Add Product
+
+and fills the form, pressing SAVE DRAFT / Add Product shows:
+
+"Product was not saved"
+"Your sign-in session was not accepted. Sign out, sign in again, then press Save Draft."
+
+SUPABASE STATUS:
+Supabase → Authentication → Sign In / Providers → Third-Party Auth → Clerk is ENABLED.
+
+Existing Replit-managed Clerk development domain:
+https://select-kitten-72.clerk.accounts.dev
+
+ROOT GOAL:
+Make the existing signed-in Clerk user session correctly authenticate with Supabase so Product Save Draft and Product Publish work.
+
+IMPORTANT SECURITY RULES:
+- Keep the existing Replit-managed Clerk.
+- Do not create another Clerk account.
+- Do not delete/recreate Clerk.
+- Do not disable RLS.
+- Do not make Product tables publicly writable.
+- Do not bypass authentication.
+- Do not trust client-supplied owner_user_id/user_id for ownership.
+- Keep ownership securely tied to the authenticated Clerk subject.
+- Do not expose JWTs, tokens, secrets, API keys, passwords, or private credentials.
+- Do not use the deprecated Supabase JWT-template approach.
+- Do not change unrelated Business, Service, Jobs, Ludo, Games, Ads, Profile, Friends, Leaderboard, or Settings systems.
+
+DIAGNOSE FIRST:
+
+Inspect the existing implementation of:
+
+- ClerkProvider
+- SupabaseAuthBridge
+- lib/supabase.ts
+- Clerk getToken/session handling
+- Product Add/Edit/Save Draft/Publish code
+- Product Supabase mutations
+- current auth state/loading guards
+
+Find why the authenticated Clerk session is not being accepted by Supabase.
+
+The Supabase client must receive a FRESH Clerk session access token through the existing accessToken mechanism.
+
+Correct flow must be:
+
+Clerk signed-in user
+→ current Clerk session
+→ fresh Clerk token
+→ Supabase client accessToken
+→ Supabase request
+→ Supabase verifies Clerk JWT
+→ existing RLS
+→ Product insert/update
+
+Do not cache an expired token.
+
+If necessary, wait for Clerk authentication to finish loading before creating/using the authenticated Supabase client.
+
+If the token is rejected, safely refresh/retrieve the current Clerk token and retry the request ONCE.
+
+PRODUCT SAVE REQUIREMENTS:
+
+SAVE DRAFT must:
+- require authentication
+- preserve all entered form data
+- save the product to the database
+- associate ownership with the authenticated Clerk user
+- show a clear success message
+- remain on the appropriate screen or navigate according to the existing app flow
+
+PUBLISH must:
+- use the same authenticated session
+- securely save/publish the product
+- preserve existing moderation/RLS/security rules
+
+ERROR HANDLING:
+
+Do not show a misleading generic message when the real issue is token/session handling.
+
+If authentication is missing:
+"Your sign-in session has expired. Please sign in again."
+
+If authentication exists but Supabase rejects the JWT:
+refresh the Clerk token and retry once.
+
+If the retry fails:
+show a safe diagnostic error without exposing tokens or secrets.
+
+VERY IMPORTANT:
+Do not modify Supabase RLS policies unless you prove that JWT verification is already successful and the remaining problem is actually an RLS issue.
+
+AFTER FIX:
+
+Test these flows using the existing development app:
+
+1. Sign in
+2. Open Gaming Zone Area
+3. Product
+4. Add Product
+5. Fill Product Name
+6. Select Category
+7. Description
+8. Price
+9. Price Unit
+10. City
+11. Save Draft
+12. Reopen/edit saved product
+13. Publish product
+
+Then report:
+
+- Root cause
+- Files changed
+- Whether fresh Clerk token reaches Supabase
+- Whether Supabase accepts the Clerk JWT
+- Save Draft result
+- Publish result
+- Any remaining error
+
+Do not run an EAS build, APK/AAB build, deployment, or paid operation.
