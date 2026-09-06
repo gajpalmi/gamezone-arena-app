@@ -64,9 +64,13 @@ function toScriptString(value) {
 }
 
 function serveManifest(platform, res) {
-  const manifestPath = path.join(STATIC_ROOT, platform, 'manifest.json');
-
-  if (!fs.existsSync(manifestPath)) {
+  const manifestPath = path.resolve(STATIC_ROOT, platform, 'manifest.json');
+  let realRoot;
+  let realManifest;
+  try {
+    realRoot = fs.realpathSync(STATIC_ROOT);
+    realManifest = fs.realpathSync(manifestPath);
+  } catch {
     res.writeHead(404, { 'content-type': 'application/json' });
     res.end(
       JSON.stringify({ error: `Manifest not found for platform: ${platform}` }),
@@ -74,7 +78,14 @@ function serveManifest(platform, res) {
     return;
   }
 
-  const manifest = fs.readFileSync(manifestPath, 'utf-8');
+  const realRootPrefix = realRoot.endsWith(path.sep) ? realRoot : `${realRoot}${path.sep}`;
+  if (!realManifest.startsWith(realRootPrefix)) {
+    res.writeHead(403);
+    res.end('Forbidden');
+    return;
+  }
+
+  const manifest = fs.readFileSync(realManifest, 'utf-8');
   res.writeHead(200, {
     'content-type': 'application/json',
     'expo-protocol-version': '1',
@@ -103,7 +114,14 @@ function serveLandingPage(req, res, landingPageTemplate, appName) {
 function serveStaticFile(urlPath, res) {
   // URL paths always use "/", but resolve and realpath checks are needed to
   // defend both traversal and symlinks escaping the static build directory.
-  const relativePath = decodeURIComponent(urlPath).replace(/^[/\\]+/, '');
+  let relativePath;
+  try {
+    relativePath = decodeURIComponent(urlPath).replace(/^[/\\]+/, '');
+  } catch {
+    res.writeHead(400);
+    res.end('Bad Request');
+    return;
+  }
   const filePath = path.resolve(STATIC_ROOT, relativePath);
   const rootPrefix = STATIC_ROOT.endsWith(path.sep) ? STATIC_ROOT : `${STATIC_ROOT}${path.sep}`;
   if (filePath !== STATIC_ROOT && !filePath.startsWith(rootPrefix)) {

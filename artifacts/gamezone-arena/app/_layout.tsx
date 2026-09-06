@@ -17,6 +17,7 @@ import { Slot } from 'expo-router';
 import {
   AppSessionProvider,
 } from '@/context/AppSessionContext';
+import { BusinessQueryProvider } from '@/components/BusinessQueryProvider';
 import { AdService } from '@/services/AdService';
 
 const CLERK_PUBLISHABLE_KEY =
@@ -57,7 +58,9 @@ export default function RootLayout() {
 
       <ClerkLoaded>
         <AppSessionProvider>
-          <Slot />
+          <BusinessQueryProvider>
+            <Slot />
+          </BusinessQueryProvider>
         </AppSessionProvider>
       </ClerkLoaded>
     </ClerkProvider>
