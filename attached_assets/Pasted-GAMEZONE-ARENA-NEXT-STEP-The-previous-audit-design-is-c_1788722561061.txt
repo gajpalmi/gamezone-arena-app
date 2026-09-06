@@ -1,0 +1,414 @@
+GAMEZONE ARENA — NEXT STEP
+
+The previous audit/design is complete.
+
+Now prepare the EXACT production-ready Supabase migration SQL for the security fixes described in that report.
+
+IMPORTANT:
+THIS IS STILL A DESIGN/PREPARATION TASK.
+
+DO NOT APPLY ANY MIGRATION TO LIVE SUPABASE.
+
+DO NOT EXECUTE SQL AGAINST THE LIVE DATABASE.
+
+DO NOT CHANGE CLERK.
+
+DO NOT CHANGE AUTHENTICATION.
+
+DO NOT BUILD OR DEPLOY.
+
+DO NOT USE PAID SERVICES.
+
+DO NOT MODIFY UNRELATED FEATURES.
+
+==================================================
+
+1. FIRST — VERIFY THE EXISTING SCHEMA
+   ==================================================
+
+Read the existing migration files and current project code.
+
+Confirm the exact:
+
+- businesses columns
+- business_offerings columns
+- job_applications columns
+- jobs columns
+- job_seeker_profiles columns
+- job_seeker_contacts columns
+- business_blocks
+- job_blocks
+- business_is_admin()
+- job_is_blocked()
+- existing contact RPCs
+- existing RLS policies
+- existing grants/revokes
+- existing function owners/security settings
+
+Do not guess column names.
+
+If anything differs from the previous report, clearly identify it.
+
+==================================================
+2. PREPARE ONE SAFE MIGRATION
+
+Create a NEW migration file only as a local, unapplied migration draft.
+
+Do not run it.
+
+The migration must implement:
+
+A. Safe Business public projection.
+
+B. Safe Product/Service public projection.
+
+C. Business public contact RPC.
+
+D. Product/Service public contact RPC.
+
+E. Application-ID-based Worker contact RPC.
+
+F. Sanitized Job Application read projection/RPC.
+
+G. Required function grants/revokes.
+
+H. Retirement/disablement of the unsafe profile-ID Worker contact RPC.
+
+I. Required indexes only if genuinely needed.
+
+==================================================
+3. BUSINESS CONTACT SECURITY
+
+Implement a secure contact function based on:
+
+business ID + authenticated caller JWT.
+
+Authorization must verify:
+
+- authenticated user
+- approved Business
+- explicit public contact consent
+- valid contact value
+- applicable block rules
+
+Return ONLY:
+
+- listing ID
+- contact type
+- contact value
+- minimal display name if actually required
+
+Never return:
+
+- owner_id
+- owner_name unless required
+- consent timestamp
+- legal acceptance
+- verification data
+- moderation data
+- private notes
+- unrelated private fields
+
+Unauthorized/unavailable should fail closed.
+
+Prefer zero rows rather than revealing why access failed.
+
+==================================================
+4. OFFERING CONTACT SECURITY
+
+Implement the equivalent secure function for:
+
+public.business_offerings
+
+Require:
+
+- authenticated caller
+- approved status
+- enabled listing
+- explicit contact consent
+- applicable block checks
+- valid phone/WhatsApp
+- exact offering ownership/source
+
+Do not invent an email field.
+
+Return only phone/WhatsApp that actually exist and are consented.
+
+==================================================
+5. WORKER CONTACT SECURITY
+
+Create:
+
+job_get_authorized_worker_contact(application_id)
+
+Do NOT accept profile_id as the authorization input.
+
+The function must derive:
+
+JWT actor
+→ employer
+→ owned job
+→ exact application
+→ exact applicant
+→ worker contact
+
+Require:
+
+- employer owns the exact job
+- application belongs to exact job
+- application belongs to exact worker
+- application status is contact-eligible
+- worker contact consent exists
+- worker profile is active where applicable
+- job status is eligible
+- job block checks pass
+- contact value is valid
+
+Return only:
+
+- phone
+- whatsapp
+- email
+
+that individually satisfy consent and validity.
+
+Never return:
+
+- applicant ID
+- employer ID
+- consent timestamps
+- private profile fields
+
+Use default-deny behavior.
+
+==================================================
+6. OLD RPC
+
+Inspect:
+
+job_get_seeker_contact(profile_id)
+
+The old profile-ID authorization model is unsafe.
+
+Prepare the migration so that the old RPC can no longer be used to retrieve worker contact.
+
+Prefer:
+
+REVOKE EXECUTE FROM PUBLIC;
+REVOKE EXECUTE FROM anon;
+REVOKE EXECUTE FROM authenticated;
+
+If safe removal is possible after confirming there are no remaining callers, DROP the old function signature.
+
+If dropping is risky because of dependencies, keep the function but make it fail closed and document why.
+
+Do NOT silently preserve the unsafe authorization.
+
+==================================================
+7. RAW CONTACT COLUMN PROTECTION
+
+This is critical.
+
+RLS does not provide column-level protection.
+
+Therefore inspect all existing legitimate frontend/database uses before revoking table SELECT.
+
+The final migration must prevent ordinary authenticated users from bypassing the RPC and directly reading:
+
+businesses.phone
+businesses.whatsapp
+businesses.email
+businesses.website
+businesses.address
+businesses.owner_id
+business_offerings.contact_phone
+business_offerings.whatsapp
+job_applications.phone
+job_applications.email
+job_seeker_contacts.phone
+job_seeker_contacts.whatsapp
+job_seeker_contacts.email
+
+Do not break owner/admin workflows.
+
+If PostgreSQL column-level GRANT/REVOKE is the safest solution, use it.
+
+If safe views/RPCs are required, implement them.
+
+Clearly document exactly what access remains for:
+
+- public users
+- authenticated users
+- listing owners
+- job applicants
+- employers
+- admins
+
+==================================================
+8. ADMIN ACCESS
+
+Do not weaken public policies for admins.
+
+Keep admin access separate.
+
+Use the existing database-authoritative admin helper where applicable.
+
+If admin contact access is not actually required by the existing product, DO NOT create an unnecessary admin contact bypass.
+
+==================================================
+9. SECURITY DEFINER HARDENING
+
+Every SECURITY DEFINER function must have:
+
+- SET search_path = public
+- schema-qualified table/function references
+- no dynamic SQL
+- JWT actor derived from auth.jwt()->>'sub'
+- explicit authorization
+- explicit status checks
+- explicit consent checks
+- explicit block checks
+- safe function owner
+- explicit EXECUTE grants
+- no PUBLIC execute
+
+Verify function ownership after creation.
+
+==================================================
+10. RLS / GRANT / REVOKE SAFETY
+
+Before writing the migration, produce a table:
+
+OBJECT | CURRENT ACCESS | PROBLEM | NEW ACCESS | REASON
+
+Include:
+
+- businesses
+- business_offerings
+- job_applications
+- job_seeker_contacts
+- new public views
+- new RPCs
+- old worker RPC
+
+Do not blindly revoke SELECT.
+
+If an existing screen needs a field, provide a secure replacement first.
+
+==================================================
+11. MIGRATION SAFETY
+
+The migration must be:
+
+- idempotent where practical
+- explicit
+- reversible
+- free of DROP CASCADE
+- free of destructive data changes
+- free of contact-data deletion
+- free of auth changes
+
+Do not modify existing historical migration files.
+
+Create only a new migration.
+
+==================================================
+12. SECURITY TEST SQL
+
+Alongside the migration draft, create a separate LOCAL test document/file containing SQL test cases for:
+
+1. anonymous contact
+2. authenticated unrelated Business contact
+3. unapproved Business
+4. no consent
+5. invalid contact
+6. blocked Business
+7. old profile-ID worker RPC
+8. valid employer/application relationship
+9. wrong job
+10. wrong worker
+11. rejected/withdrawn application
+12. direct raw contact SELECT
+13. admin
+14. unauthenticated RPC
+15. reused Application ID after account change
+
+Do NOT execute these against production.
+
+Clearly mark them as NOT RUN.
+
+==================================================
+13. FRONTEND IMPACT REPORT
+
+Do not modify frontend yet.
+
+Instead identify every existing call site that must change.
+
+For each call site provide:
+
+FILE
+FUNCTION
+CURRENT BEHAVIOR
+NEW RPC/VIEW
+WHY CHANGE IS REQUIRED
+
+Especially inspect:
+
+- Business detail
+- Product detail
+- Service detail
+- Job applications
+- Worker detail
+- Basket/contact flows
+
+==================================================
+14. DO NOT APPLY
+
+At the end run only local/static checks that do not require production DB mutation.
+
+Allowed:
+
+- TypeScript check
+- static SQL syntax inspection if available without applying
+- search for old RPC callers
+- search for raw contact column reads
+- diff inspection
+
+Not allowed:
+
+- Supabase migration push
+- Supabase SQL execution
+- production database modification
+- EAS build
+- deployment
+
+==================================================
+FINAL REPORT
+
+Return:
+
+A. EXACT MIGRATION FILE PATH
+
+B. COMPLETE MIGRATION SQL SUMMARY
+
+C. EXACT TABLE/VIEW/RPC CHANGES
+
+D. GRANT/REVOKE CHANGES
+
+E. RLS CHANGES
+
+F. OLD RPC RETIREMENT PLAN
+
+G. SECURITY TEST FILE PATH
+
+H. FRONTEND CALL SITES THAT WILL NEED UPDATES
+
+I. ROLLBACK PROCEDURE
+
+J. LOCAL CHECKS COMPLETED
+
+K. CONFIRMATION:
+
+"NO MIGRATION WAS APPLIED TO LIVE SUPABASE."
+
+If any requirement cannot be implemented safely without breaking an existing feature, STOP and report the conflict instead of guessing or weakening security.
