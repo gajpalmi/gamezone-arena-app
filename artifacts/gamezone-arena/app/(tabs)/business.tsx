@@ -14,6 +14,7 @@ import {
 import { useRouter, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@/components/Feather';
+import { CategoryPicker } from '@/components/CategoryPicker';
 import colors from '@/constants/colors';
 import { useBrowseBusinesses, useCategories, useSupabaseAuth } from '@/hooks/useBusiness';
 import { appLink, shareLink } from '@/lib/share';
@@ -27,30 +28,26 @@ export default function BusinessDiscoveryScreen() {
 
   const [query, setQuery] = useState('');
   const [city, setCity] = useState('');
-  const [debouncedQuery, setDebouncedQuery] = useState('');
-  const [debouncedCity, setDebouncedCity] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>();
+  const [submitted, setSubmitted] = useState({ query: '', city: '', categoryId: undefined as string | undefined });
   const [page, setPage] = useState(0);
   const [businesses, setBusinesses] = useState<any[]>([]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedQuery(query);
-      setDebouncedCity(city);
-      setPage(0);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [query, city]);
-
-  const { data: categoriesData, isLoading: loadingCategories } = useCategories();
+  const categories = useCategories();
+  const categoriesData = categories.data;
+  const applySearch = () => {
+    setBusinesses([]);
+    setPage(0);
+    setSubmitted({ query, city, categoryId: selectedCategory });
+  };
   
   const options = useMemo(() => ({
-    query: debouncedQuery || undefined,
-    city: debouncedCity || undefined,
-    categoryId: selectedCategory,
+    query: submitted.query || undefined,
+    city: submitted.city || undefined,
+    categoryId: submitted.categoryId,
     page,
     pageSize: 20
-  }), [query, city, selectedCategory, page]);
+  }), [submitted, page]);
 
   const { data: browseData, isLoading: loadingBusinesses, refetch, isRefetching } = useBrowseBusinesses(options);
   useEffect(() => {
@@ -126,7 +123,9 @@ export default function BusinessDiscoveryScreen() {
             placeholder="Search shops & services..."
             placeholderTextColor={colors.light.mutedForeground}
             value={query}
-            onChangeText={(t) => { setQuery(t); setPage(0); }}
+             onChangeText={setQuery}
+             onSubmitEditing={applySearch}
+             returnKeyType="search"
           />
         </View>
         <View style={styles.searchInputContainer}>
@@ -136,33 +135,15 @@ export default function BusinessDiscoveryScreen() {
             placeholder="City / Area"
             placeholderTextColor={colors.light.mutedForeground}
             value={city}
-            onChangeText={(t) => { setCity(t); setPage(0); }}
+             onChangeText={setCity}
+             onSubmitEditing={applySearch}
+             returnKeyType="search"
           />
         </View>
       </View>
 
-      <View style={styles.categories}>
-        <FlatList
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          data={[{ id: undefined, name: 'All' }, ...(categoriesData || [])]}
-          keyExtractor={item => item.id || 'all'}
-          renderItem={({ item }) => {
-            const isSelected = selectedCategory === item.id;
-            return (
-              <Pressable
-                style={[styles.categoryBadge, isSelected && styles.categoryBadgeActive]}
-                onPress={() => { setSelectedCategory(item.id); setPage(0); }}
-              >
-                <Text style={[styles.categoryText, isSelected && styles.categoryTextActive]}>
-                  {item.name}
-                </Text>
-              </Pressable>
-            );
-          }}
-          contentContainerStyle={{ gap: 8, paddingBottom: 16 }}
-        />
-      </View>
+      <CategoryPicker categories={categoriesData ?? []} selectedId={selectedCategory} onChoose={item => setSelectedCategory(item.id)} loading={categories.isLoading} error={categories.error} onRetry={() => void categories.refetch()}/>
+      <Pressable style={[styles.categoryBadge, styles.categoryBadgeActive]} onPress={applySearch}><Text style={styles.categoryTextActive}>Search / Apply Filters</Text></Pressable>
     </View>
   );
 

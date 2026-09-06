@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, Text, TextInput, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
+import { CategoryPicker } from "@/components/CategoryPicker";
 import { Button, styles as s } from "@/components/JobsUi";
 import { useSupabaseAuth } from "@/hooks/useBusiness";
 import { useJob, useJobCategories, useJobMutation } from "@/hooks/useJobs";
@@ -61,7 +62,7 @@ export default function EditJob() {
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const router = useRouter();
   const draft = useJob(id ?? "");
-  const categories = useJobCategories(auth.ready);
+  const categories = useJobCategories();
   const mutation = useJobMutation();
   const [form, setForm] = useState<JobInput>(blank());
   const [terms, setTerms] = useState(false);
@@ -243,19 +244,18 @@ export default function EditJob() {
       {field("title", "Job title *")}
       {field("company_name", "Company / business name *")}
       {field("contact_person", "Contact person *")}
-      <View>
-         <Text style={s.label}>Job category *</Text>
-        <View style={s.row}>
-          {(categories.data ?? []).map(category => (
-            <Pressable key={category.id} onPress={() => setValue("category_id", category.id)} style={[s.card, form.category_id === category.id && { borderColor: s.buttonText.color }]}>
-              <Text style={s.meta}>{form.category_id === category.id ? "✓ " : ""}{category.name}</Text>
-            </Pressable>
-          ))}
-        </View>
+       <View>
+         <CategoryPicker
+           label="Job category *"
+           categories={categories.data ?? []}
+           selectedId={form.category_id}
+           onChoose={category => setValue("category_id", category.id)}
+           loading={categories.isLoading}
+           error={categories.error}
+           onRetry={() => categories.refetch()}
+         />
         {!auth.isLoaded ? <ActivityIndicator /> : null}
         {auth.isLoaded && !auth.isSignedIn ? <Text style={{ color: "#ef4444", fontSize: 12 }}>Please sign in to load categories and post a job.</Text> : null}
-        {auth.ready && categories.isLoading ? <ActivityIndicator /> : null}
-        {categories.error ? <Text style={{ color: "#ef4444", fontSize: 12 }}>Unable to load job categories.</Text> : null}
         {errors.category_id ? <Text style={{ color: "#ef4444", fontSize: 12 }}>{errors.category_id}</Text> : null}
       </View>
        {field("role", "Job role *")}

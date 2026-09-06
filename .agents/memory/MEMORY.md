@@ -4,3 +4,4 @@
 - [Supabase storage policy name binding](supabase-storage-policy-name-binding.md) — qualify storage.objects.name in joined RLS policies; bare name may bind to a joined table column.
 - [Offering RLS dependency cycles](offering-rls-cycles.md) — interaction policies must avoid circular reads back through offering visibility policies.
 - [PostgreSQL enum migration ordering](postgres-enum-migrations.md) — commit new enum values separately before using them in schema, policies, or functions.
+- [Public taxonomy RLS](public-taxonomy-rls.md) — split anon and authenticated read policies when admin helpers are unavailable to anon.

@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { openImageMediaPicker } from '@/lib/imageMediaPicker';
 import { Feather } from '@/components/Feather';
+import { CategoryPicker } from '@/components/CategoryPicker';
 import colors from '@/constants/colors';
 import {
   useCategories,
@@ -35,9 +36,9 @@ export default function BusinessEditScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user } = useUser();
-  const auth = useSupabaseAuth();
+  useSupabaseAuth();
 
-  const { data: categoriesData, error: categoriesError, refetch: refetchCategories } = useCategories(auth.ready);
+  const { data: categoriesData, isLoading: categoriesLoading, error: categoriesError, refetch: refetchCategories } = useCategories();
   const { data: businessData, isLoading: loadingBusiness, refetch: refetchBusiness } = useBusinessDetail(id || '');
   const createBusiness = useCreateBusiness();
   const updateBusiness = useUpdateBusiness(id || '');
@@ -234,28 +235,15 @@ export default function BusinessEditScreen() {
           />
           <Text style={styles.label}>Display Name</Text><TextInput style={styles.input} placeholder="Public owner or business display name" placeholderTextColor={colors.light.mutedForeground} value={form.owner_display_name} onChangeText={(t) => setForm({ ...form, owner_display_name: t })} />
 
-          <Text style={styles.label}>Category *</Text>
-          {categoriesError ? (
-            <View>
-              <Text style={styles.helperText}>Unable to load categories. Please try again.</Text>
-              <Pressable style={styles.mediaBtn} onPress={() => void refetchCategories()}>
-                <Text style={styles.mediaBtnText}>RETRY CATEGORIES</Text>
-              </Pressable>
-            </View>
-          ) : null}
-          <View style={styles.categories}>
-            {categoriesData?.map(cat => (
-              <Pressable
-                key={cat.id}
-                style={[styles.catPill, form.category_id === cat.id && styles.catPillActive]}
-                onPress={() => setForm({ ...form, category_id: cat.id, subcategory: '' })}
-              >
-                <Text style={[styles.catText, form.category_id === cat.id && styles.catTextActive]}>
-                  {cat.name}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+          <CategoryPicker
+            label="Category *"
+            categories={categoriesData ?? []}
+            selectedId={form.category_id}
+            loading={categoriesLoading}
+            error={categoriesError}
+            onRetry={() => void refetchCategories()}
+            onChoose={(category) => setForm({ ...form, category_id: category.id, subcategory: '' })}
+          />
           <Text style={styles.label}>Sub-category</Text>
           {selectedCategory ? <View style={styles.categories}>{suggestedSubcategories.map((subcategory) => <Pressable key={subcategory} style={[styles.catPill, form.subcategory === subcategory && styles.catPillActive]} onPress={() => setForm({ ...form, subcategory })}><Text style={[styles.catText, form.subcategory === subcategory && styles.catTextActive]}>{subcategory}</Text></Pressable>)}</View> : <Text style={styles.helperText}>Choose a category to see relevant sub-categories.</Text>}
           <TextInput style={styles.input} placeholder="Or enter a more specific sub-category" placeholderTextColor={colors.light.mutedForeground} value={form.subcategory} onChangeText={(t) => setForm({ ...form, subcategory: t })} />

@@ -11,9 +11,9 @@ const legal = "2026-09-10";
 const initial = (): SeekerProfileInput => ({ display_name:"", photo_path:null, category:"", role:"", skills:[], experience:"", education:null, expected_salary_min:null, expected_salary_max:null, preferred_work_types:["full_time"], preferred_work_mode:"on_site", city:null, area:null, available_from:null, bio:null, contact_phone:null, whatsapp:null, email:null, contact_public:false, profile_public:false, terms_version:legal, terms_accepted_at:"" });
 
 export default function Profile() {
-  const auth = useSupabaseAuth();
+  useSupabaseAuth();
   const q = useMySeekerProfile();
-  const categories = useJobCategories(auth.ready);
+  const categories = useJobCategories();
   const m = useJobMutation();
   const [f,setF] = useState<SeekerProfileInput>(initial());
   const [skills,setSkills] = useState("");

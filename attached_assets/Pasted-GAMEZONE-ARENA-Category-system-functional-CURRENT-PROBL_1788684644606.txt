@@ -1,0 +1,747 @@
+GAMEZONE ARENA में अभी Category system पूरी तरह functional नहीं है।
+
+CURRENT PROBLEMS:
+
+1. Add Business में Category button दिखाई देता है, लेकिन tap करने पर कोई category list नहीं आती।
+2. Add Product में Category दिखाई देता है, लेकिन categories नहीं आतीं।
+3. Add Service में Category दिखाई देता है, लेकिन categories नहीं आतीं।
+4. Post a Job में Category दिखाई देता है, लेकिन categories नहीं आतीं।
+5. Find Jobs / Find Workers में Category filter मौजूद है लेकिन category options खाली हैं।
+6. Category पर tap करने के बाद user को वास्तविक category list दिखाई नहीं देती।
+7. Category चुनने के बाद "Choose/Select" action नहीं मिलता।
+8. Search field में typing करते ही search/navigation trigger हो रहा है। ऐसा नहीं होना चाहिए।
+9. Search तभी execute हो जब user explicitly Search करे या search submit करे।
+10. Category system के लिए एक reliable central data source/loader चाहिए।
+
+IMPORTANT:
+यह केवल button/UI fix नहीं है।
+Category data → database/static source → loader → state → selector → selected value → save → edit → preview → discovery/filter पूरा flow ठीक करें।
+
+Existing Business, Products, Services, Jobs, Ludo, Games, Profile, Settings, Supabase, Clerk और security/RLS को न हटाएं और न तोड़ें।
+
+कोई EAS build/APK/AAB/deployment/paid operation शुरू न करें।
+
+1. CENTRAL CATEGORY SYSTEM
+
+एक centralized category system बनाएं/reuse करें ताकि सभी screens अलग-अलग hardcoded/empty category arrays पर निर्भर न हों।
+
+एक ही reliable category source हो।
+
+Architecture ideally:
+
+Category Data Source
+→ "useCategories()" / existing equivalent
+→ cached category list
+→ CategoryPicker component
+→ selected category ID
+→ form state
+→ database
+
+अगर existing Supabase "business_categories" table category source है तो उसी को properly reuse करें।
+
+यदि अलग-अलग entity types के लिए categories चाहिए तो category records में type/scope रखें, जैसे:
+
+- business
+- product
+- service
+- job
+
+लेकिन existing schema हो तो उसे unnecessarily replace न करें।
+
+2. FIRST DEBUG THE REAL ROOT CAUSE
+
+सबसे पहले inspect करें:
+
+- Category table में data है या नहीं
+- Supabase query चल रही है या नहीं
+- RLS category read को रोक तो नहीं रहा
+- Query गलत table/column use तो नहीं कर रही
+- React Query key गलत तो नहीं है
+- Hook data को empty array में fallback करके वास्तविक error छिपा तो नहीं रहा
+- Category query authenticated user के लिए उपलब्ध है या नहीं
+- Seed categories सही environment/project में हैं या नहीं
+- Category IDs और entity types match कर रहे हैं या नहीं
+- Cache stale/incorrect तो नहीं
+- Category selector को data prop वास्तव में मिल रहा है या नहीं
+
+IMPORTANT:
+
+यदि database में categories मौजूद हैं लेकिन UI में खाली हैं तो नई categories blindly insert न करें।
+
+पहले वास्तविक query/loading/RLS/state समस्या ठीक करें।
+
+अगर categories database में हैं ही नहीं, तभी complete seed migration बनाएं।
+
+3. CATEGORY PICKER — REQUIRED UX
+
+हर जगह Category field पर tap करने पर एक proper selector खुले।
+
+उदाहरण:
+
+Category
+
+[ Select Category ▼ ]
+
+Tap करने पर:
+
+---
+
+Select Category
+
+🔎 Search categories
+
+Grocery
+Electronics
+Mobile & Accessories
+Clothing & Fashion
+Food & Restaurant
+Education
+Automotive
+Home Services
+Electrical
+Plumbing
+Construction
+Beauty
+Computer & IT
+Transport
+Agriculture
+Other
+
+हर category clickable हो।
+
+Category select करने के बाद:
+
+Category: Electronics ✓
+
+दिखे।
+
+साथ में:
+
+Change Category
+
+option भी हो।
+
+यदि category list बड़ी है तो selector के अंदर category search/filter हो सकता है, लेकिन यह category selector के अंदर होना चाहिए; main app search route पर नहीं जाना चाहिए।
+
+4. CHOOSE / SELECT BUTTON
+
+यदि current design modal/picker का उपयोग करता है तो:
+
+Category चुनने पर:
+
+Select / Choose
+
+button उपलब्ध हो।
+
+Flow:
+
+Category field
+→ Open Category Picker
+→ category list
+→ user selects category
+→ selected category highlighted
+→ Choose
+→ picker closes
+→ selected category form में दिखाई देती है।
+
+यदि single-tap selection existing UX के लिए बेहतर है तो भी selected state स्पष्ट दिखनी चाहिए।
+
+लेकिन user को यह पता होना चाहिए कि कौन-सी category selected है।
+
+5. COMPLETE BUSINESS CATEGORIES
+
+Business category list में पर्याप्त complete categories रखें:
+
+- Grocery / General Store
+- Supermarket
+- Electronics
+- Mobile & Accessories
+- Computer & IT
+- Clothing & Fashion
+- Shoes
+- Food & Restaurant
+- Cafe
+- Bakery
+- Pharmacy / Medical
+- Education
+- Tuition / Coaching
+- Beauty / Salon
+- Health & Wellness
+- Gym / Fitness
+- Automotive
+- Bike Repair
+- Car Repair
+- Electrician
+- Plumber
+- Carpenter
+- Painter
+- Construction
+- Cleaning
+- Home Services
+- Photography
+- Event Services
+- Travel
+- Transport
+- Delivery
+- Agriculture
+- Real Estate
+- Professional Services
+- Repair Services
+- Other
+
+6. COMPLETE PRODUCT CATEGORIES
+
+Product category selector में:
+
+- Grocery
+- Food
+- Fruits & Vegetables
+- Electronics
+- Mobile
+- Mobile Accessories
+- Computer
+- Laptop
+- Clothing
+- Shoes
+- Fashion
+- Furniture
+- Home & Kitchen
+- Appliances
+- Beauty & Personal Care
+- Automotive
+- Bike Parts
+- Car Parts
+- Tools
+- Hardware
+- Agriculture
+- Books
+- Toys
+- Sports
+- Stationery
+- Other
+
+7. COMPLETE SERVICE CATEGORIES
+
+Service category selector में:
+
+- Electrician
+- Plumber
+- Carpenter
+- Painter
+- Mason
+- Construction
+- Cleaning
+- Home Cleaning
+- Mobile Repair
+- Computer Repair
+- AC Repair
+- Refrigerator Repair
+- Washing Machine Repair
+- Bike Repair
+- Car Repair
+- Mechanic
+- Driver
+- Delivery
+- Tutor
+- Coaching
+- Beauty / Salon
+- Photography
+- Event Services
+- IT Services
+- Transport
+- Agriculture Services
+- Home Services
+- Other
+
+8. COMPLETE JOB CATEGORIES
+
+Post a Job और Find Jobs दोनों में:
+
+- Electrical
+- Plumbing
+- Construction
+- Driver
+- Delivery
+- Security
+- Sales
+- Marketing
+- Office / Administration
+- Computer / IT
+- Teaching
+- Restaurant / Hotel
+- Retail
+- Mechanic
+- Technician
+- Factory / Manufacturing
+- Agriculture
+- Healthcare
+- Beauty / Salon
+- Cleaning
+- Customer Service
+- Finance / Accounting
+- Design
+- Data Entry
+- Other
+
+9. FIND WORKERS
+
+Find Workers में category filter वास्तव में खुलना चाहिए।
+
+Flow:
+
+Find Workers
+→ Category
+→ category picker
+→ category list
+→ Choose
+→ selected category दिखे
+→ results उसी category के अनुसार filter हों।
+
+अगर user ने category select नहीं की है तो सभी approved workers दिख सकते हैं।
+
+10. FIND JOBS
+
+Find Jobs में:
+
+Category
+→ tap
+→ complete category list
+→ choose
+→ selected category दिखे
+→ Apply Filter/Search
+
+Category selection से सीधे main search route पर navigate नहीं होना चाहिए।
+
+11. ADD BUSINESS
+
+Add Business:
+
+Category
+→ tap
+→ category picker
+→ categories दिखाई दें
+→ select
+→ Choose
+→ form में selected category दिखे
+→ Save
+→ database में category ID save हो
+→ Edit में वही category वापस दिखाई दे
+→ Preview में वही category दिखाई दे
+→ approved listing में वही category दिखाई दे।
+
+12. ADD PRODUCT
+
+Add Product:
+
+Category
+→ tap
+→ category list
+→ choose category
+→ selected category visible
+→ Save
+→ database
+→ My Listings
+→ Edit
+→ Preview
+→ Product detail
+
+हर जगह selected category preserved रहे।
+
+13. ADD SERVICE
+
+Exactly same flow:
+
+Category
+→ list
+→ choose
+→ selected state
+→ save
+→ database
+→ edit
+→ preview
+→ public approved listing.
+
+14. POST JOB
+
+Post Job:
+
+Category
+→ category list
+→ choose
+→ selected category visible
+
+फिर:
+
+Save Draft
+→ My Job Posts
+→ Continue Editing
+→ category still selected
+
+Preview
+→ category visible
+
+Submit
+→ Pending moderation
+
+Approval
+→ Find Jobs में category के साथ दिखाई दे।
+
+15. SEARCH PROBLEM — CRITICAL
+
+अभी user के अनुसार किसी word को type करते ही search/navigation trigger हो रहा है।
+
+इसे ठीक करें।
+
+Typing:
+
+"Electrician"
+
+करने मात्र से search screen/navigation/action execute नहीं होना चाहिए।
+
+Search केवल इन परिस्थितियों में execute हो:
+
+Option A
+
+User keyboard पर Search/Enter दबाए।
+
+Option B
+
+User explicit:
+
+🔎 Search
+
+button दबाए।
+
+Option C
+
+User filter:
+
+Apply Filters
+
+दबाए।
+
+लेकिन केवल text बदलने से navigation नहीं होना चाहिए।
+
+Search input controlled state में रखें:
+
+"searchText"
+
+और submitted query अलग रखें:
+
+"submittedSearchText"
+
+उदाहरण:
+
+User types:
+"Elec"
+
+→ कोई search navigation नहीं।
+
+User types:
+"Electrician"
+
+→ कोई result navigation नहीं।
+
+User presses Search:
+
+→ अब search execute हो।
+
+यदि existing app में live filtering intentionally है तो भी उसे same screen के results को filter करना चाहिए; दूसरे route पर automatically navigate नहीं करना चाहिए।
+
+16. CATEGORY SEARCH VS GLOBAL SEARCH
+
+Category picker के अंदर अगर category search है:
+
+User:
+
+Category
+→ Search categories
+→ "Elec"
+
+तो केवल category list filter हो:
+
+Electrical
+Electrician
+Electronics
+
+यह Global Search / Find Jobs / Find Workers navigation को trigger नहीं करे।
+
+Category picker बंद होने तक category search isolated state में रहे।
+
+17. NO EMPTY CATEGORY UI
+
+Category button पर tap करने पर खाली modal नहीं होना चाहिए।
+
+यदि loading है:
+
+Loading categories…
+
+दिखाएँ।
+
+अगर कोई वास्तविक error है:
+
+Unable to load categories. Please try again.
+
+और Retry button:
+
+Retry
+
+दिखाएँ।
+
+यदि database में zero categories हैं:
+
+No categories available
+
+दिखाएँ और developer console में diagnostic log करें।
+
+Silent blank screen स्वीकार नहीं है।
+
+18. CATEGORY DATA PERSISTENCE
+
+Test:
+
+1. Category खोलें।
+2. Category चुनें।
+3. Choose करें।
+4. Form में selected category देखें।
+5. Save करें।
+6. Form से बाहर जाएँ।
+7. वापस खोलें।
+8. Category वही हो।
+9. Edit करें।
+10. Category बदलें।
+11. Save करें।
+12. नया category database में persist हो।
+13. Preview में नया category दिखे।
+14. Discovery/filter में नया category सही काम करे।
+
+19. DATABASE/RLS
+
+Category read access को verify करें।
+
+Categories अगर public discovery/reference data हैं तो authenticated users के लिए उचित read access दें।
+
+लेकिन write permission केवल authorized/admin migration/seed path में रहे।
+
+Normal user category master table में arbitrary categories create/update/delete न कर सके।
+
+Existing RLS/security को कमजोर न करें।
+
+20. NO DUPLICATES
+
+Database में duplicate category names और duplicate type/category combinations रोकें।
+
+Existing categories को पहले inspect करें।
+
+जरूरत हो तो safe unique constraint/use existing constraint।
+
+Existing listing foreign keys टूटने नहीं चाहिए।
+
+21. CATEGORY COMPONENT
+
+जहाँ practical हो reusable component बनाएं:
+
+"CategoryPicker"
+
+या existing equivalent।
+
+इसका उपयोग:
+
+- Add Business
+- Edit Business
+- Add Product
+- Edit Product
+- Add Service
+- Edit Service
+- Post Job
+- Edit Job
+- Find Jobs
+- Find Workers
+- relevant listing filters
+
+में करें।
+
+इससे हर जगह category behavior consistent रहेगा।
+
+22. ERROR HANDLING
+
+Category query:
+
+try/catch
+
+और visible error state रखें।
+
+Search:
+
+try/catch
+
+और visible error state रखें।
+
+Save:
+
+try/catch
+
+और visible error state रखें।
+
+किसी भी action पर:
+
+- blank screen
+- button doing nothing
+- silent navigation
+- swallowed exception
+
+नहीं होना चाहिए।
+
+23. FINAL FUNCTIONAL TEST
+
+इन सभी को वास्तव में test करें:
+
+Business
+
+Add Business
+→ Category
+→ categories appear
+→ Choose
+→ selected category
+→ Save
+→ Edit
+→ category preserved
+
+Product
+
+Add Product
+→ Category
+→ categories appear
+→ Choose
+→ selected category
+→ Save
+→ Edit
+→ category preserved
+
+Service
+
+Add Service
+→ Category
+→ categories appear
+→ Choose
+→ selected category
+→ Save
+→ Edit
+→ category preserved
+
+Job
+
+Post Job
+→ Category
+→ categories appear
+→ Choose
+→ Save Draft
+→ reopen
+→ category preserved
+→ Preview
+→ category visible
+
+Find Jobs
+
+Find Jobs
+→ Category
+→ list appears
+→ choose
+→ Apply Filter
+→ filtered results
+
+Find Workers
+
+Find Workers
+→ Category
+→ list appears
+→ choose
+→ Apply Filter
+→ filtered results
+
+Search
+
+Type text
+→ NO navigation
+
+Press Search
+→ search executes
+
+Category Picker Search
+
+Open Category
+→ type category name
+→ only category list filters
+→ no global search navigation
+
+24. VALIDATION
+
+Run:
+
+- TypeScript
+- Expo Doctor
+- dependency compatibility
+- Metro startup
+- Android JS/Hermes bundle
+- Category database query
+- Category seed/data validation
+- Category RLS test
+- Category picker test
+- Category persistence test
+- Business category test
+- Product category test
+- Service category test
+- Job category test
+- Find Jobs category filter test
+- Find Workers category filter test
+- Search navigation regression test
+- Save/edit/preview regression test
+
+25. DO NOT BUILD
+
+इस task के दौरान:
+
+- EAS build नहीं
+- APK/AAB नहीं
+- Deployment नहीं
+- Play Store नहीं
+- Paid upgrade नहीं
+- Billing नहीं
+
+केवल code/database/local validation करें।
+
+FINAL REPORT
+
+मुझे report में बताएं:
+
+1. Category खाली क्यों आ रही थी।
+2. Database में categories कितनी थीं/नहीं थीं।
+3. Query/RLS/hook/cache/UI में actual root cause क्या मिला।
+4. Central CategoryPicker कहाँ बनाया/reused किया।
+5. Business में कौन-कौन categories हैं।
+6. Product में कौन-कौन categories हैं।
+7. Service में कौन-कौन categories हैं।
+8. Jobs में कौन-कौन categories हैं।
+9. Find Jobs/Find Workers filters कैसे ठीक किए।
+10. Search तुरंत क्यों trigger हो रहा था और कैसे ठीक किया।
+11. Category selection और Choose flow कैसे काम कर रहा है।
+12. Save/Edit/Preview में category persistence test result।
+13. RLS/security test result।
+14. TypeScript/Expo Doctor/Metro/bundle results।
+15. कोई remaining limitation हो तो स्पष्ट बताएं।
+
+FINAL ACCEPTANCE CRITERIA:
+
+Category button दबाते ही वास्तविक categories दिखाई दें।
+
+Category चुनने के लिए user को स्पष्ट Choose/Select action मिले।
+
+Selected category form में दिखाई दे।
+
+Save के बाद category database में रहे।
+
+Edit/Preview/Discovery में वही category दिखाई दे।
+
+Find Jobs और Find Workers में category filter वास्तविक results filter करे।
+
+और केवल कोई word type करने से Search/navigation शुरू न हो। Search केवल explicit Search/Enter/Apply Filters के बाद चले।
