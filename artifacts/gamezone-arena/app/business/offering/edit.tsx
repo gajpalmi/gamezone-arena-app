@@ -330,13 +330,13 @@ export default function OfferingEdit() {
         </Pressable>)}
       </View>
       <View style={s.toggle}><Text style={s.text}>In stock / available</Text><Switch value={f.in_stock} onValueChange={value => setF(current => ({ ...current, in_stock: value }))}/></View>
-      <Pressable style={[s.check, errors.consent && s.sectionError]} onPress={() => { setConsent(!consent); clearError("consent"); }}>
-        <Feather name={consent ? "check-square" : "square"} size={22} color={errors.consent ? colors.light.destructive : colors.light.primary}/>
+      <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: consent }} style={[s.check, errors.consent && s.sectionError]} onPress={() => { setConsent(current => !current); clearError("consent"); }}>
+        <View style={[s.checkbox, consent && s.checkboxChecked, errors.consent && s.checkboxError]}>{consent ? <Text style={s.checkboxMark}>✓</Text> : null}</View>
         <Text style={[s.text, errors.consent && s.errorLabel]}>I consent to show my contact details publicly.</Text>
       </Pressable>
       {errors.consent ? <Text style={s.errorText}>↑ {errors.consent}</Text> : null}
-      <Pressable style={[s.check, errors.terms && s.sectionError]} onPress={() => { setTerms(!terms); clearError("terms"); }}>
-        <Feather name={terms ? "check-square" : "square"} size={22} color={errors.terms ? colors.light.destructive : colors.light.primary}/>
+      <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: terms }} style={[s.check, errors.terms && s.sectionError]} onPress={() => { setTerms(current => !current); clearError("terms"); }}>
+        <View style={[s.checkbox, terms && s.checkboxChecked, errors.terms && s.checkboxError]}>{terms ? <Text style={s.checkboxMark}>✓</Text> : null}</View>
         <Text style={[s.text, errors.terms && s.errorLabel]}>I accept the Terms and listing rules.</Text>
       </Pressable>
       {errors.terms ? <Text style={s.errorText}>↑ {errors.terms}</Text> : null}
@@ -376,6 +376,10 @@ const s = StyleSheet.create({
   errorSummaryText: { color: colors.light.destructive, fontSize: 12 },
   toggle: { backgroundColor: colors.light.card, padding: 14, borderRadius: 12, flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
   check: { flexDirection: "row", gap: 10, alignItems: "center", marginVertical: 8 },
+  checkbox: { width: 24, height: 24, borderRadius: 5, borderWidth: 2, borderColor: colors.light.primary, alignItems: "center", justifyContent: "center" },
+  checkboxChecked: { backgroundColor: colors.light.primary },
+  checkboxError: { borderColor: colors.light.destructive },
+  checkboxMark: { color: colors.light.primaryForeground, fontSize: 17, lineHeight: 19, fontWeight: "900" },
   text: { color: colors.light.foreground, flex: 1, fontSize: 13 },
   button: { backgroundColor: colors.light.primary, borderRadius: 14, alignItems: "center", padding: 17, marginTop: 18 },
   photo: { backgroundColor: colors.light.primary, borderRadius: 10, padding: 12, alignItems: "center", marginBottom: 10 },
