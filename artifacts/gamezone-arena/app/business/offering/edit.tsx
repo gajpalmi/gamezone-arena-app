@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import { Feather } from "@/components/Feather";
 import { CategoryPicker } from "@/components/CategoryPicker";
+import { LocationAutocomplete } from "@/components/LocationAutocomplete";
 import colors from "@/constants/colors";
 import { useSupabaseAuth } from "@/hooks/useBusiness";
 import {
@@ -273,7 +274,19 @@ export default function OfferingEdit() {
       {input("price_unit", "per item / per hour")}
       {input("city", "City *")}
       {input("area", "Area / locality")}
-      {input("location_text", "Manual address or landmark")}
+      <LocationAutocomplete
+        value={f.location_text}
+        onChangeText={value => setF(current => ({ ...current, location_text: value }))}
+        onSelect={location => {
+          setF(current => ({
+            ...current,
+            location_text: location.address,
+            city: location.city || current.city,
+            area: location.area || current.area,
+          }));
+          clearError("city");
+        }}
+      />
       {f.kind === "service" && input("service_area", "Service area")}
       {input("contact_phone", "+91 contact number *")}
       {input("whatsapp", "WhatsApp number")}
