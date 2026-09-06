@@ -1,0 +1,884 @@
+PROJECT: GAMEZONE ARENA
+
+IMPORTANT:
+This is an EXISTING production-ready gaming application.
+DO NOT redesign, remove, break, replace, or disable any existing feature.
+DO NOT remove existing games, authentication, Clerk, Supabase, navigation, profiles, friends, leaderboard, virtual coins, AdMob/rewarded ads, subscriptions, assets, or existing UI.
+
+The new feature must be added as an independent module and integrated safely into the existing application.
+
+==================================================
+NEW FEATURE
+
+Add a complete "BUSINESS & LOCAL SERVICES" platform inside GAMEZONE ARENA.
+
+Purpose:
+
+Allow users, shopkeepers, businessmen, professionals and local service providers to create a public business/service profile so other GAMEZONE ARENA users can discover them and contact them.
+
+Examples:
+
+- Plumber
+- Electrician
+- Mechanic
+- Carpenter
+- Painter
+- Mobile Repair
+- Computer Repair
+- Grocery Shop
+- Clothing Shop
+- Restaurant
+- Salon
+- Barber
+- Tutor
+- Coaching
+- Photographer
+- Travel Service
+- Auto/Taxi Service
+- Home Cleaning
+- AC Repair
+- RO Repair
+- Appliance Repair
+- Construction Services
+- Local Business
+- Other Services
+
+==================================================
+
+1. NEW MAIN SECTION
+   ==================================================
+
+Add a new main navigation item:
+
+"Business & Services"
+
+Use a professional icon.
+
+The section must contain:
+
+- Search
+- Categories
+- Nearby/Location based discovery
+- Featured businesses
+- New businesses
+- Popular businesses
+- Business registration
+- My Business
+- Saved businesses
+- Report business
+- Block business
+
+Do not interfere with existing GAMEZONE ARENA game navigation.
+
+==================================================
+2. BUSINESS REGISTRATION
+
+Add:
+
+"Add Your Business"
+
+Before submitting, user must accept:
+
+- Terms of Use
+- Business Listing Rules
+- Privacy Policy
+
+The acceptance must be explicit.
+
+Business registration fields:
+
+Required:
+
+- Business/Service Name
+- Category
+- City/Area
+- Contact Phone Number
+
+Optional:
+
+- Owner/Contact Person Name
+- WhatsApp Number
+- Business Address
+- Description
+- Business Logo
+- Business Photos
+- Opening Hours
+- Website
+- Service Areas
+- Additional contact information
+
+IMPORTANT PRIVACY RULE:
+
+Never automatically read the user's contacts.
+
+Never request READ_CONTACTS permission just to create a business listing.
+
+The user must manually enter their business phone number.
+
+Do not access call logs, SMS, contacts, microphone, camera, or other sensitive device data unless genuinely required by an existing core feature.
+
+==================================================
+3. PHONE CALL FEATURE
+
+On every approved business profile provide:
+
+"Call Now"
+
+When the user taps Call Now:
+
+Open the Android system phone dialer using the appropriate safe Android mechanism.
+
+DO NOT:
+
+- record calls
+- read call history
+- access call logs
+- secretly monitor calls
+- collect call recordings
+
+The app should simply allow the user to initiate a normal phone call.
+
+==================================================
+4. WHATSAPP
+
+If the business owner provides a WhatsApp number:
+
+Show:
+
+"WhatsApp"
+
+Opening WhatsApp should be an explicit user action.
+
+Do not automatically send messages.
+
+Do not scrape WhatsApp contacts.
+
+==================================================
+5. BUSINESS PROFILE
+
+Create a professional profile screen:
+
+Business logo/photo
+Business name
+Verified status if applicable
+Category
+Location
+Description
+Opening hours
+Service area
+Contact options
+
+Buttons:
+
+CALL
+WHATSAPP
+MAP / LOCATION
+SAVE
+SHARE
+REPORT
+BLOCK
+
+Do not display unnecessary personal information.
+
+==================================================
+6. SEARCH
+
+Implement fast search.
+
+Search by:
+
+- Business name
+- Service
+- Category
+- City
+- Area
+- Keywords
+
+Examples:
+
+"Plumber"
+"Electrician"
+"Mobile Repair"
+"Meerut plumber"
+"Car mechanic"
+
+Add filters:
+
+- Category
+- Location
+- Open now
+- Verified
+- Rating
+- Featured
+
+==================================================
+7. LOCATION
+
+Location functionality must follow Google Play privacy requirements.
+
+DO NOT request precise location immediately when the user opens the app.
+
+Prefer:
+
+- Manual city/area selection
+- Optional location permission
+- Clear explanation before requesting location
+
+If location permission is used:
+
+Explain why it is required.
+
+Provide a useful experience even if the user denies location permission.
+
+Do not continuously track users in the background.
+
+Do not collect location unnecessarily.
+
+==================================================
+8. BUSINESS VERIFICATION
+
+Create verification states:
+
+PENDING
+APPROVED
+REJECTED
+SUSPENDED
+
+New businesses should initially be:
+
+PENDING
+
+Admin/moderator can review and approve them.
+
+Only approved listings should become publicly searchable.
+
+Do not automatically display unreviewed business listings publicly.
+
+Optional verification badges:
+
+Verified Business
+Phone Verified
+Admin Verified
+
+Never claim a business is legally certified unless actual verification has been completed.
+
+==================================================
+9. ADMIN MODERATION
+
+Create an admin moderation system.
+
+Admin must be able to:
+
+- View pending businesses
+- Approve
+- Reject
+- Suspend
+- Delete
+- Edit/remove prohibited content
+- View reports
+- View blocked businesses
+- Review reported users
+- Search businesses
+- Filter by category/location/status
+
+Every moderation action should be logged.
+
+==================================================
+10. REPORT SYSTEM
+
+Every business profile must have:
+
+"Report"
+
+Report reasons:
+
+- Fake Business
+- Wrong Phone Number
+- Scam/Fraud
+- Spam
+- Offensive Content
+- Illegal Service
+- Misleading Information
+- Impersonation
+- Harassment
+- Inappropriate Content
+- Other
+
+Allow optional description.
+
+Reports must go to the moderation/admin system.
+
+==================================================
+11. BLOCK SYSTEM
+
+Allow users to block a business/user where applicable.
+
+Blocked businesses should no longer appear to that user in relevant discovery surfaces.
+
+Do not allow blocked users to bypass the block through ordinary app interactions.
+
+==================================================
+12. UGC SAFETY
+
+Because users can submit public business profiles, treat these listings as User Generated Content.
+
+Before submitting content, users must accept the Terms of Use / Business Listing Rules.
+
+Clearly prohibit:
+
+- Fraud
+- Scams
+- Illegal services
+- Threats
+- Harassment
+- Hate content
+- Sexually explicit content
+- Child sexual content
+- Impersonation
+- Misleading business claims
+- Spam
+- Malware/phishing links
+- Any other prohibited Google Play content
+
+Provide visible Report and Block functionality.
+
+Create an ongoing moderation workflow.
+
+Do not allow reported content to remain permanently unreviewed.
+
+==================================================
+13. PRIVACY
+
+Create/update the app Privacy Policy so it accurately describes:
+
+- Account information
+- Business profile information
+- Phone number
+- Business address if submitted
+- Location information if permission is granted
+- Photos if uploaded
+- Search/activity information where applicable
+- Analytics
+- Advertising/AdMob data where applicable
+- Third-party SDK data handling
+- Data retention
+- Data deletion
+- User rights
+- How users can contact the developer
+
+Do not claim that the app collects zero data if it actually collects data.
+
+Privacy Policy must be accessible:
+
+1. Inside the app
+2. During relevant registration flows
+3. In the Google Play Console privacy policy field
+
+Use a real publicly accessible HTTPS privacy-policy webpage.
+
+==================================================
+14. ACCOUNT DELETION
+
+Because the app has account creation:
+
+Provide:
+
+Settings
+→ Account
+→ Delete Account
+
+Account deletion must actually delete/de-identify the user's associated account data according to the documented retention policy.
+
+Do not merely disable the account.
+
+Also provide an accessible privacy/data deletion request mechanism.
+
+==================================================
+15. DATA SECURITY
+
+Use secure server-side storage.
+
+Never expose:
+
+- Database service keys
+- Supabase service-role keys
+- Clerk secret keys
+- Admin credentials
+- API secrets
+
+Never store sensitive secrets in client-side code.
+
+Use environment variables/secrets.
+
+Use authenticated server/API operations for:
+
+- Create listing
+- Edit listing
+- Delete listing
+- Report
+- Block
+- Admin moderation
+
+Users may edit only their own business profiles.
+
+Admins must use role-based authorization.
+
+==================================================
+16. DATABASE
+
+Add a proper database structure without breaking existing tables.
+
+Suggested entities:
+
+businesses
+business_categories
+business_hours
+business_photos
+business_reports
+business_blocks
+business_favorites
+business_reviews
+business_verification
+moderation_actions
+
+Every record should have:
+
+- unique ID
+- created_at
+- updated_at
+
+Business records should include status:
+
+pending
+approved
+rejected
+suspended
+
+Use proper indexes for:
+
+- category
+- city
+- area
+- business name
+- status
+- created_at
+
+Do not expose database internals to users.
+
+==================================================
+17. REVIEWS
+
+Add optional ratings/reviews only if implemented safely.
+
+Users should be able to:
+
+- Rate
+- Review
+- Report review
+- Block abusive reviewer
+
+Prevent obvious spam/duplicate abuse.
+
+Do not allow business owners to artificially generate unlimited reviews.
+
+Admin must be able to moderate reported reviews.
+
+==================================================
+18. FEATURED BUSINESS / MONETIZATION
+
+Create optional monetization infrastructure:
+
+FREE LISTING
+FEATURED LISTING
+SPONSORED BUSINESS
+PREMIUM BUSINESS PROFILE
+
+However:
+
+Do not create any real-money gambling system.
+
+Business promotion must be clearly labeled:
+
+"Sponsored"
+or
+"Featured"
+
+Do not mislead users into thinking sponsored businesses are organically ranked.
+
+If payments are implemented later, use Google Play-compliant payment methods and policies appropriate to the specific digital feature/service.
+
+Do not activate a payment system without verifying the applicable Play policy.
+
+==================================================
+19. ADS
+
+Existing AdMob integration must remain intact.
+
+Do not remove or replace existing AdMob.
+
+Business section may contain appropriate ads.
+
+Do not:
+
+- encourage accidental ad clicks
+- place ads over Call buttons
+- disguise ads as business listings
+- force users to click ads
+- show misleading ads
+
+Clearly distinguish:
+
+Sponsored Business
+from
+normal Business listing.
+
+Continue using test ads during development.
+
+==================================================
+20. CHILD SAFETY
+
+Do not create anonymous/random chat between users.
+
+Do not create adult services marketplace.
+
+Do not allow sexual services or illegal services.
+
+Business listing categories must be restricted to legitimate lawful services.
+
+Add moderation safeguards.
+
+==================================================
+21. CONTENT VALIDATION
+
+Validate:
+
+Phone numbers
+URLs
+Business descriptions
+Business names
+Uploaded images
+Category selection
+
+Reject or flag:
+
+- malicious URLs
+- phishing
+- suspicious content
+- obscene content
+- illegal services
+- abusive content
+- impersonation
+- spam
+
+Use server-side validation in addition to client-side validation.
+
+==================================================
+22. IMAGE UPLOAD
+
+Business owners may upload:
+
+- Logo
+- Business photos
+
+Apply:
+
+- file size limits
+- file type validation
+- safe storage
+- moderation
+- delete functionality
+
+Do not allow executable files to be uploaded as images.
+
+==================================================
+23. USER EXPERIENCE
+
+The interface must look professional and match the existing GAMEZONE ARENA design.
+
+Do not redesign the whole app.
+
+Use the existing:
+
+- fonts
+- colors
+- navigation style
+- cards
+- buttons
+- icons
+- spacing
+- theme
+
+Business section should feel like a native part of GAMEZONE ARENA.
+
+==================================================
+24. PERFORMANCE
+
+Business listings must load efficiently.
+
+Implement:
+
+- pagination
+- lazy loading
+- image optimization
+- caching where appropriate
+- search debounce
+- database indexes
+
+Do not load thousands of businesses at once.
+
+==================================================
+25. ERROR HANDLING
+
+Handle:
+
+- No internet
+- Server error
+- Invalid phone number
+- Business already exists
+- Upload failure
+- Location denied
+- Report failure
+- Account deleted
+- Suspended business
+
+Show clear user-friendly messages.
+
+Never show raw database/API errors to users.
+
+==================================================
+26. GOOGLE PLAY COMPLIANCE CHECK
+
+Before considering the implementation complete, audit the entire feature against current Google Play policies.
+
+Specifically verify:
+
+- User Data policy
+- Data Safety requirements
+- Privacy Policy requirements
+- Account deletion
+- User Generated Content policy
+- Reporting
+- Blocking
+- Moderation
+- Permissions
+- Location permission
+- Contacts permission
+- Call/SMS permissions
+- Advertising policies
+- Child safety
+- Content rating
+- Target API requirements
+
+Do not request unnecessary permissions.
+
+For calling a business, use the system dialer instead of requesting call-log permissions.
+
+Do not request READ_CONTACTS for business registration.
+
+Do not request READ_CALL_LOG.
+
+Do not request WRITE_CALL_LOG.
+
+Do not record phone calls.
+
+==================================================
+27. DATA SAFETY PREPARATION
+
+Create a developer checklist documenting exactly what user data this new feature collects, shares, and stores.
+
+Do not guess the Play Console Data Safety answers.
+
+The final Data Safety declarations must match:
+
+- actual source code
+- Supabase/database behavior
+- Clerk behavior
+- AdMob behavior
+- analytics SDKs
+- location behavior
+- uploaded images
+- business phone numbers
+
+==================================================
+28. PRIVACY POLICY CHECKLIST
+
+Prepare the exact information that must be added to the Privacy Policy.
+
+Include:
+
+Business profile data
+Phone number
+Optional WhatsApp number
+Location/city
+Business address
+Business photos
+Reviews
+Reports
+Favorites
+Account information
+Advertising
+Analytics
+Third-party services
+Data retention
+Data deletion
+Security
+Contact information
+
+Do not publish a fake privacy-policy URL.
+
+==================================================
+29. TERMS OF USE
+
+Create Business Listing Terms.
+
+Users must agree before creating a listing.
+
+Include rules against:
+
+Fraud
+Scams
+Illegal services
+False claims
+Impersonation
+Spam
+Harassment
+Adult/sexual services
+Child exploitation
+Hate/abuse
+Malicious links
+Unauthorized personal information
+Copyright violations
+
+Explain that GAMEZONE ARENA may:
+
+- reject listings
+- remove listings
+- suspend accounts
+- permanently ban abusive users
+
+==================================================
+30. EXISTING PROJECT SAFETY
+
+ABSOLUTELY DO NOT:
+
+- remove existing games
+- remove Ludo
+- change existing game mechanics
+- remove Clerk
+- remove Supabase
+- remove AdMob
+- remove rewarded ads
+- remove virtual coins
+- change package name
+- change Expo project ID
+- change Android application ID
+- replace the existing navigation
+- delete existing screens
+- overwrite working features
+- introduce unnecessary paid services
+- purchase subscriptions
+- upgrade paid Replit services
+- enable paid EAS services
+- create another AdMob account
+- create another Expo account
+
+Work only inside the existing GAMEZONE ARENA project.
+
+==================================================
+31. IMPLEMENTATION METHOD
+
+First inspect the existing project.
+
+Before editing:
+
+1. Identify current framework.
+2. Identify current navigation.
+3. Identify existing authentication.
+4. Identify existing Supabase schema.
+5. Identify existing AdMob integration.
+6. Identify current app configuration.
+7. Identify existing design system.
+8. Identify existing user/profile system.
+
+Then implement the Business & Local Services module incrementally.
+
+Do not rewrite the entire application.
+
+==================================================
+32. TESTING
+
+Before completion, test:
+
+- Register business
+- Edit business
+- Delete business
+- Submit for approval
+- Admin approval
+- Admin rejection
+- Search
+- Category filtering
+- Location filtering
+- Call button
+- WhatsApp button
+- Report
+- Block
+- Review
+- Image upload
+- Account deletion
+- Privacy policy
+- Terms acceptance
+- Suspended business
+- Network failure
+- Authentication failure
+- Unauthorized API access
+- Database security
+- Android back navigation
+
+Also test on a real Android device.
+
+==================================================
+33. FINAL SECURITY AUDIT
+
+Before saying "DONE":
+
+Check for:
+
+- exposed secrets
+- insecure API endpoints
+- missing authentication
+- missing authorization
+- unrestricted database writes
+- unrestricted file uploads
+- public private information
+- missing RLS/security policies
+- unauthorized admin access
+- phone-number leakage
+- location leakage
+- report abuse
+- block bypass
+- spam listings
+- malicious URLs
+
+Fix all discovered issues.
+
+==================================================
+34. FINAL RESPONSE TO ME
+
+After implementation, report ONLY:
+
+1. Files created/modified
+2. Database tables created/modified
+3. Security rules added
+4. Privacy/Terms changes
+5. Permissions added (if any)
+6. Google Play compliance checklist status
+7. Testing results
+8. Any remaining issue
+
+IMPORTANT:
+
+Do not claim "Google Play guaranteed approval."
+
+Instead, make the implementation policy-conscious and tell me if anything still requires manual Play Console configuration or legal/tax/privacy review.
+
+Do not start any paid service, subscription, upgrade, deployment, or purchase without my explicit permission.
