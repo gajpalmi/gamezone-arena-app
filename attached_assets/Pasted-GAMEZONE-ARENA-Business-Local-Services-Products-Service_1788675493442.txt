@@ -1,0 +1,783 @@
+GAMEZONE ARENA में मौजूदा Business / Local Services / Products & Services सिस्टम के अंदर एक नया पूर्ण Jobs & Hiring सेक्शन जोड़ें।
+
+महत्वपूर्ण:
+
+- मौजूदा Business, Products, Services, Ludo, Games, Profile, Friends, Leaderboard, Settings, Authentication, Supabase, Clerk और मौजूदा UI को हटाना या तोड़ना नहीं है।
+- यह feature existing architecture में additive तरीके से जोड़ना है।
+- कोई real-money gambling या illegal employment feature नहीं बनाना है।
+- किसी भी payment/commission system को अभी activate नहीं करना है।
+- कोई अनावश्यक Android permission नहीं जोड़नी है।
+- Contacts, Call Log, SMS, Microphone या background location permission नहीं चाहिए।
+- मौजूदा RLS/security व्यवस्था को कमजोर नहीं करना है।
+
+1. Main Jobs & Hiring Section
+
+Business section के अंदर एक नया option जोड़ें:
+
+Jobs & Hiring
+
+इसके अंदर मुख्य विकल्प:
+
+- 🔎 Find Jobs
+- 💼 Post a Job
+- 👤 Find Workers
+- 📋 My Job Posts
+- 📄 My Applications
+- ❤️ Saved Jobs
+- 📩 Job Messages / Contact
+- 🔔 Job Notifications
+- ⚙️ Jobs Settings
+
+UI मौजूदा GAMEZONE ARENA design के साथ consistent रहे।
+
+2. Job Seeker — नौकरी ढूँढने वाला
+
+नौकरी ढूँढने वाला user अपना profile/resume-style information भर सके:
+
+- Full Name / Display Name
+- Profile Photo optional
+- Job Category
+- Job Role
+- Skills
+- Experience
+- Education
+- Expected Salary / Salary Range
+- Preferred Work Type:
+  - Full Time
+  - Part Time
+  - Temporary
+  - Contract
+  - Internship
+  - Freelance
+- Preferred Location
+- City
+- Area
+- Work From:
+  - On-site
+  - Remote
+  - Hybrid
+- Available From
+- Short Bio
+- Contact Number
+- WhatsApp Number optional
+- Email optional
+
+Privacy:
+
+- User की personal contact information default रूप से public नहीं करनी है।
+- Contact information तभी दिखे जब user ने explicit consent दिया हो।
+- बेहतर हो तो initial contact app के अंदर controlled contact action से हो।
+
+3. Employer / Owner — नौकरी पोस्ट करना
+
+Business owner या कोई employer एक नया job post बना सके।
+
+Fields:
+
+- Job Title
+- Company / Business Name
+- Employer / Contact Person Name
+- Job Category
+- Job Role
+- Job Description
+- Required Skills
+- Required Experience
+- Education Requirement
+- Number of Vacancies
+- Salary Range
+- Salary Type:
+  - Monthly
+  - Daily
+  - Hourly
+  - Yearly
+  - Negotiable
+- Work Type
+- Work Location
+- City
+- Area
+- Working Hours
+- Weekly Off
+- Gender field केवल तभी रखें जब legally appropriate हो; default रूप से discriminatory filtering न बनाएं।
+- Age restriction केवल legally necessary और lawful होने पर; otherwise avoid.
+- Benefits
+- Requirements
+- Joining Date
+- Application Deadline
+- Contact Preference
+- WhatsApp optional
+- Phone optional
+- Email optional
+- Website optional
+
+Employer को preview दिखाएं:
+
+Preview Job Post
+
+फिर:
+
+Publish Job
+
+4. Job Listing Card
+
+हर job card में दिखाएं:
+
+- Job Title
+- Company/Business Name
+- Category
+- Location
+- Salary Range
+- Work Type
+- Experience
+- Posted Date
+- Application Deadline
+- Number of vacancies
+- Verified Employer badge यदि verified है
+- Featured/Sponsored label यदि applicable है
+
+Buttons:
+
+- View Job
+- Apply
+- Save
+- Share
+- Contact Employer
+- Report
+
+5. Job Details Screen
+
+Job खोलने पर पूरा विवरण दिखाएं:
+
+- Job Title
+- Employer
+- Company/Business
+- Description
+- Responsibilities
+- Skills
+- Experience
+- Education
+- Salary
+- Work Type
+- Location
+- Working Hours
+- Benefits
+- Vacancies
+- Posted date
+- Deadline
+- Employer verification status
+
+Actions:
+
+Apply Now
+
+Contact Employer
+
+WhatsApp
+
+Call
+
+Save Job
+
+Share Job
+
+Report Job
+
+ध्यान रखें:
+
+- Call action केवल system dialer खोले।
+- WhatsApp action WhatsApp app खोलने का प्रयास करे और fail होने पर safe fallback दे।
+- App call recording या call log access न करे।
+- Native Android share sheet का उपयोग करें।
+
+6. Apply Now System
+
+Job seeker जब Apply Now दबाए तो:
+
+Application form:
+
+- Applicant Name
+- Phone
+- Email optional
+- Experience
+- Skills
+- Short Introduction
+- Resume/CV optional
+- Additional Message
+
+फिर:
+
+Submit Application
+
+Application employer के dashboard में जाए।
+
+Applicant को status दिखे:
+
+- Applied
+- Viewed
+- Shortlisted
+- Contacted
+- Interview
+- Selected
+- Rejected
+- Withdrawn
+
+Employer status update कर सके।
+
+Applicant को status change की notification मिले।
+
+7. Employer Dashboard
+
+Employer के लिए:
+
+My Job Posts
+
+हर job के साथ:
+
+- Active
+- Paused
+- Closed
+- Draft
+- Pending Moderation
+- Rejected
+
+Actions:
+
+- Edit
+- Pause
+- Resume
+- Close Job
+- View Applications
+- Share
+- Delete
+
+Applications screen:
+
+- Applicant Name
+- Skills
+- Experience
+- Location
+- Application Date
+- Status
+
+Actions:
+
+- View Application
+- Shortlist
+- Contact
+- Change Status
+- Reject
+
+8. Job Seeker Dashboard
+
+My Applications
+
+हर application में:
+
+- Job Title
+- Employer
+- Applied Date
+- Current Status
+- Last Updated
+
+Actions:
+
+- View Job
+- Withdraw Application
+- Contact Employer
+
+9. Search & Filters
+
+Find Jobs में powerful search जोड़ें:
+
+Search by:
+
+- Job title
+- Skill
+- Company
+- Category
+- City
+- Area
+
+Filters:
+
+- Job Type
+- Work Type
+- Salary Range
+- Experience
+- Education
+- Location
+- Remote/On-site/Hybrid
+- Posted Recently
+- Deadline
+- Verified Employer
+
+Sort:
+
+- Newest
+- Salary Low to High
+- Salary High to Low
+- Nearest/manual location
+- Deadline Soon
+
+Automatic background location permission नहीं चाहिए।
+
+Location user manually select कर सकता है।
+
+10. Find Workers
+
+Employer के लिए:
+
+Find Workers
+
+यहां job seekers की public professional profiles दिखाई जा सकती हैं, लेकिन केवल वही information जो user ने public करने की अनुमति दी हो।
+
+Filters:
+
+- Skill
+- Job Role
+- Experience
+- Category
+- City
+- Area
+- Work Type
+- Expected Salary
+- Availability
+
+Worker profile पर:
+
+- Name
+- Profile photo optional
+- Skills
+- Experience
+- Education
+- Preferred Work
+- Location
+- Short Bio
+
+Actions:
+
+- Contact
+- WhatsApp
+- Call
+- Invite to Apply
+- Share Profile
+- Save
+- Report
+- Block
+
+11. Employer ↔ Job Seeker Contact
+
+Employer और applicant के बीच सुरक्षित contact flow बनाएं।
+
+कम से कम:
+
+- Contact Employer
+- Contact Applicant
+- Call
+- WhatsApp
+- Email
+- Application Message
+
+अगर in-app messaging implement करें तो:
+
+- केवल authenticated users
+- केवल job/application context में
+- Block user
+- Report message
+- Report user
+- No anonymous chat
+- No public personal contact database
+
+अगर अभी full chat system की जरूरत पड़े तो उसे modular रखें और existing system को destabilize न करें।
+
+12. Notifications
+
+Jobs के लिए notifications:
+
+- New application
+- Application viewed
+- Shortlisted
+- Interview/contact request
+- Application status changed
+- Job deadline approaching
+- Job closed
+- New matching jobs
+- Employer response
+
+Existing GAMEZONE ARENA notification settings का उपयोग करें।
+
+User Settings में अलग controls:
+
+- Job Notifications
+- Application Notifications
+- Employer Notifications
+- Marketing Notifications
+
+Existing sound/vibration settings का सम्मान करें।
+
+13. Job Sharing
+
+हर job के लिए:
+
+- Share Job
+- Copy Link
+
+Existing GAMEZONE ARENA native share system का उपयोग करें।
+
+Deep link format:
+
+"gamezone-arena://jobs/{jobId}"
+
+और worker profile के लिए:
+
+"gamezone-arena://workers/{profileId}"
+
+Existing deep-link architecture को preserve करें।
+
+14. Saved Jobs
+
+Existing Saved architecture के साथ integrate करें।
+
+Options:
+
+- Save Job
+- Unsave Job
+- Saved Jobs screen
+
+Saved job delete/close होने पर appropriate status दिखाएं।
+
+15. Report & Block
+
+हर Job, Employer और Worker profile पर:
+
+Report
+
+Reasons:
+
+- Fake Job
+- Scam
+- Misleading Information
+- Spam
+- Inappropriate Content
+- Illegal Activity
+- Discrimination
+- Harassment
+- Other
+
+User दूसरे user को:
+
+Block
+
+कर सके।
+
+Blocked employer/worker की listings और interactions user को hide हों।
+
+Duplicate unresolved reports और excessive reporting के लिए existing rate-limit/security pattern लागू करें।
+
+16. Moderation / Admin
+
+Existing Business Admin moderation system को extend करें।
+
+Admin देख सके:
+
+- Pending Jobs
+- Reported Jobs
+- Reported Employers
+- Reported Workers
+- Reported Applications
+- Block reports
+
+Admin actions:
+
+- Approve
+- Reject
+- Suspend
+- Restore
+- Close
+- Resolve Report
+
+हर moderation action का audit log रखें।
+
+Public discovery में केवल approved/active jobs दिखाई दें।
+
+17. Employer Verification
+
+Existing Business verification architecture से integrate करें।
+
+Employer/business verification status:
+
+- Unverified
+- Pending
+- Verified
+- Suspended
+
+Verified employer को:
+
+✓ Verified Employer
+
+badge दिखाएं।
+
+Verification badge केवल वास्तविक moderation/verification state से आए; fake badge नहीं बनाना है।
+
+18. Anti-Scam / Safety
+
+Job posting के समय clear warning:
+
+"Never pay money to get a job. GAMEZONE ARENA does not guarantee employment."
+
+Suspicious job content को moderation के लिए flag करें।
+
+Avoid:
+
+- Guaranteed job claims
+- Illegal employment
+- Fraud
+- Fake recruitment
+- Requests for OTP/password
+- Requests for unnecessary financial information
+
+Applicant से bank password, UPI PIN, OTP या other sensitive credentials कभी न मांगें।
+
+19. Database Architecture
+
+Existing database को preserve करते हुए new tables बनाएं।
+
+Suggested tables:
+
+- jobs
+- job_categories
+- job_applications
+- job_seeker_profiles
+- job_skills
+- job_saved
+- job_reports
+- job_blocks
+- job_notifications
+- job_moderation_actions
+- employer_job_invites
+
+सभी tables में proper:
+
+- RLS
+- owner checks
+- authenticated-only mutations
+- approved/public discovery rules
+- report rate limits
+- block visibility
+- moderation rules
+
+Anonymous users को private job/application data access नहीं होना चाहिए।
+
+20. Ownership & Security
+
+Employer केवल अपने job posts:
+
+- Create
+- Edit
+- Pause
+- Resume
+- Close
+- Delete
+
+कर सके।
+
+User दूसरे employer के job को modify/delete नहीं कर सकता।
+
+Applicant केवल अपनी applications देख/edit/withdraw कर सके।
+
+Employer केवल अपने jobs की applications देख सके।
+
+Worker profile owner अपनी private information नियंत्रित करे।
+
+Admin actions केवल existing Business Admin authorization system से हों।
+
+RLS recursion problems से बचने के लिए existing security-definer helper pattern का उपयोग करें जहाँ जरूरी हो।
+
+21. Privacy
+
+कोई unnecessary permission नहीं।
+
+DO NOT add:
+
+- Contacts permission
+- Call Log permission
+- SMS permission
+- Microphone permission
+- Background location
+- Automatic address book scanning
+
+Phone/WhatsApp/email manually entered हों।
+
+Contact visibility explicit consent पर आधारित हो।
+
+22. Terms & Consent
+
+Job seeker profile या Job posting publish करने से पहले:
+
+- Terms acceptance
+- Job posting rules
+- Privacy notice
+- Public contact consent जहां applicable हो
+
+record करें।
+
+Existing Business legal system को reuse करें।
+
+23. Settings
+
+Existing Settings & Preferences screen में नया section:
+
+Jobs & Hiring
+
+Options:
+
+- Job Notifications
+- Application Notifications
+- Employer Messages
+- Job Match Notifications
+- Sound
+- Vibration
+- Privacy
+- Contact Visibility
+- Profile Visibility
+- Delete Job Seeker Profile
+- Help
+- Report a Problem
+
+Existing master sound/vibration settings से conflict नहीं होना चाहिए।
+
+24. Existing Business Integration
+
+यदि कोई Business owner पहले से GAMEZONE ARENA में registered business है तो वह उसी business profile से:
+
+- Add Business
+- Add Product
+- Add Service
+- Post Job
+
+कर सके।
+
+Business detail screen पर नया button:
+
+Jobs Hiring
+
+दिखाएं।
+
+Business के jobs उसकी profile पर दिख सकते हैं:
+
+Open Positions
+
+25. UI Requirements
+
+UI modern, clean और professional हो।
+
+Existing GAMEZONE ARENA theme को follow करें।
+
+नई screen बनाते समय existing:
+
+- Header
+- Cards
+- Buttons
+- Icons
+- Typography
+- Dark/light preferences
+- Settings
+- Navigation
+
+reuse करें।
+
+Existing screens को unnecessarily redesign न करें।
+
+26. Navigation
+
+Jobs & Hiring को Business section में properly connect करें।
+
+Required routes/screens:
+
+- Jobs discovery
+- Job detail
+- Post Job
+- Edit Job
+- My Job Posts
+- Applications
+- Application detail
+- Job seeker profile
+- Find Workers
+- Worker profile
+- Saved Jobs
+- Job settings
+- Job reports/admin moderation
+
+Back navigation और deep links correctly काम करें।
+
+27. Testing
+
+Implementation के बाद केवल code लिखकर न छोड़ें।
+
+Run:
+
+- TypeScript check
+- Expo dependency check
+- Expo Doctor
+- Navigation validation
+- Metro startup
+- Android bundle validation
+- RLS/security tests
+- Ownership tests
+- Cross-user access tests
+- Report/block tests
+- Moderation tests
+- Deep-link tests
+
+Security test cases:
+
+1. User A creates job.
+2. User B cannot edit/delete User A job.
+3. Pending job is not publicly discoverable.
+4. Approved job is discoverable.
+5. User A can apply.
+6. Employer can see application.
+7. Another employer cannot see it.
+8. Applicant can see only own application.
+9. Block hides appropriate profile/listing.
+10. Report works.
+11. Duplicate unresolved report is controlled.
+12. Anonymous user cannot access private data.
+13. Anonymous RPC execution remains denied.
+14. Admin moderation works.
+15. Existing Business/Product/Service RLS remains intact.
+
+28. IMPORTANT — Do Not Build/Deploy
+
+इस feature को implement और test करें।
+
+लेकिन:
+
+- EAS build शुरू न करें।
+- APK/AAB build शुरू न करें।
+- Production deploy न करें।
+- Play Store publish न करें।
+- कोई paid service activate न करें।
+- कोई billing/upgrade action न करें।
+
+पहले local/code validation पूरी करें और मुझे बताएं कि क्या-क्या successfully implemented और tested है।
+
+29. Final Requirement
+
+सबसे महत्वपूर्ण:
+
+यह Jobs & Hiring feature GAMEZONE ARENA के मौजूदा Business + Products + Services + Settings system में seamlessly जुड़ा होना चाहिए।
+
+User के पास अब एक ही platform में ये options होने चाहिए:
+
+Business
+→ Products
+→ Services
+→ Jobs & Hiring
+
+और Jobs & Hiring में:
+
+नौकरी ढूँढने वाला ↔ Employer/Business Owner
+
+के बीच सुरक्षित संपर्क, job posting, application, status tracking, call, WhatsApp, sharing, save, report, block और notifications उपलब्ध हों।
+
+मौजूदा features को हटाए बिना additive implementation करें।

@@ -71,8 +71,24 @@ export default function BusinessDiscoveryScreen() {
   const renderHeader = () => (
     <View style={styles.header}>
       <Text style={styles.title}>Local Directory</Text>
+      <Pressable
+        testID="business-jobs-hiring"
+        accessibilityRole="button"
+        accessibilityLabel="Open Jobs and Hiring"
+        style={styles.jobsCard}
+        onPress={() => router.push('/business/jobs/discover' as Href)}
+      >
+        <View style={styles.jobsCopy}>
+          <Text style={styles.jobsTitle}>💼 Jobs &amp; Hiring</Text>
+          <Text style={styles.jobsDetail}>Find jobs, hire workers, and manage applications.</Text>
+        </View>
+        <Feather name="chevron-right" size={22} color={colors.light.primary} />
+      </Pressable>
       <View style={styles.quickActions}>
         {[
+          ['🔎 Find Jobs', '/business/jobs/discover'], ['💼 Post a Job', '/business/jobs/edit'], ['👤 Find Workers', '/business/jobs/workers'],
+          ['📋 My Job Posts', '/business/jobs/mine'], ['📄 My Applications', '/business/jobs/applications'], ['❤️ Saved Jobs', '/business/jobs/saved'],
+          ['📩 Job Messages', '/business/jobs/messages'], ['🔔 Job Notifications', '/business/jobs/settings'],
           ['➕ Add Business', '/business/edit'], ['🛍️ Add Product', '/business/offering/edit?kind=product'],
           ['🛠️ Add Service', '/business/offering/edit?kind=service'], ['📋 My Listings', '/business/offerings-mine'],
           ['❤️ Saved', '/business/offerings-saved'], ['🔍 Search Listings', '/business/offerings'],
@@ -231,6 +247,10 @@ const styles = StyleSheet.create({
     color: colors.light.foreground,
     marginBottom: 16,
   },
+  jobsCard: { backgroundColor: colors.light.primary + '14', borderColor: colors.light.primary + '55', borderWidth: 1, borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  jobsCopy: { flex: 1, paddingRight: 12 },
+  jobsTitle: { color: colors.light.foreground, fontSize: 17, fontWeight: '900', marginBottom: 4 },
+  jobsDetail: { color: colors.light.mutedForeground, fontSize: 12, lineHeight: 17 },
   quickActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
   quickAction: { backgroundColor: colors.light.card, borderColor: colors.light.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 9 },
   quickText: { color: colors.light.primary, fontSize: 11, fontWeight: '800' },

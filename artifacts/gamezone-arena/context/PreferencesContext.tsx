@@ -14,6 +14,13 @@ export type Preferences = {
   pushNotificationsEnabled: boolean;
   gameNotifications: boolean;
   businessNotifications: boolean;
+  jobsNotifications: boolean;
+  applicationNotifications: boolean;
+  employerMessages: boolean;
+  jobMatchNotifications: boolean;
+  jobMarketingNotifications: boolean;
+  jobProfileVisible: boolean;
+  jobContactVisible: boolean;
   notificationSound: boolean;
   masterSound: boolean;
   gameSound: boolean;
@@ -35,6 +42,13 @@ export const defaultPreferences: Preferences = {
   pushNotificationsEnabled: false,
   gameNotifications: true,
   businessNotifications: true,
+  jobsNotifications: true,
+  applicationNotifications: true,
+  employerMessages: true,
+  jobMatchNotifications: true,
+  jobMarketingNotifications: false,
+  jobProfileVisible: true,
+  jobContactVisible: false,
   notificationSound: true,
   masterSound: true,
   gameSound: true,
@@ -58,7 +72,7 @@ type PreferencesContextValue = {
   provideUiHaptic: () => void;
   notificationPermissionGranted: boolean;
   setPushNotificationsEnabled: (enabled: boolean) => Promise<boolean>;
-  showInAppNotification: (category: 'general' | 'game' | 'business', message: string) => void;
+  showInAppNotification: (category: 'general' | 'game' | 'business' | 'jobs', message: string) => void;
 };
 
 const PreferencesContext = React.createContext<PreferencesContextValue | null>(null);
@@ -67,7 +81,7 @@ export function PreferencesProvider({ children }: React.PropsWithChildren) {
   const [preferences, setPreferences] = React.useState<Preferences>(defaultPreferences);
   const [isReady, setIsReady] = React.useState(false);
   const [notificationPermissionGranted, setNotificationPermissionGranted] = React.useState(false);
-  const [inAppNotification, setInAppNotification] = React.useState<{ category: 'general' | 'game' | 'business'; message: string } | null>(null);
+  const [inAppNotification, setInAppNotification] = React.useState<{ category: 'general' | 'game' | 'business' | 'jobs'; message: string } | null>(null);
   const dismissTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   React.useEffect(() => {
@@ -135,15 +149,16 @@ export function PreferencesProvider({ children }: React.PropsWithChildren) {
     return granted;
   }, [preferences.importantHaptics, preferences.masterHaptics, preferences.masterSound, preferences.notificationSound, updatePreferences]);
 
-  const showInAppNotification = React.useCallback((category: 'general' | 'game' | 'business', message: string) => {
+  const showInAppNotification = React.useCallback((category: 'general' | 'game' | 'business' | 'jobs', message: string) => {
     const allowed = preferences.notificationsEnabled &&
       (category !== 'game' || preferences.gameNotifications) &&
-      (category !== 'business' || preferences.businessNotifications);
+      (category !== 'business' || preferences.businessNotifications) &&
+      (category !== 'jobs' || preferences.jobsNotifications);
     if (!allowed) return;
     if (dismissTimer.current) clearTimeout(dismissTimer.current);
     setInAppNotification({ category, message });
     dismissTimer.current = setTimeout(() => setInAppNotification(null), 5000);
-  }, [preferences.businessNotifications, preferences.gameNotifications, preferences.notificationsEnabled]);
+  }, [preferences.businessNotifications, preferences.gameNotifications, preferences.jobsNotifications, preferences.notificationsEnabled]);
 
   const value = React.useMemo<PreferencesContextValue>(() => ({
     preferences,

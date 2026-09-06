@@ -1,0 +1,2 @@
+import React from"react";import{ScrollView,Text}from"react-native";import{useSupabaseAuth}from"@/hooks/useBusiness";import{styles as s}from"@/components/JobsUi";
+export default function JobsHelp(){useSupabaseAuth();return <ScrollView style={s.root} contentContainerStyle={s.content}><Text style={s.title}>Jobs Help & Safety</Text><Text style={s.subtitle}>Never pay for a job, share OTPs, passwords, UPI PINs, or unnecessary financial information. Report fake, scam, misleading, discriminatory, or harassing listings from their detail screen.</Text></ScrollView>}

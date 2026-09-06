@@ -1,0 +1,2 @@
+import React from"react";import{ScrollView,Text}from"react-native";import{useSupabaseAuth}from"@/hooks/useBusiness";import{styles as s}from"@/components/JobsUi";
+export default function JobMessages(){useSupabaseAuth();return <ScrollView style={s.root} contentContainerStyle={s.content}><Text style={s.title}>Job Messages & Contact</Text><Text style={s.subtitle}>Contact is intentionally tied to a job or application. Use the Call, WhatsApp, and email actions shown only after the server authorizes contact visibility.</Text></ScrollView>}

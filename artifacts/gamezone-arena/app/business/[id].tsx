@@ -275,6 +275,27 @@ export default function BusinessDetailScreen() {
 
         <View style={styles.divider} />
 
+        <View style={styles.jobsSection}>
+          <View style={styles.jobsHeading}>
+            <View>
+              <Text style={styles.sectionTitle}>Open Positions</Text>
+              <Text style={styles.jobsDescription}>Explore jobs posted by {business.name}.</Text>
+            </View>
+            <Feather name="briefcase" size={22} color={colors.light.primary} />
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`View jobs at ${business.name}`}
+            style={styles.jobsButton}
+            onPress={() => router.push(`/business/jobs/discover?businessId=${business.id}` as any)}
+          >
+            <Text style={styles.jobsButtonText}>JOBS &amp; HIRING</Text>
+            <Feather name="arrow-right" size={16} color={colors.light.primaryForeground} />
+          </Pressable>
+        </View>
+
+        <View style={styles.divider} />
+
         <Text style={styles.sectionTitle}>Reviews</Text>
         <View style={styles.writeReview}>
           <Text style={styles.writeReviewTitle}>Write a review</Text>
@@ -351,6 +372,11 @@ const styles = StyleSheet.create({
   divider: { height: 1, backgroundColor: colors.light.border, marginVertical: 20 },
   sectionTitle: { fontSize: 18, fontWeight: '800', color: colors.light.foreground, marginBottom: 12 },
   description: { color: colors.light.mutedForeground, fontSize: 15, lineHeight: 24 },
+  jobsSection: { backgroundColor: colors.light.card, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: colors.light.border },
+  jobsHeading: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
+  jobsDescription: { color: colors.light.mutedForeground, fontSize: 13, lineHeight: 19, marginTop: -5, marginBottom: 14 },
+  jobsButton: { height: 42, borderRadius: 10, backgroundColor: colors.light.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  jobsButtonText: { color: colors.light.primaryForeground, fontSize: 12, fontWeight: '900', letterSpacing: 0.4 },
   writeReview: { backgroundColor: colors.light.card, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: colors.light.border, marginBottom: 20 },
   writeReviewTitle: { color: colors.light.foreground, fontSize: 14, fontWeight: '700', marginBottom: 12 },
   ratingRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },

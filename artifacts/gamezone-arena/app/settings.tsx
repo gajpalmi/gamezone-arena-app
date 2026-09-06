@@ -54,7 +54,7 @@ export default function SettingsScreen() {
     { text: 'Quick Quiz', onPress: () => copy(gameLink('quick-quiz')) },
   ]);
   const testNotification = (category: NotificationCategory) => {
-    const categoryEnabled = category === 'game' ? preferences.gameNotifications : category === 'business' ? preferences.businessNotifications : true;
+    const categoryEnabled = category === 'game' ? preferences.gameNotifications : category === 'business' ? preferences.businessNotifications : category === 'jobs' ? preferences.jobsNotifications : true;
     if (!preferences.notificationsEnabled || !categoryEnabled) {
       Alert.alert('Notifications are off', `Enable in-app and ${category === 'general' ? 'general' : category} notifications first.`);
       return;
@@ -95,7 +95,8 @@ export default function SettingsScreen() {
           <Pressable style={styles.linkRow} onPress={() => testNotification('general')}><Text style={styles.rowLabel}>Send a local test notification</Text><Feather name="bell" size={18} color="#43DDF8" /></Pressable>
           <Pressable style={styles.linkRow} onPress={() => testNotification('game')}><Text style={styles.rowLabel}>Test game update channel</Text><Feather name="gamepad" size={18} color="#43DDF8" /></Pressable>
           <Pressable style={styles.linkRow} onPress={() => testNotification('business')}><Text style={styles.rowLabel}>Test business activity channel</Text><Feather name="briefcase" size={18} color="#43DDF8" /></Pressable>
-          <Text style={styles.note}>No remote push token is registered and no notification data is sent to a server. Android channels are created for general, game, and business activity.</Text>
+           <Pressable style={styles.linkRow} onPress={() => testNotification('jobs')}><Text style={styles.rowLabel}>Test Jobs &amp; Hiring channel</Text><Feather name="briefcase" size={18} color="#43DDF8" /></Pressable>
+           <Text style={styles.note}>No remote push token is registered and no notification data is sent to a server. Android channels are created for general, game, business, and Jobs &amp; Hiring activity.</Text>
         </View>
 
         <Text style={styles.section}>SOUND</Text>
@@ -131,6 +132,20 @@ export default function SettingsScreen() {
           <Pressable style={styles.linkRow} onPress={() => router.push('/business/offerings-mine')}><Text style={styles.rowLabel}>My Services</Text><Feather name="chevron-right" size={18} color="#71809F" /></Pressable>
           <Pressable style={styles.linkRow} onPress={() => router.push('/business/offerings-saved')}><Text style={styles.rowLabel}>Saved listings</Text><Feather name="heart" size={18} color="#43DDF8" /></Pressable>
           <Pressable style={styles.linkRow} onPress={() => router.push('/business/offerings-mine')}><Text style={styles.rowLabel}>Manage listings</Text><Feather name="briefcase" size={18} color="#43DDF8" /></Pressable>
+        </View>
+
+        <Text style={styles.section}>JOBS &amp; HIRING</Text>
+        <View style={styles.card}>
+          <ToggleRow label="Job notifications" detail="Updates about jobs you post, save, or follow." value={preferences.jobsNotifications} onChange={(jobsNotifications) => update({ jobsNotifications })} />
+          <ToggleRow label="Application notifications" detail="Application status changes and responses." value={preferences.applicationNotifications} onChange={(applicationNotifications) => update({ applicationNotifications })} />
+          <ToggleRow label="Employer messages" detail="Contact and interview messages from employers." value={preferences.employerMessages} onChange={(employerMessages) => update({ employerMessages })} />
+          <ToggleRow label="Job match notifications" detail="New jobs that match your profile preferences." value={preferences.jobMatchNotifications} onChange={(jobMatchNotifications) => update({ jobMatchNotifications })} />
+          <ToggleRow label="Jobs marketing notifications" value={preferences.jobMarketingNotifications} onChange={(jobMarketingNotifications) => update({ jobMarketingNotifications })} />
+          <ToggleRow label="Public professional profile" detail="Only professional profile fields you choose can be shown to employers." value={preferences.jobProfileVisible} onChange={(jobProfileVisible) => update({ jobProfileVisible })} />
+          <ToggleRow label="Show contact details" detail="Keep this off to use controlled in-app contact first." value={preferences.jobContactVisible} onChange={(jobContactVisible) => update({ jobContactVisible })} />
+          <Pressable style={styles.linkRow} onPress={() => router.push('/business/jobs/settings' as any)}><Text style={styles.rowLabel}>Jobs settings &amp; privacy</Text><Feather name="chevron-right" size={18} color="#71809F" /></Pressable>
+          <Pressable style={styles.linkRow} onPress={() => router.push('/business/jobs/help' as any)}><Text style={styles.rowLabel}>Report a jobs problem</Text><Feather name="alert-triangle" size={18} color="#43DDF8" /></Pressable>
+          <Text style={styles.note}>Job alerts always respect the master sound, notification sound, and master haptics settings above.</Text>
         </View>
 
         <Text style={styles.section}>HELP & ABOUT</Text>

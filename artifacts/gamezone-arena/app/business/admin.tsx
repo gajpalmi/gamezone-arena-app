@@ -118,6 +118,16 @@ export default function AdminScreen() {
            <Text style={styles.sectionTitle}>Offering Reports ({offeringData?.reports?.length || 0})</Text>
            {offeringData?.reports?.map((report: any) => <View key={report.id} style={styles.card}><Text style={styles.reportReason}>{report.reason.toUpperCase()}</Text><Text style={styles.cardDesc}>{report.details || 'No details provided'}</Text><Pressable style={[styles.actionBtn, { backgroundColor: colors.light.primary + '20' }]} onPress={() => offeringAction.mutate({ type: 'resolve-report', id: report.id })}><Text style={[styles.actionText, { color: colors.light.primary }]}>RESOLVE</Text></Pressable></View>)}
 
+          <View style={styles.divider} />
+          <Text style={styles.sectionTitle}>Jobs &amp; Hiring</Text>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Job moderation</Text>
+            <Text style={styles.cardDesc}>Review pending and reported jobs, employers, workers, applications, and block reports. Actions are audited in the Jobs moderation queue.</Text>
+            <Pressable style={[styles.actionBtn, { backgroundColor: colors.light.primary }]} onPress={() => router.push('/business/jobs/admin' as any)}>
+              <Text style={[styles.actionText, { color: colors.light.primaryForeground }]}>OPEN JOBS QUEUE</Text>
+            </Pressable>
+          </View>
+
           <Text style={styles.sectionTitle}>Reports ({data?.reports?.length || 0})</Text>
           {data?.reports?.length === 0 && <Text style={styles.emptyText}>No open reports.</Text>}
           
