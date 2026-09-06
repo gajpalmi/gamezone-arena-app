@@ -21,7 +21,10 @@ export function useSupabaseAuth() {
 export function useCategories(enabled = true) {
   return useQuery({
     queryKey: ['business-categories'],
-    queryFn: () => api.listCategories(),
+    queryFn: async () => {
+      try { return await api.listCategories(); }
+      catch (error) { console.error('Business category query failed', error); throw error; }
+    },
     enabled,
   });
 }

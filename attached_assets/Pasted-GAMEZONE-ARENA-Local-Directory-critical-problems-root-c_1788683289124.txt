@@ -1,0 +1,487 @@
+GAMEZONE ARENA के Local Directory सिस्टम में अभी दो critical problems हैं। इन्हें root cause तक जाकर ठीक करें।
+
+CRITICAL ISSUE 1 — CATEGORIES NOT SHOWING
+
+अभी Business, Product, Service, Jobs, Find Jobs, Find Workers आदि में Category option मौजूद/expected है लेकिन category list खुल नहीं रही या categories दिखाई नहीं दे रही हैं।
+
+इसे केवल UI text/dropdown बनाकर ठीक न करें।
+
+पूरे category data flow को check करें:
+
+Supabase category table
+→ query
+→ React Query/hook
+→ screen state
+→ category selector
+→ selected category
+→ database save
+→ reload/refetch
+
+Category system requirements
+
+जहाँ applicable हो वहाँ Category selector वास्तव में clickable और functional होना चाहिए।
+
+Category selector खोलने पर actual category list दिखाई दे।
+
+Categories database से load हों।
+
+अगर database query fail हो:
+
+- silent failure नहीं
+- user-friendly error दिखे
+- development console में actual error log हो
+
+अगर category table में data मौजूद है लेकिन UI में नहीं आ रहा, तो query/RLS/cache/state/navigation problem खोजकर ठीक करें।
+
+अगर required categories missing हैं तो existing category architecture के अनुसार complete seed categories जोड़ें।
+
+BUSINESS CATEGORIES
+
+कम से कम:
+
+- Grocery / General Store
+- Electronics
+- Mobile & Accessories
+- Clothing & Fashion
+- Food & Restaurant
+- Bakery
+- Pharmacy / Medical
+- Education
+- Tuition / Coaching
+- Beauty & Salon
+- Health & Wellness
+- Automotive
+- Bike Repair
+- Car Repair
+- Electrician
+- Plumber
+- Carpenter
+- Construction
+- Painting
+- Cleaning
+- Home Services
+- Computer & IT
+- Photography
+- Travel & Transport
+- Delivery
+- Agriculture
+- Real Estate
+- Professional Services
+- Other
+
+PRODUCT CATEGORIES
+
+- Grocery
+- Food
+- Electronics
+- Mobile
+- Mobile Accessories
+- Computer
+- Clothing
+- Shoes
+- Fashion
+- Furniture
+- Home & Kitchen
+- Appliances
+- Beauty
+- Personal Care
+- Automotive
+- Bike Parts
+- Car Parts
+- Tools
+- Hardware
+- Agriculture
+- Books
+- Toys
+- Sports
+- Other
+
+SERVICE CATEGORIES
+
+- Electrician
+- Plumber
+- Carpenter
+- Painter
+- Mason
+- Construction
+- Cleaning
+- Repair
+- Mobile Repair
+- Computer Repair
+- AC Repair
+- Fridge Repair
+- Bike Repair
+- Car Repair
+- Driver
+- Delivery
+- Tutor
+- Coaching
+- Beauty / Salon
+- Photography
+- Event Services
+- Home Services
+- IT Services
+- Transport
+- Agriculture Services
+- Other
+
+JOB CATEGORIES
+
+- Electrical
+- Plumbing
+- Construction
+- Driver
+- Delivery
+- Security
+- Sales
+- Marketing
+- Office
+- Computer / IT
+- Teaching
+- Restaurant / Hotel
+- Retail
+- Mechanic
+- Technician
+- Factory / Manufacturing
+- Agriculture
+- Healthcare
+- Beauty / Salon
+- Cleaning
+- Customer Service
+- Other
+
+IMPORTANT:
+
+- Duplicate categories न बनाएं।
+- Existing categories unnecessarily delete न करें।
+- Existing IDs/relationships को न तोड़ें।
+- Category selection का selected value सही ID/value के साथ save हो।
+- Edit screen में previously selected category वापस दिखाई दे।
+- Saved draft में category बनी रहे।
+- Preview में category दिखाई दे।
+- Published listing में category दिखाई दे।
+- Search/filter में category काम करे।
+
+CRITICAL ISSUE 2 — ADD PHOTO / MEDIA PICKER
+
+अभी Add Photo दबाने पर camera नहीं खुल रहा।
+
+हर applicable Add Business / Add Product / Add Service / Job/Profile media field में proper media picker दें।
+
+जब user:
+
+Add Photo
+
+पर tap करे तो एक native-style action sheet/modal खुले:
+
+विकल्प
+
+📷 Camera
+
+🖼️ Photos / Videos
+
+📁 Files
+
+❌ Cancel
+
+CAMERA
+
+Camera option दबाने पर Android camera खुले।
+
+User:
+
+- Photo capture कर सके
+- Captured photo का preview देख सके
+- Retake कर सके
+- Use Photo कर सके
+- Remove कर सके
+
+Camera permission केवल Camera button दबाने के बाद request हो।
+
+App startup पर camera permission request न करें।
+
+PHOTOS / VIDEOS
+
+Photos/Videos option से Android gallery/media picker खुले।
+
+User:
+
+- Photo select कर सके
+- Video select कर सके जहाँ उस particular field में video allowed है
+- Preview देख सके
+- Remove/replace कर सके
+
+Product listing में product photos support करें।
+
+Business में logo/photos support करें।
+
+Service में service photos support करें।
+
+Jobs/worker profile में केवल वही media types allow करें जो existing schema/security वास्तव में support करती है।
+
+FILES
+
+Files option से Android system document picker खुले।
+
+जहाँ supported हो वहाँ user file चुन सके।
+
+IMPORTANT:
+Existing application/schema अगर अभी केवल JPG/PNG/WebP images support करता है तो उस limitation को silently तोड़कर PDF/DOC database में डालने की कोशिश न करें।
+
+अगर Resume/CV के लिए PDF/DOC support implement करना है तो:
+
+- proper file storage
+- MIME validation
+- size validation
+- secure owner-scoped storage
+- RLS/storage policies
+- preview/download handling
+
+सभी properly implement करें।
+
+लेकिन अगर यह scope बढ़ाता है तो existing image-only resume flow को न तोड़ें और limitation को स्पष्ट रखें।
+
+VIDEO
+
+User ने Add Photo/media में video option भी मांगा है।
+
+Video के लिए:
+
+- Gallery से existing video select करना support करें।
+- यदि camera से video recording implement की जाती है तो Android permission requirements carefully handle करें।
+
+IMPORTANT SECURITY/PERMISSION RULE:
+बिना आवश्यकता Microphone permission न जोड़ें।
+
+अगर video recording के लिए audio/microphone permission technically आवश्यक हो और existing app policy में microphone permission allowed नहीं है, तो camera से video recording जोड़ने के बजाय Gallery से video selection support करें।
+
+Existing permission model को unnecessarily expand न करें।
+
+MEDIA PREVIEW
+
+Selected media के बाद:
+
+- Thumbnail/preview
+- File/media name जहां applicable
+- Replace
+- Remove
+
+काम करे।
+
+Upload होने तक loading indicator दिखे।
+
+Upload fail होने पर:
+
+"Photo upload failed. Please try again."
+
+जैसा clear error दिखे।
+
+कोई silent failure नहीं।
+
+STORAGE
+
+Existing secure media storage architecture preserve करें।
+
+Media:
+
+- authenticated user
+- owner-scoped path
+- allowed MIME type
+- size validation
+- secure storage
+- correct signed URL/public visibility rules
+- cross-user upload/read/delete protection
+
+के साथ हो।
+
+Existing RLS/storage security को कमजोर न करें।
+
+PRODUCT PHOTO REQUIREMENT
+
+यह विशेष रूप से सुनिश्चित करें:
+
+जब कोई व्यक्ति Add Product करता है:
+
+Add Product
+→ Product Name
+→ Category
+→ Description
+→ Add Photo
+→ 📷 Camera / 🖼️ Photos & Videos / 📁 Files
+→ Photo Preview
+→ Price
+→ Location
+→ Save/Continue
+→ Preview
+→ Submit
+
+पूरा flow काम करे।
+
+Product detail में actual product photo दिखाई दे।
+
+My Listings में photo दिखाई दे।
+
+Edit Product में existing photo दिखाई दे।
+
+BUSINESS PHOTO REQUIREMENT
+
+Add Business:
+
+Add Business
+→ Category
+→ Logo/Photo
+→ Camera/Photos/Files
+→ Preview
+→ Save
+
+Business detail में actual image दिखाई दे।
+
+SERVICE PHOTO REQUIREMENT
+
+Add Service:
+
+Add Service
+→ Category
+→ Add Photo
+→ Camera/Photos/Files
+→ Preview
+→ Save
+
+Service detail में actual image दिखाई दे।
+
+JOB CATEGORY REQUIREMENT
+
+Post a Job में:
+
+Category
+→ tap
+→ category list खुलनी चाहिए
+→ category select
+→ selected category field में दिखाई दे
+→ Save Draft
+→ My Job Posts
+→ Edit
+→ category preserved
+→ Preview
+→ category visible
+→ Submit
+
+Preview & Publish button फिर से silently fail नहीं होना चाहिए।
+
+GLOBAL BUTTON REQUIREMENT
+
+इन actions को प्रत्येक relevant screen पर test करें:
+
+- Save
+- Save Draft
+- Continue
+- Next
+- Preview
+- Publish
+- Edit
+- Delete
+- Add Photo
+- Camera
+- Gallery/Photos
+- Files
+- Category
+- Search
+- Filter
+- Save/Unsave
+
+हर button पर actual action होना चाहिए।
+
+अगर action fail हो तो user को message दिखना चाहिए।
+
+DATA PERSISTENCE TEST
+
+Test करें:
+
+1. Category select करें।
+2. Photo camera/gallery से चुनें।
+3. Form Save करें।
+4. Screen से बाहर जाएँ।
+5. वापस My Listings में जाएँ।
+6. Listing खोलें।
+7. Category दिखाई दे।
+8. Photo दिखाई दे।
+9. Edit खोलें।
+10. Previously selected category और photo दिखाई दें।
+11. App reload/refetch के बाद भी data मौजूद हो।
+
+SECURITY REGRESSION
+
+इन security rules को preserve करें:
+
+- User A User B की listing edit/delete नहीं कर सकता।
+- Cross-user private media access denied।
+- Pending listing public नहीं।
+- Approved listing सही तरह दिखाई दे।
+- Anonymous private access denied।
+- Existing Business/Product/Service/Jobs RLS intact।
+- Storage policies intact।
+
+VALIDATION
+
+Fix के बाद run करें:
+
+- TypeScript
+- Expo dependency compatibility
+- Expo Doctor
+- Navigation validation
+- Metro startup
+- Android JS/Hermes bundle export
+- Category query test
+- Category selection test
+- Category persistence test
+- Camera code-path test
+- Gallery/media picker test
+- File picker code-path test
+- Media upload test
+- Media ownership/security test
+- Product photo persistence test
+- Service photo persistence test
+- Business photo persistence test
+- Job category persistence test
+- Save/unsave test
+- Draft/continue test
+- Preview test
+
+IMPORTANT — NO PAID BUILD
+
+इस fix के दौरान:
+
+- EAS build शुरू न करें।
+- APK/AAB build शुरू न करें।
+- Deployment न करें।
+- Play Store publish न करें।
+- कोई paid upgrade न करें।
+- कोई billing operation न करें।
+
+केवल code और existing local/Supabase validation करें।
+
+FINAL REPORT
+
+काम पूरा होने के बाद report में साफ बताएं:
+
+1. Category क्यों नहीं दिख रही थी।
+2. Category loading/query/RLS/cache में क्या समस्या थी।
+3. कौन-कौन से screens में categories ठीक की गईं।
+4. कौन-कौन सी categories उपलब्ध हैं।
+5. Add Photo में Camera कैसे जोड़ा।
+6. Photos/Videos कैसे जोड़े।
+7. Files picker कैसे जोड़ा।
+8. कौन-कौन से media types वास्तव में supported हैं।
+9. Camera permission कब request होती है।
+10. Microphone permission जोड़ी गई या नहीं।
+11. Photo database/storage में save होने की पुष्टि।
+12. कौन-कौन से tests PASS हुए।
+13. कोई limitation हो तो स्पष्ट बताएं।
+
+सबसे महत्वपूर्ण:
+
+Category सिर्फ दिखनी नहीं चाहिए — select → save → reload → edit → preview → publish/discovery तक वही category बनी रहनी चाहिए।
+
+और:
+
+Add Photo सिर्फ नाम का button नहीं होना चाहिए — tap करने पर Camera + Photos/Videos + Files वाला वास्तविक working media picker खुलना चाहिए।

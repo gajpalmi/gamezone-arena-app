@@ -1,7 +1,7 @@
 import {useMutation,useQuery,useQueryClient}from"@tanstack/react-query";import * as api from"@/lib/jobs";
 const clear=(q:ReturnType<typeof useQueryClient>)=>Promise.all([q.invalidateQueries({queryKey:["jobs"]}),q.invalidateQueries({queryKey:["job"]})]);
 export const useJobs=(f:api.JobFilters={})=>useQuery({queryKey:["jobs",f],queryFn:()=>api.browseJobs(f)});
-export const useJobCategories=(enabled=true)=>useQuery({queryKey:["jobs","categories"],queryFn:api.jobCategories,staleTime:300000,enabled});
+export const useJobCategories=(enabled=true)=>useQuery({queryKey:["jobs","categories"],queryFn:async()=>{try{return await api.jobCategories()}catch(error){console.error("Job category query failed",error);throw error}},staleTime:300000,enabled});
 export const useJob=(id:string)=>useQuery({queryKey:["job",id],queryFn:()=>api.getJob(id),enabled:!!id});
 export const useMyJobs=()=>useQuery({queryKey:["jobs","mine"],queryFn:api.myJobs});export const useSavedJobs=()=>useQuery({queryKey:["jobs","saved"],queryFn:api.savedJobs});
 export const useMyApplications=()=>useQuery({queryKey:["jobs","applications"],queryFn:api.myApplications});export const useJobApplications=(id:string)=>useQuery({queryKey:["jobs","applications",id],queryFn:()=>api.jobApplications(id),enabled:!!id});

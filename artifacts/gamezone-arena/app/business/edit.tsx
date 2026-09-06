@@ -13,6 +13,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
+import { openImageMediaPicker } from '@/lib/imageMediaPicker';
 import { Feather } from '@/components/Feather';
 import colors from '@/constants/colors';
 import {
@@ -36,7 +37,7 @@ export default function BusinessEditScreen() {
   const { user } = useUser();
   const auth = useSupabaseAuth();
 
-  const { data: categoriesData } = useCategories(auth.ready);
+  const { data: categoriesData, error: categoriesError, refetch: refetchCategories } = useCategories(auth.ready);
   const { data: businessData, isLoading: loadingBusiness, refetch: refetchBusiness } = useBusinessDetail(id || '');
   const createBusiness = useCreateBusiness();
   const updateBusiness = useUpdateBusiness(id || '');
@@ -61,6 +62,9 @@ export default function BusinessEditScreen() {
     description: '',
     website: '',
   });
+  useEffect(() => {
+    if (categoriesError) console.error('Business category loading failed', categoriesError);
+  }, [categoriesError]);
 
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [publicContactConsent, setPublicContactConsent] = useState(false);
@@ -173,31 +177,12 @@ export default function BusinessEditScreen() {
     }
   };
 
-  const handlePickImage = async (source: 'camera' | 'library', kind: 'logo' | 'photo') => {
+  const handlePickImage = (kind: 'logo' | 'photo') => {
     if (!id || !user) {
       Alert.alert('Save your draft first', 'Save the required business details before adding media.');
       return;
     }
-    try {
-      if (source === 'camera') {
-        const permission = await ImagePicker.requestCameraPermissionsAsync();
-        if (!permission.granted) {
-          Alert.alert('Camera permission required', 'Allow camera access to take a business photo.');
-          return;
-        }
-      }
-      const result = source === 'camera' ? await ImagePicker.launchCameraAsync({
-        mediaTypes: ['images'], allowsEditing: true, aspect: [4, 3], quality: 0.5,
-      }) : await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 0.5,
-      });
-      if (!result.canceled && result.assets[0]) await uploadPickedAsset(result.assets[0], kind);
-    } catch (error) {
-      Alert.alert('Unable to open photo picker', error instanceof Error ? error.message : 'Please try again.');
-    }
+    openImageMediaPicker({ title: kind === 'logo' ? 'Add Business Logo' : 'Add Business Photo', onPicked: assets => uploadPickedAsset(assets[0], kind) });
   };
 
   if (id && loadingBusiness) {
@@ -250,6 +235,14 @@ export default function BusinessEditScreen() {
           <Text style={styles.label}>Display Name</Text><TextInput style={styles.input} placeholder="Public owner or business display name" placeholderTextColor={colors.light.mutedForeground} value={form.owner_display_name} onChangeText={(t) => setForm({ ...form, owner_display_name: t })} />
 
           <Text style={styles.label}>Category *</Text>
+          {categoriesError ? (
+            <View>
+              <Text style={styles.helperText}>Unable to load categories. Please try again.</Text>
+              <Pressable style={styles.mediaBtn} onPress={() => void refetchCategories()}>
+                <Text style={styles.mediaBtnText}>RETRY CATEGORIES</Text>
+              </Pressable>
+            </View>
+          ) : null}
           <View style={styles.categories}>
             {categoriesData?.map(cat => (
               <Pressable
@@ -346,10 +339,8 @@ export default function BusinessEditScreen() {
             <Text style={styles.sectionTitle}>Business logo & photos</Text>
             <Text style={styles.helperText}>Add a logo and photos to make your listing stand out. Images are private until your listing is approved.</Text>
             <View style={styles.mediaActions}>
-              <Pressable style={styles.mediaBtn} onPress={() => handlePickImage('camera', 'logo')} disabled={uploading}><Feather name="camera" size={18} color={colors.light.primary} /><Text style={styles.mediaBtnText}>TAKE LOGO PHOTO</Text></Pressable>
-              <Pressable style={styles.mediaBtn} onPress={() => handlePickImage('library', 'logo')} disabled={uploading}><Feather name="image" size={18} color={colors.light.primary} /><Text style={styles.mediaBtnText}>CHOOSE LOGO</Text></Pressable>
-              <Pressable style={styles.mediaBtn} onPress={() => handlePickImage('camera', 'photo')} disabled={uploading}><Feather name="camera" size={18} color={colors.light.primary} /><Text style={styles.mediaBtnText}>TAKE PHOTO</Text></Pressable>
-              <Pressable style={styles.mediaBtn} onPress={() => handlePickImage('library', 'photo')} disabled={uploading}><Feather name="image" size={18} color={colors.light.primary} /><Text style={styles.mediaBtnText}>GALLERY PHOTO</Text></Pressable>
+              <Pressable style={styles.mediaBtn} onPress={() => handlePickImage('logo')} disabled={uploading}><Feather name="image" size={18} color={colors.light.primary} /><Text style={styles.mediaBtnText}>ADD / REPLACE LOGO</Text></Pressable>
+              <Pressable style={styles.mediaBtn} onPress={() => handlePickImage('photo')} disabled={uploading}><Feather name="camera" size={18} color={colors.light.primary} /><Text style={styles.mediaBtnText}>ADD BUSINESS PHOTO</Text></Pressable>
             </View>
             {uploading && <View style={styles.uploading}><ActivityIndicator color={colors.light.primary} /><Text style={styles.helperText}>Uploading photo…</Text></View>}
             <View style={styles.photoGrid}>
