@@ -200,15 +200,21 @@ export default function OfferingEdit() {
     };
     save.mutate(payload, {
       onSuccess: async result => {
+        router.replace((preview ? `/business/offering/preview?id=${result.id}` : "/business/offerings-mine") as never);
+        let photoUploadFailed = false;
         try {
           await uploadPhotos(result.id);
-          setLocalPhotos([]);
-          Alert.alert("Saved successfully", preview ? "Opening listing preview." : "Your draft is now visible in My Listings.");
-          router.replace((preview ? `/business/offering/preview?id=${result.id}` : "/business/offerings-mine") as never);
         } catch (error) {
           console.error("Offering photo upload failed", error);
-          Alert.alert("Draft saved", "The listing was saved, but one or more photos could not be uploaded.");
+          photoUploadFailed = true;
         }
+        setLocalPhotos([]);
+        setTimeout(() => Alert.alert(
+          photoUploadFailed ? "Draft saved" : "Saved successfully",
+          photoUploadFailed
+            ? "The product was saved in My Listings, but one or more photos could not be uploaded."
+            : preview ? "Opening listing preview." : "Your draft is now visible in My Listings.",
+        ), 250);
       },
       onError: error => {
         console.error("Offering save failed", error);
