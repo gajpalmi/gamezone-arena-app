@@ -1,0 +1,473 @@
+GAMEZONE ARENA में अभी दो स्पष्ट functional errors हैं। Screenshot में actual error दिखाई दे रहा है:
+
+"Unable to load categories. Please try again."
+
+और Category picker में कोई category नहीं आ रही।
+
+दूसरी समस्या:
+Add Photo / Camera button मौजूद है लेकिन Camera open नहीं हो रहा।
+
+इन दोनों problems का ROOT CAUSE खोजकर fix करें। केवल UI बदलकर समस्या छिपाएं नहीं।
+
+1. CATEGORY — ROOT CAUSE FIX
+
+Current UI:
+
+Select Category
+→ Search categories
+→ Unable to load categories
+→ Retry
+→ Choose
+
+लेकिन category list खाली है।
+
+सबसे पहले database/data flow को inspect करें:
+
+Supabase
+→ category table
+→ RLS
+→ query
+→ category hook
+→ React Query/cache
+→ CategoryPicker
+
+इन सभी को verify करें।
+
+IMPORTANT
+
+पहले यह पता करें:
+
+- कौन-सी table से categories पढ़ी जा रही हैं?
+- उस table में कितने category rows मौजूद हैं?
+- Query कौन-से columns मांग रही है?
+- Column names database से match कर रहे हैं या नहीं?
+- RLS SELECT policy authenticated users को categories पढ़ने देती है या नहीं?
+- Clerk/Supabase authentication token सही है या नहीं?
+- Query error कहीं catch करके सिर्फ "Unable to load categories" तो नहीं दिखाया जा रहा?
+- React Query/cache गलत key या stale empty data तो नहीं दे रहा?
+- Business/Product/Service/Job category types के filtering conditions गलत तो नहीं हैं?
+- Category IDs और type/scope values सही हैं या नहीं?
+
+Actual Supabase error को development console में log करें।
+
+Example diagnostic:
+
+category query failed:
+error code
+error message
+table
+query parameters
+
+लेकिन user को technical error न दिखाएं।
+
+2. DATABASE CATEGORY DATA VERIFY
+
+Database में actual category rows inspect करें।
+
+अगर categories मौजूद हैं:
+नई duplicate categories insert मत करें।
+
+उन existing categories को सही query से UI में load करें।
+
+अगर categories मौजूद नहीं हैं:
+एक safe additive seed migration बनाएं और complete category data insert करें।
+
+Duplicate रोकें।
+
+Existing listing/category relationships न तोड़ें।
+
+3. CATEGORY TYPES
+
+Ensure categories correctly map हों:
+
+business
+product
+service
+job
+
+अगर current schema में अलग mechanism है तो उसे preserve करें।
+
+Business screen को केवल business categories मिलें।
+
+Product को product categories।
+
+Service को service categories।
+
+Jobs को job categories।
+
+Find Jobs को job categories।
+
+Find Workers को relevant worker/job categories।
+
+4. CATEGORY PICKER
+
+जब user Category पर tap करे:
+
+Select Category
+
+और वास्तविक list दिखे।
+
+Example:
+
+Grocery / General Store
+Electronics
+Mobile & Accessories
+Clothing & Fashion
+Food & Restaurant
+Education
+Automotive
+Electrician
+Plumber
+Construction
+Beauty / Salon
+Computer / IT
+Transport
+Agriculture
+Other
+
+Category पर tap करने पर वह selected हो:
+
+✓ Electronics
+
+फिर:
+
+Choose
+
+button active हो।
+
+Choose दबाने पर:
+
+Category: Electronics
+
+form में दिखाई दे।
+
+5. CATEGORY SEARCH
+
+Category picker का:
+
+Search categories
+
+सिर्फ category list को filter करे।
+
+यह Global Search नहीं है।
+
+User:
+
+Category
+→ Search categories
+→ "Electric"
+
+तो:
+
+Electrician
+Electrical
+...
+
+जैसी category results दिखें।
+
+Main Find Jobs/Search route पर navigate नहीं होना चाहिए।
+
+6. CATEGORY RETRY
+
+अगर query वास्तव में fail हो:
+
+Unable to load categories.
+Retry
+
+Retry वास्तविक query दोबारा चलाए।
+
+Retry भी silently fail नहीं होना चाहिए।
+
+7. CATEGORY PERSISTENCE
+
+हर form में test करें:
+
+Category
+→ Open
+→ Select
+→ Choose
+→ Save
+→ leave screen
+→ reopen/edit
+→ same category दिखाई दे
+
+इन सभी में:
+
+- Add Business
+- Add Product
+- Add Service
+- Post a Job
+- Find Jobs
+- Find Workers
+
+काम करना चाहिए।
+
+8. CAMERA — ROOT CAUSE
+
+अब Add Photo / Camera को inspect करें।
+
+यह केवल button दिखना नहीं चाहिए।
+
+Flow:
+
+Add Photo
+↓
+Media Options
+
+📷 Camera
+🖼️ Photos / Videos
+📁 Files
+❌ Cancel
+
+CAMERA
+
+Camera button दबाने पर actual Android camera launch होना चाहिए।
+
+Use the existing Expo-compatible camera/image-picker architecture.
+
+पहले project में existing dependencies inspect करें।
+
+Duplicate camera packages install न करें।
+
+Camera permission केवल user द्वारा Camera दबाने पर request करें।
+
+Permission granted:
+→ camera opens
+→ take photo
+→ preview
+→ Retake
+→ Use Photo
+
+Permission denied:
+→ clear message:
+
+"Camera permission is required to take a photo."
+
+और:
+
+Open Settings / Try Gallery
+
+जैसा appropriate fallback दें।
+
+9. IMPORTANT — REPLIT WEB PREVIEW
+
+यदि यह app अभी Replit browser/web preview में चल रहा है और native Android camera API browser preview में उपलब्ध नहीं है, तो इसे incorrectly "camera working" न मानें।
+
+Check करें कि app:
+
+- Web preview
+  या
+- Expo native Android
+
+में चल रही है।
+
+Web preview में:
+
+Camera button browser-compatible camera/file fallback दे सकता है।
+
+Native Android build/device में:
+
+Camera → actual Android camera
+
+होना चाहिए।
+
+इस difference को properly handle करें।
+
+10. PHOTOS / VIDEOS
+
+Add Photo पर:
+
+🖼️ Photos / Videos
+
+से Android media picker खोलें।
+
+Photo select:
+→ preview
+→ replace
+→ remove
+
+Video support केवल उन entities में करें जहाँ database/storage architecture support करता है।
+
+11. FILES
+
+Add Photo/media menu में:
+
+📁 Files
+
+हो।
+
+Android system document picker खुले।
+
+Existing schema अगर केवल JPG/PNG/WebP support करता है तो unsupported PDF/DOC को image field में डालने की कोशिश न करें।
+
+Resume/CV के लिए अलग file support तभी जोड़ें जब storage/schema/security properly support किया जाए।
+
+12. PRODUCT PHOTO
+
+विशेष रूप से Add Product test करें:
+
+Add Product
+→ Add Photo
+→ Camera
+→ capture
+→ preview
+→ Use Photo
+→ Save
+→ Product detail
+→ actual product photo दिखाई दे।
+
+Gallery और Files भी test करें।
+
+13. BUSINESS/SERVICE PHOTO
+
+इसी media picker को:
+
+- Add Business
+- Add Product
+- Add Service
+- Job seeker profile
+
+में reusable रखें जहाँ applicable हो।
+
+14. STORAGE
+
+Existing secure storage architecture preserve करें।
+
+Check:
+
+- upload success
+- owner path
+- MIME validation
+- size validation
+- database media reference
+- signed URL/display
+- cross-user access denied
+
+Security policies कमजोर न करें।
+
+15. NO UNNECESSARY PERMISSIONS
+
+इन permissions को add न करें:
+
+Contacts
+Call Log
+SMS
+Microphone
+Location
+
+Camera permission केवल Camera action के लिए।
+
+यदि gallery/file picker के लिए system picker पर्याप्त है तो broad storage permission न जोड़ें।
+
+16. SAVE/ERROR FEEDBACK
+
+किसी भी button पर silent failure नहीं होना चाहिए।
+
+हर async operation:
+
+try/catch
+
+और user-friendly error दे।
+
+Examples:
+
+"Unable to load categories. Please try again."
+
+"Photo could not be captured."
+
+"Photo upload failed. Please try again."
+
+"Unable to save. Please try again."
+
+17. REQUIRED TESTS
+
+Category:
+
+1. Add Business → Category list
+2. Add Product → Category list
+3. Add Service → Category list
+4. Post Job → Category list
+5. Find Jobs → Category filter
+6. Find Workers → Category filter
+7. Select category
+8. Choose category
+9. Save
+10. Edit
+11. Preview
+12. Reload/refetch
+
+Media:
+
+1. Add Product → Add Photo
+2. Camera
+3. Gallery
+4. Files
+5. Preview
+6. Remove
+7. Replace
+8. Save
+9. Detail screen
+10. Verify actual image appears
+
+Search:
+
+1. Type text only → NO navigation/search execution
+2. Press Search → execute search
+3. Category picker search → only filter categories
+
+18. VALIDATION
+
+Run:
+
+- TypeScript
+- Expo dependency check
+- Expo Doctor
+- Metro startup
+- Android JS/Hermes bundle
+- Category query test
+- Category RLS test
+- Category picker test
+- Category persistence test
+- Media picker test
+- Camera code-path test
+- Storage ownership test
+- Save/unsave regression test
+- Search navigation regression test
+
+19. DO NOT BUILD
+
+इस fix के दौरान:
+
+- EAS build नहीं
+- APK/AAB नहीं
+- Deployment नहीं
+- Play Store नहीं
+- Paid upgrade नहीं
+- Billing नहीं
+
+FINAL REPORT
+
+काम के बाद केवल report दें:
+
+1. Category error का वास्तविक root cause।
+2. Database में category rows की स्थिति।
+3. Query/RLS/auth/cache में क्या समस्या थी।
+4. कौन-कौन screens में categories अब दिखाई देती हैं।
+5. Category selection + Choose working है या नहीं।
+6. Save/Edit/Preview में category persistence।
+7. Camera का root cause।
+8. Camera native Android पर कैसे काम करता है।
+9. Gallery/Video/Files का status।
+10. कौन-सी permissions इस्तेमाल हो रही हैं।
+11. सभी tests PASS/FAIL।
+12. कोई remaining limitation।
+
+FINAL ACCEPTANCE:
+
+Category button दबाने पर खाली स्क्रीन या "Unable to load categories" नहीं आना चाहिए जब database/service healthy हो। वास्तविक categories दिखनी चाहिए।
+
+Category चुनने → Choose → Save → Edit → Preview तक selected category बनी रहनी चाहिए।
+
+Add Photo → Camera / Photos & Videos / Files वाला वास्तविक working flow होना चाहिए।
+
+और केवल text type करने से Global Search/navigation शुरू नहीं होना चाहिए।

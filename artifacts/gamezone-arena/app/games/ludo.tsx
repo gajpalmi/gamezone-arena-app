@@ -482,7 +482,7 @@ export default function Ludo() {
   }
 
   useEffect(() => {
-    setSupabaseAccessTokenGetter(() => getToken());
+    setSupabaseAccessTokenGetter(() => getToken({ template: "supabase" }));
     return () => setSupabaseAccessTokenGetter(null);
   }, [getToken]);
 

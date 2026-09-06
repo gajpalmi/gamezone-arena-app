@@ -8,7 +8,10 @@ export function useSupabaseAuth() {
   const { getToken, isLoaded, isSignedIn } = useAuth();
   const [ready, setReady] = useState(false);
   useEffect(() => {
-    setSupabaseAccessTokenGetter(() => getToken());
+    // Supabase verifies the Clerk JWT template configured for this project.
+    // The default Clerk session token has a different signing contract and is
+    // rejected by PostgREST with PGRST301 ("wrong key type").
+    setSupabaseAccessTokenGetter(() => getToken({ template: 'supabase' }));
     setReady(Boolean(isLoaded && isSignedIn));
     return () => {
       setReady(false);

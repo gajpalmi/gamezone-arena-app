@@ -1,5 +1,5 @@
 import { BUSINESS_REPORT_REASONS } from "@/constants/business";
-import { supabase } from "@/lib/supabase";
+import { publicSupabase, supabase } from "@/lib/supabase";
 
 export type BusinessStatus = "draft" | "pending" | "approved" | "rejected" | "suspended";
 export type ReportReason = (typeof BUSINESS_REPORT_REASONS)[number];
@@ -30,8 +30,11 @@ function client() {
   if (!supabase) throw new Error("Business services are unavailable: Supabase is not configured.");
   return supabase;
 }
-function fail(error: { message: string } | null) {
-  if (error) throw new Error(`Business service error: ${error.message}`);
+function fail(error: { code?: string; message: string; details?: string; hint?: string } | null, operation = "unknown", table = "unknown") {
+  if (error) {
+    console.error("Business database operation failed", { table, operation, code: error.code, message: error.message, details: error.details, hint: error.hint });
+    throw new Error(`Business service error: ${error.message}`);
+  }
 }
 function cleanText(value: string | null | undefined, max: number) {
   if (value == null) return null;
@@ -45,7 +48,6 @@ function validateBusiness(input: BusinessInput) {
   if (!/^\+?[0-9][0-9 ()-]{6,38}$/.test(input.phone.trim())) throw new Error("Enter a valid phone number.");
   if (input.whatsapp?.trim() && !/^\+?[0-9][0-9 ()-]{6,38}$/.test(input.whatsapp.trim())) throw new Error("Enter a valid WhatsApp number.");
   if (input.website?.trim() && !/^https?:\/\/[^\s]+$/i.test(input.website.trim())) throw new Error("Website must start with http:// or https://.");
-  if (input.terms_version !== LEGAL_VERSION || !input.terms_accepted_at || input.privacy_version !== LEGAL_VERSION || !input.privacy_accepted_at || input.listing_rules_version !== LEGAL_VERSION || !input.listing_rules_accepted_at) throw new Error("You must accept the current Terms, Privacy Policy, and Listing Rules.");
   if ((input.description ?? "").length > 5000) throw new Error("Description must be 5,000 characters or fewer.");
   if (input.latitude != null && (input.latitude < -90 || input.latitude > 90)) throw new Error("Latitude is invalid.");
   if (input.longitude != null && (input.longitude < -180 || input.longitude > 180)) throw new Error("Longitude is invalid.");
@@ -59,7 +61,9 @@ function normalizedInput(input: BusinessInput) {
 export async function saveBusinessHours(businessId: string, hours: BusinessHours[]) { const { error } = await client().from("business_hours").upsert(hours.map(hour => ({ ...hour, business_id: businessId })), { onConflict: "business_id,day_of_week" }); fail(error); }
 
 export async function listCategories(): Promise<BusinessCategory[]> {
-  const { data, error } = await client().from("business_categories").select("id,slug,name,description,sort_order").order("sort_order");
+  if (!publicSupabase) throw new Error("Business categories are unavailable: Supabase is not configured.");
+  const { data, error } = await publicSupabase.from("business_categories").select("id,slug,name,description,sort_order").order("sort_order");
+  if (error) console.error("Category query failed", { scope: "business", table: "business_categories", parameters: { order: "sort_order" }, code: error.code, message: error.message, details: error.details, hint: error.hint });
   fail(error); return (data ?? []) as BusinessCategory[];
 }
 
@@ -107,18 +111,18 @@ export async function listMyBusinesses(): Promise<Business[]> {
 }
 export async function createBusiness(input: BusinessInput): Promise<Business> {
   const { data, error } = await client().from("businesses").insert(normalizedInput(input)).select(businessColumns).single();
-  fail(error); return data as Business;
+  fail(error, "insert", "businesses"); return data as Business;
 }
 export async function updateBusiness(id: string, input: BusinessInput): Promise<Business> {
   if (!id) throw new Error("Business id is required.");
   const { data, error } = await client().from("businesses").update({ ...normalizedInput(input), updated_at: new Date().toISOString() }).eq("id", id).select(businessColumns).single();
-  fail(error); return data as Business;
+  fail(error, "update", "businesses"); return data as Business;
 }
 export async function deleteBusiness(id: string) {
   const { error } = await client().from("businesses").delete().eq("id", id); fail(error);
 }
 export async function submitBusiness(id: string): Promise<Business> {
-  const { data, error } = await client().rpc("business_submit", { p_business_id: id }); fail(error); return data as Business;
+  const { data, error } = await client().rpc("business_submit", { p_business_id: id }); fail(error, "submit", "businesses"); return data as Business;
 }
 
 export async function setFavorite(businessId: string, favorite: boolean) {

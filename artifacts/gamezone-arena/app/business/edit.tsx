@@ -96,12 +96,12 @@ export default function BusinessEditScreen() {
     }
   }, [businessData]);
 
-  const handleSave = (afterSave?: (businessId: string) => void) => {
+  const handleSave = (afterSave?: (businessId: string) => void, requirePublishReady = false) => {
     if (!form.name || !form.category_id || !form.city || !form.phone) {
       Alert.alert('Missing fields', 'Name, category, city, and phone are required.');
       return;
     }
-    if (!acceptedTerms || !publicContactConsent) {
+    if (requirePublishReady && (!acceptedTerms || !publicContactConsent)) {
       Alert.alert('Terms Required', 'You must accept the Listing Rules, Terms, and Privacy Policy.');
       return;
     }
@@ -111,13 +111,13 @@ export default function BusinessEditScreen() {
       ...form,
       service_areas: form.service_areas.split(',').map((area) => area.trim()).filter(Boolean),
       services_offered: form.services_offered.split(',').map((area) => area.trim()).filter(Boolean),
-      public_contact_consent_at: acceptedAt,
-      terms_version: '2026-09-06',
-      terms_accepted_at: acceptedAt,
-      privacy_version: '2026-09-06',
-      privacy_accepted_at: acceptedAt,
-      listing_rules_version: '2026-09-06',
-      listing_rules_accepted_at: acceptedAt,
+      public_contact_consent_at: publicContactConsent ? acceptedAt : null,
+      terms_version: acceptedTerms ? '2026-09-06' : null,
+      terms_accepted_at: acceptedTerms ? acceptedAt : null,
+      privacy_version: acceptedTerms ? '2026-09-06' : null,
+      privacy_accepted_at: acceptedTerms ? acceptedAt : null,
+      listing_rules_version: acceptedTerms ? '2026-09-06' : null,
+      listing_rules_accepted_at: acceptedTerms ? acceptedAt : null,
     };
     const mutation = id ? updateBusiness : createBusiness;
     mutation.mutate(payload, {
@@ -354,7 +354,7 @@ export default function BusinessEditScreen() {
         </View>
 
         <View style={styles.footerActions}>
-        <Pressable style={[styles.secondaryBtn, isPending && styles.disabledBtn]} onPress={() => id ? router.push(`/business/${id}` as any) : handleSave((businessId) => router.replace(`/business/${businessId}` as any))} disabled={isPending}>
+        <Pressable style={[styles.secondaryBtn, isPending && styles.disabledBtn]} onPress={() => id ? router.push(`/business/${id}` as any) : handleSave((businessId) => router.replace(`/business/${businessId}` as any), true)} disabled={isPending}>
           <Text style={styles.secondaryBtnText}>PREVIEW</Text>
         </Pressable>
         <Pressable style={[styles.saveBtn, isPending && styles.disabledBtn]} onPress={() => handleSave()} disabled={isPending}>

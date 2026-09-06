@@ -1,4 +1,4 @@
-import { Alert } from "react-native";
+import { Alert, Linking, Platform } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
 
@@ -6,6 +6,38 @@ const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 export type PickedImage = ImagePicker.ImagePickerAsset;
+
+function showWebMediaMenu(title: string, run: (source: "camera" | "gallery" | "files") => void) {
+  const overlay = document.createElement("div");
+  overlay.setAttribute("role", "dialog");
+  overlay.setAttribute("aria-label", title);
+  Object.assign(overlay.style, { position: "fixed", inset: "0", zIndex: "2147483647", background: "rgba(0,0,0,.65)", display: "flex", alignItems: "flex-end", justifyContent: "center" });
+  const sheet = document.createElement("div");
+  Object.assign(sheet.style, { width: "100%", maxWidth: "520px", padding: "20px", borderRadius: "22px 22px 0 0", background: "#070A13", color: "#fff", fontFamily: "system-ui, sans-serif" });
+  const heading = document.createElement("h2");
+  heading.textContent = title;
+  Object.assign(heading.style, { margin: "0 0 8px", fontSize: "22px" });
+  const note = document.createElement("p");
+  note.textContent = "JPG, PNG and WebP images up to 5 MB are supported.";
+  Object.assign(note.style, { margin: "0 0 14px", color: "#9ca3af" });
+  sheet.append(heading, note);
+  const close = () => overlay.remove();
+  const addButton = (label: string, source?: "camera" | "gallery" | "files") => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = label;
+    Object.assign(button.style, { width: "100%", marginTop: "9px", padding: "14px", border: "1px solid #263247", borderRadius: "12px", background: source ? "#111827" : "transparent", color: "#fff", fontSize: "16px", fontWeight: "700" });
+    button.onclick = () => { close(); if (source) run(source); };
+    sheet.appendChild(button);
+  };
+  addButton("📷 Camera", "camera");
+  addButton("🖼️ Photos / Videos", "gallery");
+  addButton("📁 Files", "files");
+  addButton("❌ Cancel");
+  overlay.onclick = event => { if (event.target === overlay) close(); };
+  overlay.appendChild(sheet);
+  document.body.appendChild(overlay);
+}
 
 function validate(assets: PickedImage[]) {
   for (const asset of assets) {
@@ -20,13 +52,54 @@ function validate(assets: PickedImage[]) {
 }
 
 async function camera(): Promise<PickedImage[]> {
+  if (Platform.OS === "web") {
+    return new Promise((resolve, reject) => {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = "image/jpeg,image/png,image/webp";
+      input.capture = "environment";
+      input.style.display = "none";
+      input.onchange = () => {
+        const file = input.files?.[0];
+        input.remove();
+        if (!file) return resolve([]);
+        try {
+          resolve(validate([{
+            uri: URL.createObjectURL(file),
+            fileName: file.name,
+            mimeType: file.type,
+            fileSize: file.size,
+            width: 0,
+            height: 0,
+            type: "image",
+            file,
+          } as PickedImage]));
+        } catch (error) {
+          reject(error);
+        }
+      };
+      input.oncancel = () => {
+        input.remove();
+        resolve([]);
+      };
+      document.body.appendChild(input);
+      input.click();
+    });
+  }
   const permission = await ImagePicker.requestCameraPermissionsAsync();
   if (!permission.granted) {
-    Alert.alert("Camera permission required", "Allow camera access after tapping Camera to take a photo.");
+    Alert.alert(
+      "Camera permission required",
+      "Camera permission is required to take a photo. You can enable it in Settings, or choose Photos / Videos from the Add Photo menu.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Open Settings", onPress: () => void Linking.openSettings() },
+      ],
+    );
     return [];
   }
   const result = await ImagePicker.launchCameraAsync({
-    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    mediaTypes: ["images"],
     allowsEditing: true,
     quality: 0.7,
   });
@@ -35,7 +108,7 @@ async function camera(): Promise<PickedImage[]> {
 
 async function gallery(multiple: boolean): Promise<PickedImage[]> {
   const result = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    mediaTypes: ["images"],
     allowsMultipleSelection: multiple,
     selectionLimit: multiple ? 8 : 1,
     quality: 0.7,
@@ -75,6 +148,10 @@ export function openImageMediaPicker(options: {
       Alert.alert("Unable to add photo", error instanceof Error ? error.message : "Photo selection failed. Please try again.");
     }
   };
+  if (Platform.OS === "web") {
+    showWebMediaMenu(options.title ?? "Add Photo", source => void run(source));
+    return;
+  }
   Alert.alert(
     options.title ?? "Add Photo",
     "JPG, PNG and WebP images up to 5 MB are supported. Videos and documents are not supported for this field.",

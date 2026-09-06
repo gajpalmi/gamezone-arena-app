@@ -115,22 +115,24 @@ export default function EditJob() {
     </View>
   );
 
-  const validate = () => {
+  const validate = (forPublish: boolean) => {
     const next: Errors = {};
-    const required: Array<[string, string]> = [
+    const draftRequired: Array<[string, string]> = [
       ["title", "Job title is required."],
       ["company_name", "Company / business name is required."],
       ["contact_person", "Contact person is required."],
+      ["description", "Job description is required."],
+      ["city", "City is required."],
+    ];
+    const publishRequired: Array<[string, string]> = [
       ["category_id", "Please choose a job category."],
       ["role", "Job role is required."],
-      ["description", "Job description is required."],
       ["required_skills", "Required skills are required."],
       ["required_experience", "Required experience is required."],
       ["education_requirement", "Education requirement is required."],
       ["vacancies", "Vacancies are required."],
       ["salary_min", "Minimum salary is required."],
       ["salary_max", "Maximum salary is required."],
-      ["city", "City is required."],
       ["area", "Area is required."],
       ["location_text", "Work location is required."],
       ["working_hours", "Working hours are required."],
@@ -138,9 +140,13 @@ export default function EditJob() {
       ["requirements", "Requirements are required."],
       ["application_deadline", "Application deadline is required."],
     ];
+    const required = forPublish ? [...draftRequired, ...publishRequired] : draftRequired;
     required.forEach(([key, message]) => {
       if (!String(form[key] ?? "").trim()) next[key] = message;
     });
+    if (String(form.description ?? "").trim() && String(form.description).trim().length < 20) {
+      next.description = "Job description must be at least 20 characters.";
+    }
 
     const vacancies = Number(form.vacancies);
     if (!Number.isInteger(vacancies) || vacancies < 1 || vacancies > 10000) {
@@ -176,7 +182,7 @@ export default function EditJob() {
     if (joiningDate && deadline && validDate(joiningDate) && validDate(deadline) && deadline > joiningDate) {
       next.application_deadline = "Application deadline cannot be after the joining date.";
     }
-    if (!terms && !form.terms_accepted_at) next.terms = "Accept the posting rules and privacy notice.";
+    if (forPublish && !terms && !form.terms_accepted_at) next.terms = "Accept the posting rules and privacy notice.";
 
     setErrors(next);
     if (Object.keys(next).length) {
@@ -189,7 +195,7 @@ export default function EditJob() {
   const save = (preview = false) => {
     if (mutation.isPending) return;
     try {
-      const parsed = validate();
+      const parsed = validate(preview);
       if (!parsed) return;
       const payload = {
         ...form,
@@ -211,6 +217,7 @@ export default function EditJob() {
           onSuccess: result => {
             try {
               const job = result as Job;
+              if (!preview) Alert.alert("Saved successfully", "Your private job draft was saved.");
               router.push((preview ? `/business/jobs/preview?id=${job.id}` : `/business/jobs/${job.id}`) as never);
             } catch (error) {
               console.error("Unable to navigate to job preview", error);
@@ -220,8 +227,8 @@ export default function EditJob() {
           },
           onError: error => {
             console.error("Unable to save job draft", error);
-            setFormError(preview ? "Unable to open job preview. Please try again." : (error as Error).message);
-            Alert.alert(preview ? "Unable to open job preview" : "Could not save", preview ? "Please try again." : (error as Error).message);
+            setFormError(preview ? "Unable to open job preview. Please try again." : "Unable to save. Please try again.");
+            Alert.alert(preview ? "Unable to open job preview" : "Unable to save", preview ? "Please try again." : "Please try again.");
           },
         },
       );

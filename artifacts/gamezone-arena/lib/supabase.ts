@@ -34,6 +34,19 @@ export const supabase =
       })
     : null;
 
+// Public reference data must never inherit an incompatible signed-in token.
+// This client intentionally uses only the Supabase anon key and public SELECT RLS.
+export const publicSupabase =
+  !isPlaceholderUrl && !isPlaceholderKey
+    ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false,
+        },
+      })
+    : null;
+
 export async function refreshSupabaseRealtimeAuth() {
   if (!supabase) return;
   const token = await accessTokenGetter?.();

@@ -1,0 +1,1012 @@
+GAMEZONE ARENA — COMPLETE SAVE + BUY/SELL + EMPLOYER/WORKER CONTACT SYSTEM FIX
+
+GAMEZONE ARENA के मौजूदा Local Directory + Business + Products + Services + Jobs & Hiring सिस्टम का complete functional repair करें।
+
+IMPORTANT:
+अभी कई जगह UI options दिखाई दे रहे हैं लेकिन actual action काम नहीं कर रहा है। विशेष रूप से Save/Draft/Publish/data persistence की समस्या है।
+
+इस task में केवल button दिखाना स्वीकार नहीं है।
+
+हर feature का पूरा वास्तविक flow होना चाहिए:
+
+OPEN
+→ FILL
+→ CATEGORY SELECT
+→ PHOTO/MEDIA
+→ SAVE DRAFT
+→ REOPEN
+→ EDIT
+→ PREVIEW
+→ PUBLISH/SUBMIT
+→ DATABASE SAVE
+→ LISTING/DASHBOARD में दिखाई देना
+→ DETAIL SCREEN
+→ CONTACT/ACTION
+→ SHARE/SAVE/REPORT/BLOCK
+
+किसी भी action पर silent failure नहीं होना चाहिए।
+
+==================================================
+1. FIRST PRIORITY — SAVE PROBLEM ROOT CAUSE
+==================================================
+
+सबसे पहले पता करें कि अभी Save क्यों नहीं हो रहा।
+
+इन सभी को inspect करें:
+
+- Add Business
+- Add Product
+- Add Service
+- Post Job
+- Job Seeker Profile
+- Worker Profile
+- Edit Business
+- Edit Product
+- Edit Service
+- Edit Job
+- Save Job
+- Save Product
+- Save Service
+- Save Business
+- Save Draft
+- Preview
+- Publish
+
+Check करें:
+
+1. Form validation
+2. Required fields
+3. Category ID
+4. Category loading
+5. Supabase insert
+6. Supabase update
+7. RLS
+8. Authentication
+9. Clerk/Supabase user ID mapping
+10. Database constraints
+11. Foreign keys
+12. Storage/media references
+13. React Query mutation
+14. Cache invalidation
+15. Loading state
+16. Navigation after save
+17. Errors swallowed by try/catch
+18. Promise rejection
+19. Wrong table/column names
+20. Wrong enum/status values
+
+सबसे पहले वास्तविक root cause खोजें।
+
+किसी error को केवल catch करके गायब न करें।
+
+==================================================
+2. SAVE MUST ALWAYS GIVE FEEDBACK
+==================================================
+
+Save दबाने पर:
+
+Saving...
+
+दिखे।
+
+Success होने पर:
+
+Saved successfully.
+
+दिखे।
+
+Database save successful होने के बाद:
+
+- screen state update
+- query invalidate/refetch
+- listing दिखाई दे
+- saved state दिखाई दे
+
+Failure होने पर:
+
+Unable to save.
+Please try again.
+
+और development console में वास्तविक error:
+
+- table
+- operation
+- error code
+- error message
+
+log करें।
+
+कोई button दबाने पर "कुछ नहीं हुआ" स्थिति स्वीकार नहीं है।
+
+==================================================
+3. SAVE DRAFT SYSTEM
+==================================================
+
+Business/Product/Service/Job के लिए जहाँ लागू हो:
+
+Save Draft
+
+काम करना चाहिए।
+
+Flow:
+
+Create
+→ partially fill
+→ Save Draft
+→ success
+→ My Listings/My Job Posts
+→ Draft
+→ Continue Editing
+→ form data वापस load
+→ Edit
+→ Save
+→ Preview
+→ Publish
+
+Draft public discovery में दिखाई नहीं देना चाहिए।
+
+Draft database में persist होना चाहिए।
+
+App reload के बाद भी draft रहना चाहिए।
+
+==================================================
+4. PREVIEW SYSTEM
+==================================================
+
+Preview केवल valid data पर खुले।
+
+अगर required field missing है:
+
+Please complete:
+- Job Category
+- Job Title
+- City
+
+जैसा exact error दिखाएँ।
+
+Valid form:
+
+Preview & Publish
+→ Preview Screen
+
+Preview में:
+
+- Edit
+- Back
+- Save Draft
+- Publish/Submit
+
+सभी buttons functional हों।
+
+Preview में वही data दिखना चाहिए जो public listing में दिखाई देगा।
+
+==================================================
+5. PUBLISH SYSTEM
+==================================================
+
+Publish/Submit दबाने पर:
+
+Database में listing बने/updated हो।
+
+Status:
+
+pending
+
+या existing moderation architecture का appropriate status हो।
+
+User को:
+
+Submitted for review.
+
+दिखे।
+
+Admin approval के बाद:
+
+approved + active
+
+हो।
+
+Approved listing:
+
+- Find Jobs
+- Find Products
+- Find Services
+- Business discovery
+
+में दिखाई दे।
+
+==================================================
+6. PRODUCT BUY / SELL SYSTEM
+==================================================
+
+Product system को वास्तविक Buy/Sell marketplace-style contact flow बनाएं।
+
+Seller:
+
+Add Product
+→ Product Name
+→ Category
+→ Description
+→ Photo
+→ Price
+→ Unit
+→ Availability
+→ City
+→ Area
+→ Contact
+→ Save
+→ Preview
+→ Submit
+
+Product approval के बाद public listing दिखाई दे।
+
+==================================================
+7. PRODUCT PHOTO
+==================================================
+
+Add Product में:
+
+Add Photo
+
+tap करने पर:
+
+📷 Camera
+🖼️ Photos/Videos
+📁 Files
+❌ Cancel
+
+का option हो।
+
+Camera:
+
+→ Android camera
+→ Capture
+→ Preview
+→ Retake
+→ Use Photo
+
+Gallery:
+
+→ select
+→ Preview
+→ Replace
+→ Remove
+
+Files:
+
+→ system file picker
+
+Existing storage/security architecture preserve करें।
+
+Unsupported file type को silently accept न करें।
+
+==================================================
+8. PRODUCT DETAIL
+==================================================
+
+Product Detail में:
+
+- Product photo
+- Product name
+- Category
+- Description
+- Price
+- Availability
+- Seller/Business
+- City/Area
+
+Actions:
+
+📞 Call Seller
+💬 WhatsApp Seller
+📧 Email Seller
+❤️ Save Product
+🔗 Share Product
+📋 Copy Link
+🚩 Report
+🚫 Block
+
+यदि seller ने contact consent नहीं दिया है तो private contact information public न करें।
+
+==================================================
+9. BUY / CONTACT SELLER
+==================================================
+
+Product में अभी real-money payment system activate नहीं करना है।
+
+"Buy" का मतलब अभी:
+
+Contact Seller
+
+हो।
+
+Button:
+
+🛒 Buy / Contact Seller
+
+दबाने पर:
+
+- Call
+- WhatsApp
+- Message/Contact Request
+
+जैसे available safe contact options दिखें।
+
+कोई payment gateway अभी activate न करें।
+
+कोई wallet/payment/commission system न जोड़ें।
+
+==================================================
+10. SELLER CONTACT
+==================================================
+
+Seller को buyer से contact request मिल सके।
+
+लेकिन:
+
+- anonymous contact नहीं
+- spam protection
+- block
+- report
+- explicit contact consent
+- authenticated user
+
+का उपयोग करें।
+
+Seller चाहे तो contact स्वीकार/handle कर सके।
+
+Existing privacy/security architecture preserve करें।
+
+==================================================
+11. JOB EMPLOYER ↔ WORKER SYSTEM
+==================================================
+
+Jobs system को actual employer-worker connection flow दें।
+
+Employer:
+
+Post Job
+→ Save Draft
+→ Preview
+→ Submit
+→ Pending
+→ Approved
+→ Active Job
+
+Worker:
+
+Find Jobs
+→ Category
+→ Search
+→ Open Job
+→ Apply
+
+==================================================
+12. JOB APPLICATION
+==================================================
+
+Apply Now:
+
+Applicant:
+
+- Name
+- Phone
+- Email
+- Skills
+- Experience
+- Short Introduction
+- Resume/CV if supported
+- Message
+
+Submit Application
+
+के बाद:
+
+Applied
+
+status बने।
+
+Employer को application दिखाई दे।
+
+==================================================
+13. APPLICATION STATUS
+==================================================
+
+Employer status बदल सके:
+
+Applied
+Viewed
+Shortlisted
+Contacted
+Interview
+Selected
+Rejected
+Withdrawn
+
+Applicant को अपना status दिखाई दे।
+
+दूसरे unrelated users applications नहीं देख सकते।
+
+==================================================
+14. EMPLOYER ↔ WORKER CONTACT
+==================================================
+
+Employer और worker के बीच contact functionality:
+
+Employer:
+
+View Applicant
+→ Contact Worker
+
+Worker:
+
+View Job
+→ Contact Employer
+
+Available actions:
+
+📞 Call
+💬 WhatsApp
+📧 Email
+📩 Contact Request
+
+Phone/WhatsApp/email तभी दिखें जब privacy/contact consent allow करता हो।
+
+System Call Log या SMS access नहीं करेगा।
+
+Call button system dialer खोले।
+
+WhatsApp button WhatsApp deep link/fallback use करे।
+
+==================================================
+15. FIND WORKERS
+==================================================
+
+Find Workers में:
+
+- Category
+- Job Role
+- Skills
+- Experience
+- City
+- Area
+- Work Type
+- Expected Salary
+- Availability
+
+filters काम करें।
+
+Worker profile:
+
+- Display name
+- Photo
+- Skills
+- Experience
+- Education
+- Preferred work
+- Location
+- Bio
+
+Actions:
+
+Contact
+Call
+WhatsApp
+Invite to Apply
+Save
+Share
+Report
+Block
+
+==================================================
+16. CONTACT REQUEST
+==================================================
+
+Employer active job के context में worker को contact/invite भेज सके।
+
+Worker employer को contact request कर सके जहाँ applicable हो।
+
+Unrelated users को private contact/application data access नहीं मिलना चाहिए।
+
+==================================================
+17. SAVE / UNSAVE SYSTEM
+==================================================
+
+Save functionality सभी applicable entities में वास्तव में काम करे:
+
+Business
+Product
+Service
+Job
+Worker/Profile
+
+Button state:
+
+♡ Save
+
+और save होने पर:
+
+❤️ Saved
+
+हो।
+
+Database में user-specific save relation बने।
+
+App reload के बाद भी Saved state बनी रहे।
+
+Saved screen में item दिखाई दे।
+
+Unsave करने पर Saved screen से हटे।
+
+Cross-user save manipulation नहीं हो।
+
+==================================================
+18. MY LISTINGS
+==================================================
+
+My Listings में:
+
+Business
+Product
+Service
+Job
+
+सभी user-owned listings दिखाई दें।
+
+हर listing:
+
+View
+Edit
+Save state
+Enable/Disable
+Share
+Delete
+Status
+
+दे।
+
+Status:
+
+Draft
+Pending
+Approved
+Rejected
+Suspended
+Closed
+
+सही तरह दिखे।
+
+==================================================
+19. CATEGORY SYSTEM
+==================================================
+
+Category system central और functional होना चाहिए।
+
+Category:
+
+→ tap
+→ list open
+→ categories दिखाई दें
+→ category select
+→ Choose
+→ selected category form में दिखाई दे
+→ Save
+→ database
+→ Edit
+→ Preview
+→ Discovery
+
+हर जगह category बनी रहे।
+
+Business/Product/Service/Job की appropriate category list हो।
+
+Category database में है तो वही source reuse करें।
+
+Duplicate categories create न करें।
+
+यदि database query fail हो तो exact error diagnose करें।
+
+==================================================
+20. SEARCH
+==================================================
+
+Typing करते ही global search/navigation trigger नहीं होना चाहिए।
+
+User text type करे:
+
+Electrician
+
+तो केवल input में text रहे।
+
+Search तभी चले जब:
+
+- Search button दबे
+या
+- keyboard Search दबे
+या
+- Apply Filters दबे
+
+Category picker का search केवल category list filter करे।
+
+==================================================
+21. SHARE
+==================================================
+
+Business/Product/Service/Job/Worker के लिए:
+
+Share
+Copy Link
+
+काम करे।
+
+Existing GAMEZONE ARENA deep-link architecture reuse करें।
+
+==================================================
+22. REPORT & BLOCK
+==================================================
+
+Business/Product/Service/Job/Worker पर:
+
+Report
+Block
+
+काम करे।
+
+Report reasons:
+
+- Scam
+- Fake Listing
+- Spam
+- Misleading
+- Harassment
+- Illegal Activity
+- Other
+
+Duplicate unresolved reports control करें।
+
+Existing moderation/security system preserve करें।
+
+==================================================
+23. ADMIN MODERATION
+==================================================
+
+Admin:
+
+- Jobs
+- Products
+- Services
+- Businesses
+- Worker profiles
+- Reports
+
+moderate कर सके।
+
+Actions:
+
+Approve
+Reject
+Suspend
+Restore
+Resolve Report
+
+Audit log preserve करें।
+
+==================================================
+24. NOTIFICATIONS
+==================================================
+
+Existing notification/preferences system में:
+
+Product contact request
+Job application
+Application status
+Employer message
+Worker contact request
+Job matching
+
+notifications जोड़ें।
+
+Existing sound/vibration/master notification preferences respect करें।
+
+Remote push-token backend activate न करें जब तक explicitly required न हो।
+
+==================================================
+25. PRIVACY & SECURITY
+==================================================
+
+Existing RLS/security को preserve करें।
+
+Rules:
+
+User A User B listing edit/delete नहीं कर सकता।
+
+Employer केवल अपनी jobs की applications देख सकता है।
+
+Applicant केवल अपनी application देख सकता है।
+
+Private contact केवल consent के अनुसार।
+
+Private media cross-user access denied।
+
+Anonymous private data access denied।
+
+Anonymous RPC execution denied।
+
+Existing Business/Product/Service/Jobs security tests फिर से चलाएँ।
+
+==================================================
+26. MEDIA SECURITY
+==================================================
+
+Photo/video/file:
+
+- authenticated upload
+- owner-scoped path
+- MIME validation
+- file-size validation
+- secure storage
+- proper database reference
+- correct visibility
+- cross-user access protection
+
+Existing storage policies को कमजोर न करें।
+
+==================================================
+27. PERMISSIONS
+==================================================
+
+Unnecessary Android permissions बिल्कुल न जोड़ें।
+
+Contacts
+Call Log
+SMS
+Microphone
+Location
+
+नहीं जोड़ें।
+
+Camera केवल Camera button दबाने पर।
+
+Gallery/File picker के लिए broad storage permission न जोड़ें यदि system picker पर्याप्त है।
+
+==================================================
+28. COMPLETE END-TO-END TEST
+==================================================
+
+TEST A — BUSINESS
+
+Add Business
+→ Category
+→ Photo
+→ Save Draft
+→ My Listings
+→ Reopen
+→ Edit
+→ Preview
+→ Submit
+→ Approved
+→ Public listing
+
+TEST B — PRODUCT
+
+Add Product
+→ Category
+→ Camera/Gallery
+→ Photo Preview
+→ Price
+→ Save Draft
+→ Reopen
+→ Edit
+→ Preview
+→ Submit
+→ Approved
+→ Product Detail
+→ Call Seller
+→ WhatsApp Seller
+→ Save
+→ Share
+
+TEST C — SERVICE
+
+Add Service
+→ Category
+→ Photo
+→ Save
+→ Edit
+→ Preview
+→ Submit
+→ Detail
+→ Contact
+→ Save
+→ Share
+
+TEST D — JOB
+
+Post Job
+→ Category
+→ Save Draft
+→ My Job Posts
+→ Continue Editing
+→ Preview
+→ Submit
+→ Pending
+→ Admin Approve
+→ Find Jobs
+→ Open Job
+→ Apply
+
+TEST E — WORKER
+
+Create Worker Profile
+→ Category
+→ Skills
+→ Photo
+→ Save
+→ Find Workers
+→ Filter Category
+→ Profile
+→ Contact
+
+TEST F — APPLICATION
+
+Worker Apply
+→ Employer sees application
+→ Employer changes status
+→ Worker sees updated status
+→ Employer Contact Worker
+→ Worker Contact Employer
+
+TEST G — SAVE
+
+Save Product
+Save Service
+Save Job
+Save Business
+Save Worker
+
+Reload app.
+
+All saved states remain correct.
+
+TEST H — SEARCH
+
+Type text
+→ NO navigation
+
+Press Search
+→ Search executes.
+
+==================================================
+29. ERROR HANDLING
+==================================================
+
+No silent failures.
+
+Every async action must have:
+
+loading
+success
+error
+
+states.
+
+If Supabase error occurs show user-friendly message and log actual development error.
+
+Examples:
+
+"Unable to save. Please try again."
+
+"Unable to publish. Please try again."
+
+"Unable to load categories."
+
+"Unable to contact seller."
+
+"Unable to submit application."
+
+==================================================
+30. VALIDATION
+==================================================
+
+Run:
+
+TypeScript
+Expo Doctor
+Dependency compatibility
+Metro startup
+Android JS/Hermes bundle
+Navigation validation
+Database tests
+RLS tests
+Storage tests
+Save tests
+Draft tests
+Preview tests
+Publish tests
+Category tests
+Photo/media tests
+Contact tests
+Application tests
+Employer/worker tests
+Buy/seller contact tests
+Save/unsave tests
+Search regression tests
+Report/block tests
+
+==================================================
+31. IMPORTANT — NO BUILD
+==================================================
+
+इस task के दौरान:
+
+NO EAS BUILD
+NO APK
+NO AAB
+NO DEPLOYMENT
+NO PLAY STORE PUBLISH
+NO PAID UPGRADE
+NO BILLING ACTIVATION
+
+केवल code/database/local validation करें।
+
+==================================================
+FINAL ACCEPTANCE CRITERIA
+==================================================
+
+GAMEZONE ARENA में हर major option केवल दिखाई नहीं देना चाहिए बल्कि वास्तव में काम करना चाहिए।
+
+Business:
+Add → Save → Edit → Preview → Publish → View
+
+Product:
+Add → Category → Photo → Save → Edit → Preview → Publish → Buyer Contact Seller
+
+Service:
+Add → Category → Photo → Save → Edit → Preview → Publish → Customer Contact Provider
+
+Jobs:
+Post → Category → Save Draft → Preview → Publish → Find Jobs → Apply
+
+Workers:
+Profile → Save → Find Workers → Employer Contact Worker
+
+Employer:
+Job → Applications → Contact Worker
+
+Worker:
+Job → Apply → Application Status → Contact Employer
+
+हर चीज:
+
+SAVE
+→ DATABASE
+→ REOPEN
+→ EDIT
+→ PREVIEW
+→ PUBLISH
+→ DISPLAY
+
+तक सही रहनी चाहिए।
+
+FINAL REPORT में बताएं:
+
+1. Save failure का वास्तविक root cause।
+2. कौन-कौन से files बदले।
+3. कौन-कौन से database operations बदले।
+4. कौन-कौन से RLS/security changes हुए।
+5. Business Save status।
+6. Product Save status।
+7. Service Save status।
+8. Job Save/Draft/Publish status।
+9. Worker profile Save status।
+10. Buyer ↔ Seller contact status।
+11. Employer ↔ Worker contact status।
+12. Application status flow।
+13. Category status।
+14. Photo/camera/media status।
+15. Save/Unsave status।
+16. सभी tests PASS/FAIL।
+17. कोई remaining limitation।
+
+किसी भी feature को केवल UI में दिखाकर "working" घोषित न करें।
+Database में वास्तव में save होकर वापस load होना चाहिए।

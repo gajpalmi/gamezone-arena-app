@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase";
+import { publicSupabase, supabase } from "@/lib/supabase";
 import type { BusinessStatus, ReportReason } from "@/lib/business";
 
 export type OfferingKind = "product" | "service";
@@ -7,7 +7,12 @@ export type OfferingInput = Omit<BusinessOffering, "id" | "owner_user_id" | "sta
 export type OfferingFilters = { query?: string; kind?: OfferingKind; category?: string; city?: string; area?: string; minPrice?: number; maxPrice?: number };
 const columns = "id,owner_user_id,business_id,kind,name,category,subcategory,description,price,price_unit,in_stock,city,area,location_text,service_area,contact_phone,whatsapp,delivery_info,availability_hours,is_enabled,contact_public_consent_at,terms_version,terms_accepted_at,status,rejection_reason,created_at,updated_at";
 const db = () => { if (!supabase) throw new Error("Offerings are unavailable: Supabase is not configured."); return supabase; };
-const fail = (error: { message: string } | null) => { if (error) throw new Error(`Offering service error: ${error.message}`); };
+const fail = (error: { code?: string; message: string; details?: string; hint?: string } | null, operation = "unknown", table = "unknown") => {
+  if (error) {
+    console.error("Offering database operation failed", { table, operation, code: error.code, message: error.message, details: error.details, hint: error.hint });
+    throw new Error(`Offering service error: ${error.message}`);
+  }
+};
 const text = (v: string | null | undefined, n: number) => { const x = v?.trim() ?? ""; if (x.length > n) throw new Error(`Value must be ${n} characters or fewer.`); return x || null; };
 function valid(input: OfferingInput) {
   if (!input.name.trim() || !input.category.trim() || !input.subcategory?.trim() || !input.description.trim() || !input.city.trim() || !input.contact_phone.trim()) throw new Error("Name, category, subcategory, description, city, and contact phone are required.");
@@ -22,7 +27,9 @@ function clean(input: OfferingInput) {
 }
 export type OfferingCategory = { id: string; kind: OfferingKind; slug: string; name: string; parent_id: string | null; sort_order: number };
 export async function offeringCategories(kind: OfferingKind) {
-  const { data, error } = await db().from("offering_categories").select("id,kind,slug,name,parent_id,sort_order").eq("kind", kind).eq("is_active", true).order("sort_order").order("name");
+  if (!publicSupabase) throw new Error("Offering categories are unavailable: Supabase is not configured.");
+  const { data, error } = await publicSupabase.from("offering_categories").select("id,kind,slug,name,parent_id,sort_order").eq("kind", kind).eq("is_active", true).order("sort_order").order("name");
+  if (error) console.error("Category query failed", { scope: kind, table: "offering_categories", parameters: { kind, is_active: true, order: ["sort_order", "name"] }, code: error.code, message: error.message, details: error.details, hint: error.hint });
   fail(error); return (data ?? []) as OfferingCategory[];
 }
 export async function browseOfferings(filters: OfferingFilters = {}): Promise<BusinessOffering[]> {
@@ -33,9 +40,9 @@ export async function browseOfferings(filters: OfferingFilters = {}): Promise<Bu
 }
 export async function getOffering(id: string) { const [o, p, r, favorite] = await Promise.all([db().from("business_offerings").select(columns).eq("id", id).single(), db().from("business_offering_photos").select("id,storage_path,alt_text,sort_order").eq("offering_id", id).order("sort_order"), db().from("business_offering_reviews").select("*").eq("offering_id", id).eq("is_approved", true), db().from("business_offering_favorites").select("offering_id").eq("offering_id", id).maybeSingle()]); fail(o.error); fail(p.error); fail(r.error); fail(favorite.error); const paths = (p.data ?? []).map(x => x.storage_path); const signed = paths.length ? await db().storage.from("business-media").createSignedUrls(paths, 600) : { data: [], error: null }; fail(signed.error); const map = new Map((signed.data ?? []).map(x => [x.path, x.signedUrl])); return { offering: o.data as BusinessOffering, photos: (p.data ?? []).map(x => ({ ...x, signedUrl: map.get(x.storage_path) })), reviews: r.data ?? [], isSaved: !!favorite.data }; }
 export async function myOfferings() { const { data, error } = await db().from("business_offerings").select(columns).order("updated_at", { ascending: false }); fail(error); return (data ?? []) as BusinessOffering[]; }
-export async function saveOffering(input: OfferingInput, id?: string) { const q = id ? db().from("business_offerings").update({ ...clean(input), updated_at: new Date().toISOString() }).eq("id", id) : db().from("business_offerings").insert(clean(input)); const { data, error } = await q.select(columns).single(); fail(error); return data as BusinessOffering; }
+export async function saveOffering(input: OfferingInput, id?: string) { const q = id ? db().from("business_offerings").update({ ...clean(input), updated_at: new Date().toISOString() }).eq("id", id) : db().from("business_offerings").insert(clean(input)); const { data, error } = await q.select(columns).single(); fail(error, id ? "update" : "insert", "business_offerings"); return data as BusinessOffering; }
 export async function deleteOffering(id: string) { const { error } = await db().from("business_offerings").delete().eq("id", id); fail(error); }
-export async function submitOffering(id: string) { const { data, error } = await db().rpc("business_offering_submit", { p_offering_id: id }); fail(error); return data as BusinessOffering; }
+export async function submitOffering(id: string) { const { data, error } = await db().rpc("business_offering_submit", { p_offering_id: id }); fail(error, "submit", "business_offerings"); return data as BusinessOffering; }
 export async function setOfferingEnabled(id: string, isEnabled: boolean) { const { data, error } = await db().rpc("business_offering_set_enabled", { p_offering_id: id, p_is_enabled: isEnabled }); fail(error); return data as BusinessOffering; }
 export function sanitizeOfferingFilename(filename: string) { const base = filename.split(/[\\/]/).pop()?.toLowerCase().replace(/[^a-z0-9._-]/g, "-") || ""; const ext = base.split(".").pop(); if (!["jpg","jpeg","png","webp"].includes(ext ?? "")) throw new Error("Only JPG, PNG, and WebP images are accepted."); return `${Date.now()}-${base.slice(0, 100)}`; }
 export async function uploadOfferingPhoto(offeringId: string, filename: string, file: Blob, contentType: "image/jpeg"|"image/png"|"image/webp", altText?: string) {
