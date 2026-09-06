@@ -1,0 +1,657 @@
+GAMEZONE ARENA — SECURE BACKEND HARDENING
+
+आप GAMEZONE ARENA के senior backend security engineer हैं।
+
+इस task का उद्देश्य केवल तीन remaining security/backend areas को सुरक्षित तरीके से मजबूत करना है:
+
+1. Business/Product/Service public contact projection
+2. Job employer ↔ worker contact authorization
+3. Admin moderation/report minimum-field projections
+
+इसके अलावा किसी unrelated feature को बदलना नहीं है।
+
+---
+
+🔴 ABSOLUTE SAFETY RULES
+
+काम शुरू करने से पहले existing implementation को READ-ONLY तरीके से inspect करें।
+
+बिल्कुल नहीं करना है
+
+- Replit Pro upgrade नहीं
+- कोई paid service नहीं
+- EAS build नहीं
+- deployment नहीं
+- नया Clerk account नहीं
+- नया Clerk application नहीं
+- Existing Replit-managed Clerk नहीं बदलना
+- Authentication architecture नहीं बदलना
+- RLS disable नहीं करना
+- RLS कमजोर नहीं करना
+- Public/anonymous INSERT नहीं
+- "service_role" client में नहीं
+- Client-supplied owner ID trust नहीं करना
+- Authentication bypass नहीं
+- Deprecated Clerk JWT template नहीं
+- Existing security policies को हटाना नहीं
+- Existing working UI हटाना नहीं
+
+Current Auth Blocker
+
+Existing architecture:
+
+Clerk
+→ Supabase Third-Party Auth
+→ "role: authenticated"
+→ Existing RLS
+
+Current Replit-managed Clerk में required Supabase compatibility configuration उपलब्ध नहीं है।
+
+इस task में उस blocker को bypass या modify नहीं करना है।
+
+यदि migration की जरूरत हो तो पहले केवल report करें।
+
+---
+
+PHASE 1 — CURRENT DATABASE CONTRACT INSPECT करें
+
+पहले इन existing tables/functions/policies को identify करें:
+
+Business
+
+- businesses
+- business_admins
+- business_verification
+- business_hours
+- business_photos
+- business_reviews
+- business_reports
+- business_blocks
+
+Product/Service
+
+- business_offerings
+- offering-related reports/blocks/favorites
+- storage policies
+
+Jobs
+
+- jobs
+- applications
+- seeker profiles
+- private contact data
+- worker invitations/contact requests
+- reports
+- blocks
+
+साथ में existing:
+
+- RLS policies
+- RPC/functions
+- views
+- triggers
+- storage policies
+
+inspect करें।
+
+पहले existing contract समझें।
+
+---
+
+PHASE 2 — CONSENT-AWARE PUBLIC CONTACT PROJECTION
+
+Goal:
+
+Public Business/Product/Service screens पर contact details केवल सुरक्षित conditions में उपलब्ध हों।
+
+Public client query को सीधे private contact fields select नहीं करने देना है।
+
+Required logic
+
+Public contact तभी return हो जब:
+
+1. Listing वास्तव में public/discoverable state में हो
+2. Listing owner ने explicit contact consent दिया हो
+3. Contact value मौजूद हो
+4. Contact value valid/usable हो
+5. Listing blocked/unpublished/moderated state में न हो
+
+इनमें से कोई condition false हो तो contact null/unavailable रहे।
+
+---
+
+PHASE 3 — DATABASE-SIDE ENFORCEMENT
+
+यदि existing schema support करता है तो secure database-side projection/RPC बनाएं।
+
+उदाहरण conceptual result:
+
+public listing data
++
+safe contact projection
+
+लेकिन actual implementation existing schema के अनुसार करें।
+
+Client को यह decide करने न दें:
+
+show_contact = true
+
+Database स्वयं consent verify करे।
+
+Client केवल returned projection पर भरोसा करे।
+
+---
+
+PHASE 4 — CONTACT DATA MINIMIZATION
+
+Public projection में केवल जरूरत के fields लौटाएं।
+
+उदाहरण:
+
+- listing ID
+- display name
+- category
+- city
+- area
+- description
+- photos
+- safe contact information only when authorized
+
+इन fields को public projection में न लौटाएं:
+
+- owner internal IDs जहाँ unnecessary हों
+- legal consent timestamps
+- moderation fields
+- private notes
+- verification internals
+- private contact fields when consent false
+- admin-only fields
+
+---
+
+PHASE 5 — PRODUCT CONTACT
+
+Product seller contact:
+
+- Call Seller
+- WhatsApp Seller
+- Email Seller
+
+तभी available हो जब:
+
+listing public
+AND
+seller consent = true
+AND
+contact exists
+
+यदि consent false:
+
+Contact buttons hide/disable करें।
+
+सिर्फ UI hide करना पर्याप्त नहीं है।
+
+Database projection भी contact वापस न करे।
+
+---
+
+PHASE 6 — SERVICE CONTACT
+
+Service provider contact पर भी यही नियम लागू करें।
+
+Consent false होने पर:
+
+- phone null
+- WhatsApp null
+- email null
+
+रहे।
+
+UI में contact buttons न दिखें।
+
+---
+
+PHASE 7 — BUSINESS CONTACT
+
+Business directory/detail में भी यही सुरक्षित projection उपयोग करें।
+
+Public business:
+
+- name
+- category
+- description
+- location
+- hours
+- photos
+
+दिख सकता है।
+
+लेकिन contact केवल explicit consent के बाद।
+
+---
+
+PHASE 8 — JOB EMPLOYER ↔ WORKER CONTACT AUTHORIZATION
+
+अब existing "job_get_seeker_contact" या equivalent RPC/function inspect करें।
+
+Goal:
+
+Employer किसी भी worker का private contact freely access न कर सके।
+
+Contact access केवल authorized relationship में मिले।
+
+---
+
+PHASE 9 — VALID RELATIONSHIP
+
+Existing database model के अनुसार इनमें से valid relationship identify करें:
+
+- employer owns the job
+- worker applied to that job
+- application exists
+- application is still eligible for contact
+- accepted contact request exists
+- employer-worker invitation exists
+- other existing authorized relationship
+
+Actual existing schema के अनुसार safest relationship चुनें।
+
+Relationship client से supplied ID के आधार पर blindly trust न करें।
+
+Database स्वयं relationship verify करे।
+
+---
+
+PHASE 10 — JOB CONTACT RPC SECURITY
+
+"job_get_seeker_contact" या equivalent function को इस प्रकार harden करें:
+
+Allowed
+
+Authorized employer + authorized job/application/relationship.
+
+Denied
+
+- random employer
+- unrelated user
+- unauthenticated user
+- arbitrary worker ID
+- arbitrary job ID
+- arbitrary application ID
+- blocked relationship जहाँ existing rules ऐसा require करें
+
+Unauthorized request पर:
+
+- no private contact data
+- safe error/empty response
+
+---
+
+PHASE 11 — DO NOT TRUST CLIENT IDs
+
+Client request में यदि fields हों:
+
+worker_id
+job_id
+application_id
+
+तो केवल इन values को authorization proof न मानें।
+
+Database verify करे:
+
+authenticated user
++
+owns/authorized relationship
++
+correct job
++
+correct worker
++
+correct application/request
+
+तभी private contact return हो।
+
+---
+
+PHASE 12 — EMPLOYER CONTACT UI
+
+Employer application screen में:
+
+Contact Worker तभी दिखे जब secure backend अनुमति दे।
+
+Actions:
+
+- Call
+- WhatsApp
+- Email
+
+सिर्फ returned authorized contact पर आधारित हों।
+
+Unauthorized स्थिति में:
+
+- Contact button न दिखाएं
+- या safe unavailable message दें
+
+Private contact data पहले fetch करके फिर UI में hide न करें।
+
+---
+
+PHASE 13 — WORKER PRIVACY
+
+Worker को भी unauthorized employer/user से बचाएं।
+
+Worker private contact:
+
+- public job listing में नहीं
+- public worker directory में नहीं
+- unrelated employer को नहीं
+- random authenticated user को नहीं
+
+दिखना चाहिए।
+
+---
+
+PHASE 14 — BLOCK CHECK
+
+जहाँ existing block system लागू है वहाँ contact authorization से पहले block relationship भी check करें।
+
+यदि existing product/business/job rules block के बाद contact रोकते हैं तो database-side enforcement रखें।
+
+Client-side block check पर अकेले भरोसा न करें।
+
+---
+
+PHASE 15 — ADMIN REPORT PROJECTION
+
+Existing moderation/report queries inspect करें।
+
+Admin को पूरी raw database row लौटाने की जरूरत नहीं है।
+
+Admin report list में minimum fields रखें:
+
+- report ID
+- target type
+- target ID
+- reason
+- details where appropriate
+- status
+- created timestamp
+- moderation status
+- minimal reporter information where required
+
+Unnecessary private contact fields न लौटाएं।
+
+---
+
+PHASE 16 — ADMIN AUTHORIZATION
+
+Moderation queue केवल verified admin authorization के बाद उपलब्ध हो।
+
+Existing:
+
+"business_is_admin"
+
+या equivalent secure authorization contract preserve करें।
+
+Client-side:
+
+isAdmin = true
+
+पर भरोसा न करें।
+
+Database/RPC authorization authoritative रहे।
+
+---
+
+PHASE 17 — ADMIN DATA MINIMIZATION
+
+Admin report response में unnecessary:
+
+- phone
+- WhatsApp
+- email
+- private worker data
+- legal consent internals
+- private media URLs
+- secrets
+- authentication tokens
+
+न लौटाएं।
+
+Admin को भी केवल task के लिए आवश्यक data दें।
+
+---
+
+PHASE 18 — STORAGE
+
+Private media storage policies को न बदलें जब तक इस task के लिए absolutely necessary न हो।
+
+Signed/private media access existing architecture के अनुसार ही रहे।
+
+Public URL बनाकर private media expose न करें।
+
+---
+
+PHASE 19 — MIGRATION RULE
+
+यदि database migration आवश्यक है:
+
+पहले existing migration style और schema conventions inspect करें।
+
+Migration:
+
+- additive हो
+- reversible जहाँ practical हो
+- existing data नष्ट न करे
+- existing RLS कमजोर न करे
+- existing functions को बिना replacement हटाए नहीं
+
+यदि migration की आवश्यकता स्पष्ट नहीं है तो migration न बनाएं।
+
+---
+
+PHASE 20 — AUTHENTICATION BLOCKER
+
+यदि database test authentication के कारण fail हो:
+
+authentication bypass मत करें।
+
+Report करें कि test current Clerk/Supabase blocker के कारण पूर्ण नहीं हो सका।
+
+किसी test को pass दिखाने के लिए:
+
+- RLS disable
+- anonymous role
+- service_role
+- fake JWT
+- owner spoofing
+
+का उपयोग बिल्कुल न करें।
+
+---
+
+PHASE 21 — SECURITY TESTS
+
+कम से कम conceptual/database tests करें:
+
+Public Business
+
+- consent true → safe contact available
+- consent false → contact unavailable
+- invalid contact → unavailable
+- unpublished listing → unavailable
+
+Product
+
+- consent true → contact available
+- consent false → contact unavailable
+
+Service
+
+- consent true → contact available
+- consent false → contact unavailable
+
+Jobs
+
+- authorized employer → contact allowed
+- unrelated employer → denied
+- unrelated user → denied
+- unauthenticated → denied
+- wrong worker/job combination → denied
+- wrong application → denied
+
+Admin
+
+- verified admin → minimum projection
+- ordinary user → denied
+- private contact not included unnecessarily
+
+---
+
+PHASE 22 — REGRESSION PROTECTION
+
+इन existing features को न तोड़ें:
+
+- Product browse
+- Product filters
+- Product detail
+- Service browse
+- Business directory
+- Business detail
+- Job browse
+- Job detail
+- Applications
+- Withdraw application
+- Saved listings
+- Report
+- Block
+- Share
+- Photos
+- Categories
+- Search
+- Settings
+- Games
+- Ludo
+- Quick Quiz
+
+---
+
+PHASE 23 — NO FAKE SUCCESS
+
+Database write/read वास्तव में सफल न हो तो:
+
+❌ "Saved successfully"
+
+जैसा fake message नहीं।
+
+Truthful state दें:
+
+- Success
+- Error
+- Unauthorized
+- Unavailable
+- Empty
+
+इनमें सही distinction रखें।
+
+---
+
+PHASE 24 — CODE QUALITY
+
+Final check:
+
+- TypeScript
+- imports
+- RPC calls
+- query construction
+- error handling
+- loading states
+- null handling
+- unauthorized handling
+
+Run available free/static checks only।
+
+---
+
+PHASE 25 — DO NOT BUILD
+
+इस task में:
+
+No EAS build.
+
+No deployment.
+
+No paid operation.
+
+---
+
+PHASE 26 — FINAL REPORT
+
+काम पूरा होने पर exact sections में report दें:
+
+Fixed
+
+वास्तव में लागू किए गए changes।
+
+Verified
+
+जो existing security/features सही पाए गए।
+
+Security tests
+
+कौन से tests pass हुए और कौन से authentication blocker के कारण unavailable रहे।
+
+Authentication blocked
+
+यदि लागू हो:
+
+"Replit-managed Clerk → Supabase role: authenticated configuration remains unavailable."
+
+Not fixed
+
+जो चीजें अभी बाकी हैं।
+
+Database
+
+- migrations applied: yes/no
+- existing RLS changed: yes/no
+- storage policies changed: yes/no
+
+Security
+
+Confirm:
+
+- No auth bypass
+- No public INSERT
+- No anonymous write
+- No service_role client exposure
+- No owner-ID trust
+- No private contact exposure
+- No unnecessary admin data exposure
+- No deprecated JWT template
+- No new Clerk application
+- No RLS weakening
+
+Build
+
+"No build/deployment performed."
+
+Paid operations
+
+"No paid operation performed."
+
+---
+
+FINAL RULE
+
+सबसे पहले READ-ONLY audit।
+
+फिर केवल आवश्यक minimal secure changes।
+
+Existing architecture preserve करें।
+
+Security और privacy functionality से अधिक महत्वपूर्ण है।
+
+यदि किसी change के लिए authentication migration, paid access, RLS weakening या unsafe workaround चाहिए:
+
+रुकें, change न करें और report करें।

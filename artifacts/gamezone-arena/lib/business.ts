@@ -20,11 +20,19 @@ export type BusinessCategory = { id: string; slug: string; name: string; descrip
 export type BusinessHours = { day_of_week: number; opens_at: string | null; closes_at: string | null; is_closed: boolean };
 export type BusinessPhoto = { id: string; business_id: string; storage_path: string; alt_text: string | null; sort_order: number; is_logo?: boolean; created_at: string; signedUrl?: string };
 export type BusinessReview = { id: string; business_id: string; user_id: string; rating: number; body: string; is_approved: boolean; created_at: string; updated_at: string };
+/** Minimal row used by the business moderation list. */
+export type PendingBusiness = Pick<Business, "id" | "name" | "description">;
+/** Minimal unresolved report row used by the business moderation list. */
+export type BusinessReportQueueItem = { id: string; business_id: string | null; review_id: string | null; reason: ReportReason; details: string | null; created_at: string; resolved_at: string | null };
 export type BrowseOptions = { categoryId?: string; city?: string; query?: string; page?: number; pageSize?: number };
 export type BusinessInput = Pick<Business, "category_id" | "name" | "city" | "phone" | "terms_version" | "terms_accepted_at" | "privacy_version" | "privacy_accepted_at" | "listing_rules_version" | "listing_rules_accepted_at"> & Partial<Pick<Business, "description" | "email" | "website" | "address" | "latitude" | "longitude" | "owner_name" | "owner_display_name" | "subcategory" | "whatsapp" | "service_areas" | "services_offered" | "price_range" | "public_contact_consent_at">>;
 
 const MAX_PAGE_SIZE = 50;
 const ownerBusinessColumns = "id,owner_id,category_id,name,description,phone,email,website,address,city,latitude,longitude,owner_name,owner_display_name,subcategory,whatsapp,service_areas,services_offered,price_range,public_contact_consent_at,terms_version,terms_accepted_at,privacy_version,privacy_accepted_at,listing_rules_version,listing_rules_accepted_at,status,submitted_at,approved_at,rejection_reason,created_at,updated_at";
+const pendingBusinessColumns = "id,name,description";
+const businessReportQueueColumns = "id,business_id,review_id,reason,details,created_at,resolved_at";
+const businessReviewColumns = "id,business_id,user_id,rating,body,is_approved,created_at,updated_at";
+const businessPhotoColumns = "id,business_id,storage_path,alt_text,sort_order,is_logo,created_at";
 // Do not add contact, owner, legal acceptance, or moderation fields here. The
 // current schema has no security-definer public projection that can conditionally
 // expose contacts, so public reads must not select them at all.
@@ -164,7 +172,7 @@ export async function listFavorites(): Promise<PublicBusiness[]> {
 export async function saveReview(businessId: string, rating: number, body: string) {
   if (!Number.isInteger(rating) || rating < 1 || rating > 5) throw new Error("Rating must be between 1 and 5.");
   const text = cleanText(body, 2000) ?? "";
-  const { data, error } = await client().from("business_reviews").upsert({ business_id: businessId, rating, body: text }, { onConflict: "business_id,user_id" }).select().single();
+  const { data, error } = await client().from("business_reviews").upsert({ business_id: businessId, rating, body: text }, { onConflict: "business_id,user_id" }).select(businessReviewColumns).single();
   fail(error); return data as BusinessReview;
 }
 export async function reportBusiness(businessId: string, reason: ReportReason, details?: string) {
@@ -186,10 +194,10 @@ export async function listBlockedBusinessIds(): Promise<Set<string>> {
 export async function adminQueue(limit = 50) {
   const safeLimit = Math.min(100, Math.max(1, limit));
   const [businesses, reports] = await Promise.all([
-    client().from("businesses").select(ownerBusinessColumns).eq("status", "pending").order("submitted_at").limit(safeLimit),
-    client().from("business_reports").select("*").is("resolved_at", null).order("created_at").limit(safeLimit),
+    client().from("businesses").select(pendingBusinessColumns).eq("status", "pending").order("submitted_at").limit(safeLimit),
+    client().from("business_reports").select(businessReportQueueColumns).is("resolved_at", null).order("created_at").limit(safeLimit),
   ]);
-  fail(businesses.error); fail(reports.error); return { businesses: (businesses.data ?? []) as Business[], reports: reports.data ?? [] };
+  fail(businesses.error); fail(reports.error); return { businesses: (businesses.data ?? []) as PendingBusiness[], reports: (reports.data ?? []) as BusinessReportQueueItem[] };
 }
 export async function isBusinessAdmin(): Promise<boolean> {
   const { data, error } = await client().rpc("business_is_admin");
@@ -222,7 +230,7 @@ export async function uploadBusinessImage(businessId: string, filename: string, 
   if (!prefix) throw new Error("Photo upload is not authorized for this listing.");
   const storagePath = `${prefix}${safeFilename}`;
   const { error: uploadError } = await db.storage.from("business-media").upload(storagePath, file, { contentType, upsert: false }); fail(uploadError);
-  const { data, error } = await db.from("business_photos").insert({ business_id: businessId, storage_path: storagePath, alt_text: cleanText(altText, 240) }).select().single();
+  const { data, error } = await db.from("business_photos").insert({ business_id: businessId, storage_path: storagePath, alt_text: cleanText(altText, 240) }).select(businessPhotoColumns).single();
   if (error) { await db.storage.from("business-media").remove([storagePath]); fail(error); }
   return data as BusinessPhoto;
 }
