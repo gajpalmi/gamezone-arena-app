@@ -56,6 +56,7 @@ export default function OfferingEdit() {
   });
   const [f, setF] = useState({
     kind: kind === "service" ? "service" as const : "product" as const,
+    listing_intent: "sell" as "buy" | "sell",
     name: "",
     category: "",
     subcategory: "",
@@ -176,6 +177,7 @@ export default function OfferingEdit() {
     const payload: OfferingInput = {
       business_id: null,
       kind: f.kind,
+      listing_intent: f.kind === "product" ? f.listing_intent : "sell",
       name: f.name,
       category: f.category,
       subcategory: f.subcategory || null,
@@ -201,8 +203,8 @@ export default function OfferingEdit() {
         try {
           await uploadPhotos(result.id);
           setLocalPhotos([]);
-          Alert.alert("Saved successfully", preview ? "Opening listing preview." : "Your private draft was saved.");
-          router.replace((preview ? `/business/offering/preview?id=${result.id}` : `/business/offering/${result.id}`) as never);
+          Alert.alert("Saved successfully", preview ? "Opening listing preview." : "Your draft is now visible in My Listings.");
+          router.replace((preview ? `/business/offering/preview?id=${result.id}` : "/business/offerings-mine") as never);
         } catch (error) {
           console.error("Offering photo upload failed", error);
           Alert.alert("Draft saved", "The listing was saved, but one or more photos could not be uploaded.");
@@ -231,6 +233,23 @@ export default function OfferingEdit() {
         {Object.values(errors).map(message => <Text key={message} style={s.errorSummaryText}>• {message}</Text>)}
       </View> : null}
       {input("name", `${f.kind === "product" ? "Product" : "Service"} name *`)}
+      {f.kind === "product" ? <>
+        <Text style={s.label}>PRODUCT OPTION *</Text>
+        <View style={s.intentRow}>
+          <Pressable
+            style={[s.intentButton, f.listing_intent === "sell" && s.intentSelected]}
+            onPress={() => setF(current => ({ ...current, listing_intent: "sell" }))}
+          >
+            <Text style={[s.intentText, f.listing_intent === "sell" && s.intentSelectedText]}>SELL PRODUCT</Text>
+          </Pressable>
+          <Pressable
+            style={[s.intentButton, f.listing_intent === "buy" && s.intentSelected]}
+            onPress={() => setF(current => ({ ...current, listing_intent: "buy" }))}
+          >
+            <Text style={[s.intentText, f.listing_intent === "buy" && s.intentSelectedText]}>WANT TO BUY</Text>
+          </Pressable>
+        </View>
+      </> : null}
       <View style={errors.category && s.sectionError}>
         <CategoryPicker
           label="Category *"
@@ -338,6 +357,11 @@ const s = StyleSheet.create({
   choices: { flexDirection: "row", flexWrap: "wrap", gap: 7, marginBottom: 14 },
   choice: { borderWidth: 1, borderColor: colors.light.border, borderRadius: 18, paddingVertical: 8, paddingHorizontal: 11 },
   selected: { backgroundColor: colors.light.primary, borderColor: colors.light.primary },
+  intentRow: { flexDirection: "row", gap: 10, marginBottom: 14 },
+  intentButton: { flex: 1, borderWidth: 1, borderColor: colors.light.border, backgroundColor: colors.light.card, borderRadius: 12, paddingVertical: 13, alignItems: "center" },
+  intentSelected: { backgroundColor: colors.light.primary, borderColor: colors.light.primary },
+  intentText: { color: colors.light.foreground, fontSize: 12, fontWeight: "900" },
+  intentSelectedText: { color: colors.light.primaryForeground },
   sectionError: { borderColor: colors.light.destructive, borderWidth: 2, borderRadius: 12, padding: 6 },
   errorText: { color: colors.light.destructive, fontSize: 12, fontWeight: "700", marginTop: -2, marginBottom: 12 },
   errorLabel: { color: colors.light.destructive },
