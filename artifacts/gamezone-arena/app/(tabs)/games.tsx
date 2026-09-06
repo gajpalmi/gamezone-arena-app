@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -75,9 +76,11 @@ const GAME_LIST: GameItem[] = [
 
 export default function GamesScreen() {
   const router = useRouter();
+  const availableGameCount = GAME_LIST.filter((game) => game.available).length;
 
   const openGame = (game: GameItem) => {
     if (!game.available || !game.route) {
+      Alert.alert('Coming soon', `${game.title} is not available yet.`);
       return;
     }
 
@@ -138,7 +141,7 @@ export default function GamesScreen() {
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>ALL GAMES</Text>
-          <Text style={styles.gameCount}>{GAME_LIST.length} GAMES</Text>
+          <Text style={styles.gameCount}>{availableGameCount} AVAILABLE</Text>
         </View>
 
         <View style={styles.grid}>
@@ -146,10 +149,9 @@ export default function GamesScreen() {
             <Pressable
               key={game.id}
               onPress={() => openGame(game)}
-              disabled={!game.available}
               style={({ pressed }) => [
                 styles.gameCard,
-                pressed && game.available && styles.pressed,
+                pressed && styles.pressed,
                 !game.available && styles.disabledCard,
               ]}
             >

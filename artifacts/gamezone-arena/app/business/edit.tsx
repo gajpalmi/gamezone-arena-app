@@ -181,7 +181,14 @@ export default function BusinessEditScreen() {
       Alert.alert('Save your draft first', 'Save the required business details before adding media.');
       return;
     }
-    openImageMediaPicker({ title: kind === 'logo' ? 'Add Business Logo' : 'Add Business Photo', onPicked: assets => uploadPickedAsset(assets[0], kind) });
+    openImageMediaPicker({
+      title: kind === 'logo' ? 'Add Business Logo' : 'Add One Business Photo',
+      multiple: false,
+      onPicked: ([asset]) => {
+        if (!asset) return;
+        return uploadPickedAsset(asset, kind);
+      },
+    });
   };
 
   if (id && loadingBusiness) {
@@ -326,7 +333,7 @@ export default function BusinessEditScreen() {
         {id && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Business logo & photos</Text>
-            <Text style={styles.helperText}>Add a logo and photos to make your listing stand out. Images are private until your listing is approved.</Text>
+            <Text style={styles.helperText}>Add a logo and business photos one image at a time. JPG, PNG, and WebP images up to 5 MB are supported. Images are private until your listing is approved.</Text>
             <View style={styles.mediaActions}>
               <Pressable style={styles.mediaBtn} onPress={() => handlePickImage('logo')} disabled={uploading}><Feather name="image" size={18} color={colors.light.primary} /><Text style={styles.mediaBtnText}>ADD / REPLACE LOGO</Text></Pressable>
               <Pressable style={styles.mediaBtn} onPress={() => handlePickImage('photo')} disabled={uploading}><Feather name="camera" size={18} color={colors.light.primary} /><Text style={styles.mediaBtnText}>ADD BUSINESS PHOTO</Text></Pressable>

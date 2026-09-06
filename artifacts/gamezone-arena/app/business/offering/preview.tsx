@@ -14,7 +14,7 @@ export default function OfferingPreview() {
   const detail = useOffering(id ?? "");
   const action = useOfferingAction();
   if (detail.isLoading) return <View style={s.root}><ActivityIndicator color={colors.light.primary}/></View>;
-  if (!detail.data) return <View style={s.root}><Text style={s.error}>{detail.error ? (detail.error as Error).message : "Preview unavailable."}</Text></View>;
+  if (!detail.data) return <View style={s.root}><Text style={s.error}>{detail.error ? (detail.error as Error).message : "Preview unavailable."}</Text>{detail.error ? <Button label="Retry" onPress={() => void detail.refetch()}/> : null}</View>;
   const { offering, photos } = detail.data;
   const edit = () => router.replace(`/business/offering/edit?id=${offering.id}` as never);
   const publish = () => action.mutate({ type: "submit", id: offering.id }, {

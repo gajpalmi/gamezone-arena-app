@@ -1,0 +1,528 @@
+आप GAMEZONE ARENA के senior full-stack engineer हैं।
+
+सबसे पहले पूरे existing project को READ-ONLY तरीके से inspect करें। कोई बदलाव करने से पहले current architecture, routes, database schema, RLS policies, authentication flow और existing screens समझें।
+
+🚨 सबसे महत्वपूर्ण सुरक्षा नियम
+
+इस task में:
+
+- कोई Replit Pro upgrade नहीं करना है।
+- कोई paid service activate नहीं करनी है।
+- कोई EAS build नहीं चलाना है।
+- कोई deployment नहीं करना है।
+- कोई नया Clerk account/application नहीं बनाना है।
+- Existing Replit-managed Clerk को बदलना/हटाना नहीं है।
+- Clerk Dashboard की paid-only settings को bypass करने की कोशिश नहीं करनी है।
+- Supabase Third-Party Auth configuration को modify नहीं करना है।
+- "role: authenticated" समस्या को code/RLS bypass से ठीक करने की कोशिश नहीं करनी है।
+- RLS disable/weaken नहीं करना है।
+- Anonymous/public INSERT policy नहीं बनानी है।
+- "service_role" key client/app में नहीं डालनी है।
+- Client से "owner_user_id" trust नहीं करना है।
+- Deprecated Clerk JWT template इस्तेमाल नहीं करना है।
+- Authentication architecture migrate नहीं करना है।
+- Existing security architecture को कमजोर नहीं करना है।
+
+Current known architecture:
+
+Clerk session JWT
+→ Supabase Third-Party Auth
+→ "role: authenticated"
+→ existing RLS
+→ user-owned database row
+
+Current blocker:
+
+Replit-managed Clerk में required Supabase compatibility/session-token configuration उपलब्ध नहीं है। इसलिए Product/Job/Business Save की authentication समस्या को इस task में bypass या weaken नहीं करना है।
+
+---
+
+1. पहले पूरा project audit करें
+
+इन systems को inspect करें:
+
+- Business
+- Product
+- Service
+- Jobs
+- Hiring
+- Worker Profile
+- Product detail
+- Job detail
+- Applications
+- Saved items
+- Categories
+- Search
+- Filters
+- Add Photo
+- Camera
+- Gallery
+- Files
+- Share
+- Report
+- Block
+- Notifications
+- Settings
+- Profile
+- Friends
+- Leaderboard
+- Ludo
+- Quick Quiz
+- Navigation
+
+Existing functionality को हटाना या redesign करना नहीं है।
+
+---
+
+2. Product Save
+
+Product Save failure को authentication blocker के कारण समझें।
+
+UI को broken या misleading नहीं रहने देना है।
+
+Save Draft दबाने पर:
+
+- entered form data तुरंत नष्ट नहीं होना चाहिए।
+- user को साफ message दिखना चाहिए।
+- authentication blocker को स्पष्ट रूप से बताना चाहिए।
+- duplicate submission नहीं होना चाहिए।
+- loading state सही हो।
+- button लगातार spinner में न फँसे।
+- retry option हो।
+- entered data preserve रहे।
+
+लेकिन:
+
+❌ RLS bypass नहीं
+❌ unauthenticated insert नहीं
+❌ fake successful save नहीं
+
+अगर authentication unavailable है तो UI truthful error दिखाए।
+
+---
+
+3. Product Buy/Sell system
+
+Existing Product system को पूरा functional बनाएं, जहाँ authentication उपलब्ध हो वहाँ existing secure architecture का उपयोग करें।
+
+Product Detail में उचित options रखें:
+
+- Buy / Contact Seller
+- Call Seller
+- WhatsApp Seller
+- Email Seller
+- Share
+- Save
+- Report
+- Block
+
+Seller contact details तभी दिखें जब seller ने explicit consent दिया हो।
+
+कोई real-money payment gateway इस task में add नहीं करना है।
+
+Virtual coins और real money को अलग रखें।
+
+---
+
+4. Jobs & Hiring
+
+Jobs system को verify और repair करें:
+
+Employer:
+
+- Post Job
+- Save Draft
+- Preview
+- Publish
+- Edit
+- Applications
+- Applicant details
+- Contact worker
+- Call
+- WhatsApp
+- Email
+- Shortlist
+- Reject
+- Report
+- Block
+
+Worker:
+
+- Browse Jobs
+- Search
+- Filter
+- Save Job
+- Apply
+- Withdraw application
+- Application status
+- Worker Profile
+- Contact request
+- Report
+- Block
+
+Privacy rules preserve करें।
+
+Private phone/email/resume/contact data public नहीं होना चाहिए।
+
+---
+
+5. Categories
+
+Central category system को verify करें।
+
+इन सभी में proper categories उपलब्ध होनी चाहिए:
+
+Business
+
+- Grocery
+- Restaurant
+- Clothing
+- Electronics
+- Mobile Shop
+- Hardware
+- Pharmacy
+- Salon
+- Beauty
+- Education
+- Repair
+- Transport
+- Hotel
+- Real Estate
+- Agriculture
+- Other
+
+Product
+
+- Electronics
+- Mobile
+- Computer
+- Clothing
+- Shoes
+- Furniture
+- Grocery
+- Home
+- Vehicle
+- Books
+- Agriculture
+- Other
+
+Service
+
+- Electrician
+- Plumber
+- Carpenter
+- Mechanic
+- Painter
+- Cleaning
+- Delivery
+- Tutor
+- Beauty
+- Repair
+- Photography
+- Computer
+- Mobile Repair
+- Other
+
+Jobs
+
+- Retail
+- Sales
+- Delivery
+- Driver
+- Security
+- Construction
+- Electrician
+- Plumber
+- Carpenter
+- Mechanic
+- Office
+- Computer/IT
+- Teacher
+- Hotel/Restaurant
+- Agriculture
+- Healthcare
+- Other
+
+Category picker वास्तव में database से data load करे।
+
+Hardcoded fake loading नहीं।
+
+यदि category database query authentication के बिना भी सुरक्षित रूप से पढ़ी जा सकती है, तभी public read रखें; existing RLS/security को कमजोर न करें।
+
+---
+
+6. Search behavior
+
+Search box में हर character पर गलत navigation या premature search नहीं होना चाहिए।
+
+Expected behavior:
+
+- user text type करे
+- keyboard खुला रहे
+- Search button दबाने पर search चले
+- Enter दबाने पर search चले
+- filter Apply करने पर search/filter चले
+- खाली search पर सभी relevant results दिखें
+- search clear करने पर results reset हों
+- loading/error/empty state सही हो
+
+Search को accidental submit से बचाएं।
+
+---
+
+7. Filters
+
+Business/Product/Service/Jobs में filters verify करें:
+
+- Category
+- City
+- Area
+- Price where applicable
+- Job type where applicable
+- Experience where applicable
+- Work location where applicable
+
+Apply Filters के बाद वास्तविक results बदलने चाहिए।
+
+Reset Filters भी काम करे।
+
+---
+
+8. Add Photo
+
+Add Photo button को verify करें।
+
+Native Android पर options:
+
+1. Camera
+2. Photos/Videos
+3. Files
+
+Camera से photo capture हो।
+
+Gallery से image/video select हो।
+
+Files से supported file select हो।
+
+यदि video camera के लिए microphone permission आवश्यक होती है तो इस task में microphone permission automatically add न करें।
+
+Existing permission architecture preserve करें।
+
+Web preview में native camera unavailable हो तो graceful message दिखाएं; infinite loading नहीं।
+
+---
+
+9. Preview
+
+इन forms में Preview button test करें:
+
+- Product
+- Job
+- Business
+- Service
+
+Preview में वही entered data दिखे जो publish होने वाला है।
+
+Back करने पर entered data सुरक्षित रहे।
+
+Preview को actual publish न समझें।
+
+---
+
+10. Save Draft
+
+जहाँ authentication उपलब्ध है वहाँ:
+
+- Save Draft
+- Edit Draft
+- Delete Draft
+- Resume Draft
+
+properly काम करें।
+
+जहाँ current Clerk/Supabase blocker के कारण database write संभव नहीं है:
+
+- fake success मत दिखाएं।
+- data loss मत होने दें।
+- साफ error दिखाएं।
+- retry दें।
+
+---
+
+11. Share
+
+Existing native sharing system verify करें।
+
+इनका share होना चाहिए:
+
+- Product
+- Job
+- Business
+- Service
+- Game
+
+Deep links preserve करें:
+
+"gamezone-arena://"
+
+Existing routes को न तोड़ें।
+
+---
+
+12. Report & Block
+
+Existing moderation system को verify करें।
+
+User:
+
+- report कर सके
+- block कर सके
+- unblock कर सके
+
+Duplicate report रोकें।
+
+Blocked users/content को appropriate जगह hide करें।
+
+Admin moderation architecture न बदलें।
+
+---
+
+13. Notifications
+
+Existing notification system verify करें:
+
+- Job notifications
+- Application notifications
+- Employer messages
+- Job match notifications
+- Marketing notifications
+
+Existing sound/vibration settings respect करें।
+
+Remote push-token collection शुरू न करें।
+
+---
+
+14. Settings
+
+Existing Settings/Preferences को न तोड़ें।
+
+Verify:
+
+- Notifications
+- Sounds
+- Vibration/Haptics
+- Music
+- Volume
+- Language
+- Theme
+- Privacy
+- Security
+- Help
+- About
+- Account deletion
+- Sharing
+
+---
+
+15. No fake UI
+
+बहुत महत्वपूर्ण:
+
+कोई button केवल दिखाई नहीं देना चाहिए।
+
+हर existing button के लिए:
+
+- click action
+- loading state
+- success state
+- error state
+- empty state
+
+verify करें।
+
+अगर कोई feature backend dependency के कारण unavailable है, तो स्पष्ट error दें; fake success नहीं।
+
+---
+
+16. Database सुरक्षा
+
+Database में कोई destructive migration नहीं करनी है।
+
+Existing:
+
+- RLS
+- ownership rules
+- moderation
+- private storage
+- contact privacy
+- block system
+
+preserve करें।
+
+यदि कोई code bug मिलता है जो authentication architecture से independent है, उसे safely fix करें।
+
+---
+
+17. Testing
+
+कोई paid build/deployment न करें।
+
+Available free/local/static checks से test करें:
+
+- TypeScript
+- lint
+- route validation
+- imports
+- component errors
+- obvious runtime errors
+- database query construction
+- form validation
+
+जहाँ native Android testing उपलब्ध नहीं है, उसे clearly report करें।
+
+---
+
+18. Final report
+
+काम पूरा होने के बाद केवल यह report दें:
+
+Fixed
+
+जो वास्तव में fix हुआ उसकी सूची।
+
+Not fixed
+
+जो current Clerk/Supabase authentication blocker के कारण नहीं हो सकता उसकी सूची।
+
+Authentication blocker
+
+स्पष्ट लिखें:
+
+"Replit-managed Clerk → Supabase role: authenticated configuration is still unavailable without the required Clerk-side access."
+
+Security
+
+Confirm करें:
+
+- RLS unchanged
+- No service_role in client
+- No auth bypass
+- No public INSERT
+- No deprecated JWT template
+- No new Clerk app
+- No paid operation
+
+Build
+
+कहीं भी EAS build/deployment नहीं किया गया हो तो लिखें:
+
+"No build/deployment performed."
+
+अंतिम नियम
+
+पहले inspect करें → independent bugs fix करें → test करें → security preserve करें।
+
+Authentication blocker को bypass करने की कोशिश बिल्कुल न करें।
+
+Existing GAMEZONE ARENA को हटाना, reset करना, नया project बनाना या बड़े स्तर पर redesign करना मना है।

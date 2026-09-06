@@ -7,16 +7,17 @@ import { useMyOfferings, useOfferingAction } from "@/hooks/useOfferings";
 import { offeringLink, shareLink } from "@/lib/share";
 
 export default function Mine() {
-  useSupabaseAuth();
+  const auth = useSupabaseAuth();
   const router = useRouter();
-  const { data, isLoading, error } = useMyOfferings();
+  const { data, isLoading, error, refetch } = useMyOfferings(auth.ready);
   const action = useOfferingAction();
 
-  if (isLoading) return <View style={styles.root}><ActivityIndicator color={colors.light.primary}/></View>;
+  if (!auth.isLoaded || (auth.isSignedIn && !auth.ready) || isLoading) return <View style={[styles.root, styles.center]}><ActivityIndicator color={colors.light.primary}/></View>;
 
   return <View style={styles.root}>
     <Text style={styles.title}>My Product & Service Listings</Text>
     <Text style={styles.subtitle}>Saved drafts and published listings appear here.</Text>
+    {!auth.isSignedIn ? <View style={styles.state}><Text style={styles.empty}>Sign in to manage your listings.</Text><Pressable style={styles.add} onPress={() => router.push("/sign-in" as never)}><Text style={styles.buttonText}>SIGN IN</Text></Pressable></View> : error ? <View style={styles.state}><Text style={styles.empty}>{error instanceof Error ? error.message : "Unable to load your listings."}</Text><Pressable style={styles.add} onPress={() => void refetch()}><Text style={styles.buttonText}>RETRY</Text></Pressable></View> : <>
     <Pressable testID="add-product" style={styles.add} onPress={() => router.push("/business/offering/edit?kind=product" as never)}>
       <Text style={styles.buttonText}>+ ADD PRODUCT</Text>
     </Pressable>
@@ -27,7 +28,7 @@ export default function Mine() {
       data={data ?? []}
       keyExtractor={item => item.id}
       contentContainerStyle={styles.list}
-      ListEmptyComponent={<Text style={styles.empty}>{error ? (error as Error).message : "You have no saved product or service listings."}</Text>}
+      ListEmptyComponent={<Text style={styles.empty}>You have no saved product or service listings.</Text>}
       renderItem={({ item }) => <View style={styles.card}>
         <Text style={styles.intent}>
           {item.kind === "product" ? item.listing_intent === "buy" ? "WANT TO BUY" : "FOR SALE" : "SERVICE"}
@@ -55,11 +56,13 @@ export default function Mine() {
         </View>
       </View>}
     />
+    </>}
   </View>;
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.light.background, padding: 20, gap: 10 },
+   center: { alignItems: "center", justifyContent: "center" },
   title: { color: colors.light.foreground, fontSize: 22, fontWeight: "900" },
   subtitle: { color: colors.light.mutedForeground, marginBottom: 4 },
   add: { backgroundColor: colors.light.primary, borderRadius: 12, padding: 15, alignItems: "center" },
@@ -73,4 +76,5 @@ const styles = StyleSheet.create({
   link: { color: colors.light.primary, fontWeight: "800", fontSize: 11 },
   danger: { color: colors.light.destructive, fontWeight: "800", fontSize: 11 },
   empty: { color: colors.light.mutedForeground, textAlign: "center", marginTop: 45 },
+   state: { gap: 12, marginTop: 20 },
 });

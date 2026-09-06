@@ -122,7 +122,7 @@ export default function SettingsScreen() {
         <View style={styles.card}>
           <Pressable style={styles.linkRow} onPress={() => router.push('/business/legal')}><Text style={styles.rowLabel}>Legal & privacy policy</Text><Feather name="chevron-right" size={18} color="#71809F" /></Pressable>
           <Pressable style={styles.linkRow} onPress={() => Alert.alert('Delete account', 'Use Delete Account from your Profile to permanently remove your account and associated data.')}><Text style={styles.rowLabel}>Data deletion</Text><Feather name="chevron-right" size={18} color="#71809F" /></Pressable>
-          <Pressable style={styles.linkRow} onPress={() => router.push('/forgot-password')}><Text style={styles.rowLabel}>Password & sign-in security</Text><Feather name="lock" size={18} color="#43DDF8" /></Pressable>
+          <Pressable style={styles.linkRow} onPress={() => router.push('/forgot-password')}><Text style={styles.rowLabel}>Reset password</Text><Feather name="lock" size={18} color="#43DDF8" /></Pressable>
         </View>
 
         <Text style={styles.section}>BUSINESS</Text>
@@ -156,7 +156,7 @@ export default function SettingsScreen() {
           <Pressable style={styles.linkRow} onPress={copyGame}><Text style={styles.rowLabel}>Copy a game link</Text><Feather name="copy" size={18} color="#43DDF8" /></Pressable>
           <Pressable style={styles.linkRow} onPress={() => open(SUPPORT_URL)}><Text style={styles.rowLabel}>Help & feedback</Text><Feather name="external-link" size={18} color="#43DDF8" /></Pressable>
           <View style={styles.linkRow}><View><Text style={styles.rowLabel}>GAMEZONE ARENA</Text><Text style={styles.rowDetail}>Version 1.0.0</Text></View></View>
-          <Pressable style={styles.reset} onPress={() => Alert.alert('Reset preferences', 'Restore all settings to their defaults?', [{ text: 'Cancel', style: 'cancel' }, { text: 'Reset', style: 'destructive', onPress: () => void resetPreferences() }])}><Text style={styles.resetText}>RESET PREFERENCES</Text></Pressable>
+          <Pressable style={styles.reset} onPress={() => Alert.alert('Reset preferences', 'Restore all settings to their defaults?', [{ text: 'Cancel', style: 'cancel' }, { text: 'Reset', style: 'destructive', onPress: () => void resetPreferences().catch(() => Alert.alert('Could not reset preferences', 'Please try again.')) }])}><Text style={styles.resetText}>RESET PREFERENCES</Text></Pressable>
         </View>
       </ScrollView>
     </View>

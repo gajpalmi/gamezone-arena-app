@@ -220,21 +220,15 @@ export default function OfferingEdit() {
         await refreshSupabaseAccessToken();
         result = await save.mutateAsync(payload);
       }
-      router.replace((preview ? `/business/offering/preview?id=${result.id}` : "/business/offerings-mine") as never);
-      let photoUploadFailed = false;
       try {
         await uploadPhotos(result.id);
       } catch (error) {
         console.error("Offering photo upload failed", error);
-        photoUploadFailed = true;
+        setSaveError("Your listing was saved, but one or more photos could not be uploaded. Please try saving again to retry the remaining photos.");
+        return;
       }
       setLocalPhotos([]);
-      setTimeout(() => Alert.alert(
-        photoUploadFailed ? "Draft saved" : "Saved successfully",
-        photoUploadFailed
-          ? "The product was saved in My Listings, but one or more photos could not be uploaded."
-          : preview ? "Opening listing preview." : "Your draft is now visible in My Listings.",
-      ), 250);
+      router.replace((preview ? `/business/offering/preview?id=${result.id}` : "/business/offerings-mine") as never);
     } catch (error) {
       console.error("Offering save failed", error);
       const message = error instanceof Error ? error.message : "The database did not accept this product.";
@@ -363,7 +357,7 @@ export default function OfferingEdit() {
       </Pressable>
       {errors.terms ? <Text style={s.errorText}>↑ {errors.terms}</Text> : null}
       {saveError ? <View style={s.saveError} accessibilityRole="alert">
-        <Text style={s.saveErrorTitle}>Product was not saved</Text>
+        <Text style={s.saveErrorTitle}>{saveError.startsWith("Your listing was saved") ? "Photos were not uploaded" : "Product was not saved"}</Text>
         <Text style={s.saveErrorText}>{saveError}</Text>
         {!auth.isSignedIn && auth.isLoaded ? <Pressable style={s.signInButton} onPress={() => router.push("/sign-in" as never)}>
           <Text style={s.signInButtonText}>SIGN IN</Text>

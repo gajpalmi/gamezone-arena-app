@@ -8,12 +8,14 @@ import { Screen } from '@/components/Screen';
 import { quickQuizQuestions, type QuizReward } from '@/constants/quiz';
 import colors from '@/constants/colors';
 import { useAppSession } from '@/context/AppSessionContext';
+import { usePreferences } from '@/context/PreferencesContext';
 
 type QuizPhase = 'playing' | 'feedback' | 'complete';
 
 export default function QuickQuizScreen() {
   const router = useRouter();
   const { progress, recordQuizResult } = useAppSession();
+  const { canUseGameHaptics } = usePreferences();
   const [questionIndex, setQuestionIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [secondsLeft, setSecondsLeft] = useState(15);
@@ -61,9 +63,9 @@ export default function QuickQuizScreen() {
     setSelectedIndex(optionIndex);
     if (optionIndex === question.correctIndex) {
       setScore((value) => value + 1);
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (canUseGameHaptics) void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } else {
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      if (canUseGameHaptics) void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
     setPhase('feedback');
   }

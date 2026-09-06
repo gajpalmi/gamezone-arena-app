@@ -4,6 +4,7 @@ import * as ImagePicker from "expo-image-picker";
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+const allowedExtensions = /\.(jpe?g|png|webp)$/i;
 
 export type PickedImage = ImagePicker.ImagePickerAsset;
 
@@ -30,9 +31,9 @@ function showWebMediaMenu(title: string, run: (source: "camera" | "gallery" | "f
     button.onclick = () => { close(); if (source) run(source); };
     sheet.appendChild(button);
   };
-  addButton("📷 Camera", "camera");
-  addButton("🖼️ Photos / Videos", "gallery");
-  addButton("📁 Files", "files");
+  addButton("📷 Take Photo", "camera");
+  addButton("🖼️ Photo Library", "gallery");
+  addButton("📁 Image Files", "files");
   addButton("❌ Cancel");
   overlay.onclick = event => { if (event.target === overlay) close(); };
   overlay.appendChild(sheet);
@@ -41,7 +42,8 @@ function showWebMediaMenu(title: string, run: (source: "camera" | "gallery" | "f
 
 function validate(assets: PickedImage[]) {
   for (const asset of assets) {
-    if (asset.mimeType && !allowedTypes.has(asset.mimeType)) {
+    const hasSupportedMimeType = asset.mimeType ? allowedTypes.has(asset.mimeType) : !!asset.fileName && allowedExtensions.test(asset.fileName);
+    if (!hasSupportedMimeType) {
       throw new Error("Only JPG, PNG, and WebP images are supported. Video and document uploads are not supported for this field.");
     }
     if (asset.fileSize && asset.fileSize > MAX_IMAGE_BYTES) {
@@ -55,16 +57,38 @@ async function camera(): Promise<PickedImage[]> {
   if (Platform.OS === "web") {
     return new Promise((resolve, reject) => {
       const input = document.createElement("input");
+      let settled = false;
+      let pickerOpened = false;
+      const cleanup = () => {
+        window.removeEventListener("blur", markPickerOpened);
+        window.removeEventListener("focus", cancelAfterDialogCloses);
+        input.remove();
+      };
+      const finish = (assets: PickedImage[]) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        resolve(assets);
+      };
+      const fail = (error: Error) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        reject(error);
+      };
+      const markPickerOpened = () => { pickerOpened = true; };
+      const cancelAfterDialogCloses = () => {
+        if (pickerOpened) setTimeout(() => finish([]), 0);
+      };
       input.type = "file";
       input.accept = "image/jpeg,image/png,image/webp";
       input.capture = "environment";
       input.style.display = "none";
       input.onchange = () => {
         const file = input.files?.[0];
-        input.remove();
-        if (!file) return resolve([]);
+        if (!file) return finish([]);
         try {
-          resolve(validate([{
+          finish(validate([{
             uri: URL.createObjectURL(file),
             fileName: file.name,
             mimeType: file.type,
@@ -75,25 +99,38 @@ async function camera(): Promise<PickedImage[]> {
             file,
           } as PickedImage]));
         } catch (error) {
-          reject(error);
+          fail(error instanceof Error ? error : new Error("Photo selection failed. Please try again."));
         }
       };
       input.oncancel = () => {
-        input.remove();
-        resolve([]);
+        finish([]);
       };
+      input.onerror = () => fail(new Error("Your browser could not open the camera. Try Photo Library or Image Files instead."));
+      window.addEventListener("blur", markPickerOpened, { once: true });
+      window.addEventListener("focus", cancelAfterDialogCloses, { once: true });
       document.body.appendChild(input);
-      input.click();
+      try {
+        input.click();
+      } catch {
+        fail(new Error("Your browser could not open the camera. Try Photo Library or Image Files instead."));
+      }
     });
   }
   const permission = await ImagePicker.requestCameraPermissionsAsync();
   if (!permission.granted) {
     Alert.alert(
       "Camera permission required",
-      "Camera permission is required to take a photo. You can enable it in Settings, or choose Photos / Videos from the Add Photo menu.",
+      "Camera permission is required to take a photo. You can enable it in Settings, or choose Photo Library or Image Files from the Add Photo menu.",
       [
         { text: "Cancel", style: "cancel" },
-        { text: "Open Settings", onPress: () => void Linking.openSettings() },
+        {
+          text: "Open Settings",
+          onPress: () => {
+            void Linking.openSettings().catch(() => {
+              Alert.alert("Unable to open Settings", "Please enable Camera permission in your device Settings, then try again.");
+            });
+          },
+        },
       ],
     );
     return [];
@@ -156,9 +193,9 @@ export function openImageMediaPicker(options: {
     options.title ?? "Add Photo",
     "JPG, PNG and WebP images up to 5 MB are supported. Videos and documents are not supported for this field.",
     [
-      { text: "📷 Camera", onPress: () => void run("camera") },
-      { text: "🖼️ Photos / Videos", onPress: () => void run("gallery") },
-      { text: "📁 Files", onPress: () => void run("files") },
+      { text: "📷 Take Photo", onPress: () => void run("camera") },
+      { text: "🖼️ Photo Library", onPress: () => void run("gallery") },
+      { text: "📁 Image Files", onPress: () => void run("files") },
       { text: "❌ Cancel", style: "cancel" },
     ],
   );

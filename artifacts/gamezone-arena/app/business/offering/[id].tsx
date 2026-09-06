@@ -10,15 +10,19 @@ export default function Detail() {
   useSupabaseAuth();
   const { id } = useLocalSearchParams<{ id:string }>();
   const router = useRouter();
-  const { data, isLoading, error } = useOffering(id);
+  const { data, isLoading, error, refetch } = useOffering(id);
   const action = useOfferingAction();
   const basket = useOfferingBasketAction();
 
   if (isLoading) return <View style={styles.root}><ActivityIndicator color={colors.light.primary}/></View>;
-  if (error || !data) return <View style={styles.root}><Text style={styles.error}>{error ? (error as Error).message : "Listing unavailable"}</Text></View>;
+  if (error || !data) return <View style={styles.root}><Text style={styles.error}>{error ? (error as Error).message : "Listing unavailable"}</Text>{error ? <Pressable style={styles.retry} onPress={() => void refetch()}><Text style={styles.retryText}>RETRY</Text></Pressable> : null}</View>;
 
   const offering = data.offering;
   const open = (url:string) => void Linking.openURL(url).catch(() => Alert.alert("Unavailable", "No compatible app is available."));
+  const phone = offering.contact_phone.trim().replace(/[ ()-]/g, "");
+  const whatsapp = offering.whatsapp?.trim().replace(/\D/g, "") ?? "";
+  const canContact = !!offering.contact_public_consent_at && /^\+?\d{7,39}$/.test(phone);
+  const canWhatsApp = canContact && /^\d{7,39}$/.test(whatsapp);
   const button = (label:string, onPress:()=>void, primary=false) => <Pressable
     testID={`offering-${label.toLowerCase().replaceAll(" ", "-")}`}
     style={[styles.button, primary && styles.primaryButton]}
@@ -32,11 +36,9 @@ export default function Detail() {
   });
   const buy = () => basket.mutate({ type:"add", id:offering.id }, {
     onSuccess:() => {
-      const phone = offering.contact_phone.replace(/[ ()-]/g, "");
-      Alert.alert("Added to basket", "Purchase request saved. You can contact the seller now.", [
+      Alert.alert("Added to basket", canContact ? "Purchase request saved. You can contact the seller now." : "Purchase request saved. The seller has not made contact details publicly available.", [
         { text:"View Basket", onPress:() => router.push("/business/offering/basket" as never) },
-        { text:"Message Seller", onPress:() => open(`sms:${phone}`) },
-        { text:"Call Seller", onPress:() => open(`tel:${phone}`) },
+        ...(canContact ? [{ text:"Message Seller", onPress:() => open(`sms:${phone}`) }, { text:"Call Seller", onPress:() => open(`tel:${phone}`) }] : []),
       ]);
     },
     onError:error => {
@@ -67,8 +69,8 @@ export default function Detail() {
     </View> : null}
 
     <View style={styles.actions}>
-      {button("Call", () => open(`tel:${offering.contact_phone.replace(/[ ()-]/g, "")}`))}
-      {offering.whatsapp ? button("WhatsApp", () => open(`https://wa.me/${offering.whatsapp!.replace(/\D/g, "")}`)) : null}
+      {canContact ? button("Call", () => open(`tel:${phone}`)) : null}
+      {canWhatsApp ? button("WhatsApp", () => open(`https://wa.me/${whatsapp}`)) : null}
       {button("Map", () => open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(offering.location_text || `${offering.area || ""} ${offering.city}`)}`))}
       {button("Share", () => void shareLink(offering.name, `${offering.name}: ${offeringLink(offering.id)}`))}
       {button("Copy Link", () => void copyLink(offeringLink(offering.id)).then(() => Alert.alert("Copied", "Listing link copied.")))}
@@ -76,6 +78,7 @@ export default function Detail() {
       {button("Block", () => action.mutate({ type:"block", id:offering.id, value:true }, { onSuccess:() => router.replace("/business/offerings" as never) }))}
       {button("Report", () => action.mutate({ type:"report", id:offering.id, value:"other", reason:"Reported from listing details" }, { onSuccess:() => Alert.alert("Reported", "Thank you for your report.") }))}
     </View>
+    {!canContact ? <Text style={styles.contactNotice}>The seller has not provided publicly usable contact details.</Text> : null}
     <Text style={styles.reviews}>Reviews ({data.reviews.length})</Text>
     {data.reviews.map((review:any) => <Text key={review.id} style={styles.info}>★ {review.rating} {review.body}</Text>)}
   </ScrollView>;
@@ -100,5 +103,8 @@ const styles = StyleSheet.create({
   buttonText:{color:colors.light.primary,fontWeight:"800",fontSize:12},
   primaryButtonText:{color:colors.light.primaryForeground},
   reviews:{color:colors.light.foreground,fontWeight:"900",fontSize:17,marginTop:12},
-  error:{color:colors.light.destructive,textAlign:"center",marginTop:80},
+   error:{color:colors.light.destructive,textAlign:"center",marginTop:80},
+   retry:{alignSelf:"center",marginTop:12,padding:12},
+   retryText:{color:colors.light.primary,fontWeight:"900"},
+   contactNotice:{color:colors.light.mutedForeground,fontSize:12},
 });

@@ -20,13 +20,17 @@ export default function BuyerBasket() {
       <Feather name="shopping-bag" size={22} color={colors.light.primary}/>
     </View>
     <Text style={styles.subtitle}>Only you can see the products in this basket.</Text>
-    {!auth.isLoaded || (auth.isSignedIn && !auth.ready) || basket.isLoading ? <ActivityIndicator color={colors.light.primary}/> : !auth.isSignedIn ? <View style={styles.empty}><Text style={styles.emptyTitle}>Sign in to view your basket</Text><Text style={styles.subtitle}>Your private basket is available after sign in.</Text></View> : <FlatList
+    {!auth.isLoaded || (auth.isSignedIn && !auth.ready) || basket.isLoading ? <ActivityIndicator color={colors.light.primary}/> : !auth.isSignedIn ? <View style={styles.empty}><Text style={styles.emptyTitle}>Sign in to view your basket</Text><Text style={styles.subtitle}>Your private basket is available after sign in.</Text></View> : basket.error ? <View style={styles.empty}><Text style={styles.emptyTitle}>Unable to load your basket</Text><Text style={styles.subtitle}>{basket.error instanceof Error ? basket.error.message : "Please try again."}</Text><Pressable style={styles.retry} onPress={() => void basket.refetch()}><Text style={styles.primaryText}>RETRY</Text></Pressable></View> : <FlatList
       data={basket.data ?? []}
       keyExtractor={item => item.id}
       contentContainerStyle={styles.list}
       ListEmptyComponent={<View style={styles.empty}><Feather name="shopping-bag" size={42} color={colors.light.mutedForeground}/><Text style={styles.emptyTitle}>Your basket is empty</Text><Text style={styles.subtitle}>Open a FOR SALE product and tap Buy / Add to Basket.</Text></View>}
       renderItem={({ item }) => {
         const product = item.business_offerings;
+        const phone = product.contact_phone.trim().replace(/[ ()-]/g, "");
+        const whatsapp = product.whatsapp?.trim().replace(/\D/g, "") ?? "";
+        const canContact = !!product.contact_public_consent_at && /^\+?\d{7,39}$/.test(phone);
+        const canWhatsApp = canContact && /^\d{7,39}$/.test(whatsapp);
         return <View style={styles.card}>
           <Text style={styles.intent}>PURCHASE REQUEST</Text>
           <Text style={styles.name}>{product.name}</Text>
@@ -35,10 +39,11 @@ export default function BuyerBasket() {
           <Text style={styles.meta}>Added {new Date(item.created_at).toLocaleDateString()}</Text>
           <View style={styles.actions}>
             <Pressable style={styles.primary} onPress={() => router.push(`/business/offering/${product.id}` as never)}><Text style={styles.primaryText}>VIEW PRODUCT</Text></Pressable>
-            <Pressable style={styles.contact} onPress={() => open(`tel:${product.contact_phone.replace(/[ ()-]/g, "")}`)}><Text style={styles.contactText}>CALL</Text></Pressable>
-            <Pressable style={styles.contact} onPress={() => open(`sms:${product.contact_phone.replace(/[ ()-]/g, "")}`)}><Text style={styles.contactText}>MESSAGE</Text></Pressable>
-            {product.whatsapp ? <Pressable style={styles.contact} onPress={() => open(`https://wa.me/${product.whatsapp!.replace(/\D/g, "")}`)}><Text style={styles.contactText}>WHATSAPP</Text></Pressable> : null}
+            {canContact ? <><Pressable style={styles.contact} onPress={() => open(`tel:${phone}`)}><Text style={styles.contactText}>CALL</Text></Pressable>
+            <Pressable style={styles.contact} onPress={() => open(`sms:${phone}`)}><Text style={styles.contactText}>MESSAGE</Text></Pressable></> : null}
+            {canWhatsApp ? <Pressable style={styles.contact} onPress={() => open(`https://wa.me/${whatsapp}`)}><Text style={styles.contactText}>WHATSAPP</Text></Pressable> : null}
           </View>
+          {!canContact ? <Text style={styles.meta}>Seller contact details are not publicly available.</Text> : null}
           <Pressable style={styles.cancel} disabled={action.isPending} onPress={() => Alert.alert("Cancel purchase request", "Remove this product from your basket?", [
               { text: "Keep" },
               { text: "Cancel Request", style: "destructive", onPress: () => action.mutate({ type: "cancel", id: item.id }) },
@@ -69,4 +74,5 @@ const styles = StyleSheet.create({
   removeText:{color:colors.light.destructive,fontSize:11,fontWeight:"900"},
   empty:{alignItems:"center",paddingTop:80,gap:10},
   emptyTitle:{color:colors.light.foreground,fontSize:18,fontWeight:"900"},
+   retry:{backgroundColor:colors.light.primary,paddingVertical:10,paddingHorizontal:16,borderRadius:10},
 });
