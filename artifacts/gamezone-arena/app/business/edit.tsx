@@ -370,7 +370,7 @@ const payload = {
     : null,  
 
   privacy_version: acceptedTerms  
-    ? '2026-09-06'  
+    ? '2026-09-10'
     : null,  
 
   privacy_accepted_at: acceptedTerms  

@@ -37,9 +37,6 @@ const businessPhotoColumns = "id,business_id,storage_path,alt_text,sort_order,is
 // current schema has no security-definer public projection that can conditionally
 // expose contacts, so public reads must not select them at all.
 const publicBusinessColumns = "id,category_id,name,description,city,latitude,longitude,subcategory,service_areas,services_offered,price_range,status,approved_at,created_at,updated_at";
-const LEGAL_VERSION = "2026-09-06";
-let pendingAccountPhotoDeletion: string[] | null = null;
-
 function client() {
   if (!supabase) throw new Error("Business services are unavailable: Supabase is not configured.");
   return supabase;
@@ -250,24 +247,35 @@ export async function setBusinessLogo(photoId: string) {
 
 export async function deleteUserData() {
   const db = client();
-  if (!pendingAccountPhotoDeletion) {
-    const { data: paths, error } = await db.rpc("business_delete_user_data");
-    fail(error);
-    pendingAccountPhotoDeletion = (paths ?? []) as string[];
-  }
-  if (pendingAccountPhotoDeletion.length) {
-    const businessMediaPaths = pendingAccountPhotoDeletion.filter((path) => !path.startsWith("job-seekers/") && !path.startsWith("job-resumes/"));
-    const jobMediaPaths = pendingAccountPhotoDeletion.filter((path) => path.startsWith("job-seekers/") || path.startsWith("job-resumes/"));
-    const failures: string[] = [];
-    if (businessMediaPaths.length) {
-      const { error } = await db.storage.from("business-media").remove(businessMediaPaths);
-      if (error) failures.push(`business media: ${error.message}`);
+  const { data: paths, error } = await db.rpc("business_delete_user_data");
+  fail(error);
+
+  const pendingPaths = Array.from(new Set((paths ?? []) as string[]));
+  const batches = [
+    {
+      bucket: "business-media",
+      paths: pendingPaths.filter((path) => !path.startsWith("job-seekers/") && !path.startsWith("job-resumes/")),
+    },
+    {
+      bucket: "job-private-media",
+      paths: pendingPaths.filter((path) => path.startsWith("job-seekers/") || path.startsWith("job-resumes/")),
+    },
+  ];
+
+  for (const group of batches) {
+    for (let index = 0; index < group.paths.length; index += 100) {
+      const batch = group.paths.slice(index, index + 100);
+      const { error: storageError } = await db.storage.from(group.bucket).remove(batch);
+      if (storageError) {
+        throw new Error(`Account records were removed, but private files still need cleanup. Retry account deletion: ${storageError.message}`);
+      }
+      const { error: acknowledgeError } = await db.rpc("business_acknowledge_deleted_media", {
+        p_paths: batch,
+      });
+      fail(acknowledgeError);
     }
-    if (jobMediaPaths.length) {
-      const { error } = await db.storage.from("job-private-media").remove(jobMediaPaths);
-      if (error) failures.push(`job private media: ${error.message}`);
-    }
-    if (failures.length) throw new Error(`Account data was removed, but private photos could not be removed. Retry before deleting your account: ${failures.join("; ")}`);
   }
-  pendingAccountPhotoDeletion = null;
+
+  const { error: finalizeError } = await db.rpc("business_finalize_user_deletion");
+  fail(finalizeError);
 }

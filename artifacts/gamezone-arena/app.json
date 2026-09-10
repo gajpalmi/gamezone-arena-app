@@ -19,6 +19,10 @@
     "android": {
       "package": "com.gamezonearena.app",
       "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#070A13"
+      },
       "permissions": [
         "android.permission.VIBRATE",
         "android.permission.MODIFY_AUDIO_SETTINGS"

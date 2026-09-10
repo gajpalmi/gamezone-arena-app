@@ -12,21 +12,14 @@ GAMEZONE ARENA is configured with:
 Do not change the Android package after the first Play Console upload. Every
 future uploaded build must use a higher `android.versionCode`.
 
-## One-time Expo/EAS setup
+## Linked Expo project
 
-Run these commands from `artifacts/gamezone-arena`:
-
-```bash
-pnpm dlx eas-cli@latest login
-pnpm dlx eas-cli@latest project:info
-```
-
-The app is already linked to existing Expo Project ID
-`4e9dc944-2a7b-4051-95be-b276401e6e06`. Do not run `eas init` and do not create
-another Expo project. After login, `project:info` must identify the existing
-GAMEZONE ARENA project. If it does not, stop before building and verify that the
-logged-in Expo account has access to that project. Let EAS manage the Android
-signing keystore unless an existing GAMEZONE ARENA upload key already exists.
+The app is already linked to Expo Project ID
+`4e9dc944-2a7b-4051-95be-b276401e6e06`. Do not initialize another Expo project
+or change the Android package. The account creating the signed build must have
+access to the existing project. Keep the existing Android upload key if Google
+Play already knows it; otherwise let the integrated build flow create and
+securely retain the first upload key.
 
 In the linked Expo project's **production** environment, add these build-time
 variables using the Expo dashboard. Copy them from the matching Replit
@@ -42,12 +35,10 @@ client and must only contain client-safe publishable/anonymous values.
 
 ## Create the Internal Testing AAB
 
-This cloud build can consume Expo/EAS build quota or credits. Start it only
-after the owner confirms:
-
-```bash
-pnpm dlx eas-cli@latest build --platform android --profile internal
-```
+An Android cloud build can consume build quota or credits. Confirm any displayed
+cost before starting it. Generate a signed Android App Bundle with the
+`internal` profile through the available integrated Android build surface for
+the linked Expo project.
 
 The `internal` profile deliberately uses Google's test ad unit inventory while
 still producing a Play-compatible signed `.aab`. This prevents invalid live-ad
@@ -74,11 +65,8 @@ implemented later.
 ## Production later
 
 Only after Internal Testing passes, finish `ADMOB_RELEASE_CHECKLIST.md`, increase
-`android.versionCode` for a changed build, and run:
-
-```bash
-pnpm dlx eas-cli@latest build --platform android --profile production
-```
+`android.versionCode` for any newer uploaded build, and generate a signed
+Android App Bundle with the `production` profile.
 
 The production profile enables the confirmed live AdMob unit IDs. Never use it
 for local development or routine testing.

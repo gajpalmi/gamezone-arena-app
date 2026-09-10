@@ -14,3 +14,31 @@ mtime_ms = 1788437297458
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7b7691e1-7821-483d-8acd-32f06728811e/63155338-b6ba-4346-9ee8-fe6bd2c4bb7b/9b2a1532-1f57-4998-9ff8-246b85d77c5e"
 storage_version_token = "1788437320690276"
 content_type = "image/jpeg"
+
+[[outputs]]
+id = "g8DFw2TnxdAm2G5GfWsjL"
+uri = "file://artifacts/gamezone-arena/store-assets/privacy-policy.html"
+type = "text"
+title = "GAMEZONE ARENA Privacy Policy"
+description = "Play Store-ready privacy policy page. Publish this file at a stable public HTTPS URL before store submission."
+logical_id = "14c3de62-cd87-4c01-9628-ee2142250fe8"
+content_hash = "sha256:7681fbc23d055fb270156c504edddd0a3429fa53b89da061fc646c977c2398c2"
+size = 4938
+mtime_ms = 1789065290803
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7b7691e1-7821-483d-8acd-32f06728811e/14c3de62-cd87-4c01-9628-ee2142250fe8/02c1e11c-d24d-4bd7-8458-0a170297b15c"
+storage_version_token = "1789065313530338"
+content_type = "text/html"
+
+[[outputs]]
+id = "4DbyUOZMbK1TwN77USWsx"
+uri = "file://artifacts/gamezone-arena/PLAY_STORE_RELEASE_HANDOFF.md"
+type = "text"
+title = "Play Store Release Handoff"
+description = "Verified release status, external blockers, internal testing checklist, and Play Console declarations."
+logical_id = "4014df96-159b-46b3-a5a0-8bae7fda6a62"
+content_hash = "sha256:ef9dcdafb8763abc24c5ee9f0253bb768110ec959f8cff6e056ecd4c039f3e49"
+size = 4156
+mtime_ms = 1789065221835
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7b7691e1-7821-483d-8acd-32f06728811e/4014df96-159b-46b3-a5a0-8bae7fda6a62/a7a5528a-d28e-4cc0-8a2c-6fcb450d5644"
+storage_version_token = "1789065314821515"
+content_type = "text/markdown"

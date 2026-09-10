@@ -8,3 +8,4 @@
 - [Expo Router native component placement](expo-router-native-components.md) — keep platform-specific native components outside app/ so web route discovery cannot bundle native modules.
 - [Clerk JWT role compatibility](clerk-jwt-role-compat.md) — authorize Business/Jobs operations from verified JWT sub even when PostgREST maps the request to anon.
 - [Applied migration corrections](applied-migration-corrections.md) — once production applies a staged migration, correct its behavior with a new forward migration rather than editing history.
+- [Durable account deletion](durable-account-deletion.md) — preserve media paths server-side until Storage confirms deletion; new user-owned tables and media must join the cleanup contract.

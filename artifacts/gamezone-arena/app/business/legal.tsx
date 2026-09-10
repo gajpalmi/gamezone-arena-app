@@ -36,11 +36,18 @@ export default function LegalScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.title}>Privacy Policy & Data Retention</Text>
-          <Text style={styles.text}>- Data Collection: We collect business name, location, contact details, service areas, opening hours, and images for the directory.</Text>
-          <Text style={styles.text}>- Data Usage: Approved listing details are displayed publicly to help users find services. Photos are stored privately and delivered through short-lived authorized links.</Text>
-          <Text style={styles.text}>- Data Deletion: You can delete eligible business listings from "My Businesses". Account deletion removes associated directory data and private media before your Clerk account is removed.</Text>
-          <Text style={styles.text}>- Account Deletion: If private-media cleanup fails, the account is not deleted; retry the action so cleanup can finish.</Text>
+          <Text style={styles.title}>Privacy Policy & Data Retention (version 2026-09-10)</Text>
+          <Text style={styles.text}>- Account Data: Authentication is provided by Clerk. We use your account identifier to keep your games, listings, jobs, applications, reports, and saved items associated with your account.</Text>
+          <Text style={styles.text}>- Listing and Jobs Data: We collect information you choose to submit, including names, descriptions, categories, location, contact details, service areas, work information, photos, and resume documents.</Text>
+          <Text style={styles.text}>- Device Data: Camera, photo library, files, notifications, and precise location are accessed only when you use a feature that needs them and after the device requests permission. Location is used to select listing or job locations.</Text>
+          <Text style={styles.text}>- Advertising: Google Mobile Ads may process device identifiers, advertising data, diagnostics, and consent choices to provide and measure ads. The app requests consent where required, limits ads to a G content rating, and provides Settings → Ad Privacy.</Text>
+          <Text style={styles.text}>- Data Usage: Approved listing and profile information is displayed according to your visibility and contact-consent choices. Data is also used for game operation, fraud prevention, moderation, reports, and account support.</Text>
+          <Text style={styles.text}>- Data Sharing: Data is processed by service providers needed to operate the app, including Clerk for authentication, Supabase for database and private media storage, Google for ads and consent, and Expo for app delivery and notifications. We do not sell personal information.</Text>
+          <Text style={styles.text}>- Security: Row-level access controls and owner-scoped operations protect private records. Private photos and documents are delivered through short-lived authorized links where applicable.</Text>
+          <Text style={styles.text}>- Retention and Deletion: Content remains while your account or listing is active, subject to moderation and legal requirements. You can delete eligible listings from their owner screens. Account deletion from Profile removes associated app data and private media before the Clerk account is removed.</Text>
+          <Text style={styles.text}>- Deletion Safety: If private-media cleanup fails, account deletion stops instead of leaving an incomplete deletion. Retry the action after connectivity is restored.</Text>
+          <Text style={styles.text}>- Choices: You can deny optional device permissions, change public contact choices while editing eligible content, reopen ad privacy choices in Settings, and use block/report controls.</Text>
+          <Text style={styles.text}>- Contact: Use the developer contact shown on the GAMEZONE ARENA Google Play listing for privacy or deletion questions.</Text>
         </View>
 
         <View style={styles.section}>

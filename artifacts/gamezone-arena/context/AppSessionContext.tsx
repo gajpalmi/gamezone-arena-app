@@ -6,6 +6,7 @@ type AppSessionContextValue = {
   ready: boolean;
   hasSeenIntro: boolean;
   completeIntro: () => Promise<void>;
+  clearLocalPlayerData: () => Promise<void>;
   progress: PlayerProgress;
   recordQuizResult: (score: number, totalQuestions: number) => QuizReward;
 };
@@ -90,6 +91,11 @@ export function AppSessionProvider({ children }: { children: React.ReactNode }) 
       completeIntro: async () => {
         setHasSeenIntro(true);
         await AsyncStorage.setItem(INTRO_KEY, 'true');
+      },
+      clearLocalPlayerData: async () => {
+        await AsyncStorage.multiRemove([INTRO_KEY, PROGRESS_KEY]);
+        setHasSeenIntro(false);
+        setProgress(initialProgress);
       },
       progress,
       recordQuizResult,

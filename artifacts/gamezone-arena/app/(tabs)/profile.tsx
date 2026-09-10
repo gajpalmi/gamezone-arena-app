@@ -20,6 +20,7 @@ import { useBusinessAdmin, useDeleteUserData, useSupabaseAuth } from '@/hooks/us
 import { Alert } from 'react-native';
 import { Feather } from '@/components/Feather';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAppSession } from '@/context/AppSessionContext';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -28,6 +29,7 @@ export default function ProfileScreen() {
   const { signOut } = useAuth();
   const { user } = useUser();
   const deleteUserData = useDeleteUserData();
+  const { clearLocalPlayerData } = useAppSession();
   useSupabaseAuth();
   const { data: isAdmin } = useBusinessAdmin();
 
@@ -83,6 +85,7 @@ export default function ProfileScreen() {
               setLoggingOut(true);
               // Clean up backend data via RPC
               await deleteUserData.mutateAsync();
+              await clearLocalPlayerData();
               // Delete Clerk user
               await user?.delete();
               // Will automatically route away or we can push
