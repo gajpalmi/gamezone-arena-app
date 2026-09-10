@@ -83,6 +83,8 @@ service_areas: '',
 address: '',
 description: '',
 website: '',
+latitude: null as number | null,
+longitude: null as number | null,
 });
 
 const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -136,6 +138,8 @@ setForm({
   address: business.address || '',  
   description: business.description || '',  
   website: business.website || '',  
+  latitude: business.latitude ?? null,
+  longitude: business.longitude ?? null,
 });  
 
 setPublicContactConsent(  
@@ -950,6 +954,10 @@ color={colors.light.foreground}
 
         <LocationAutocomplete  
           value={form.address}  
+          latitude={form.latitude}
+          longitude={form.longitude}
+          showMap
+          mapTitle="Choose business location"
           onChangeText={(address) =>  
             setForm(  
               (current) => ({  
@@ -975,6 +983,8 @@ color={colors.light.foreground}
                   current.service_areas ||  
                   location.area ||  
                   '',  
+                latitude: location.latitude,
+                longitude: location.longitude,
               })  
             )  
           }  

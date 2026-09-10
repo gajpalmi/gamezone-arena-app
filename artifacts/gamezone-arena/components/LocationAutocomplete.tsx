@@ -3,6 +3,7 @@ import { ActivityIndicator, Linking, Platform, Pressable, StyleSheet, Text, Text
 import * as Location from "expo-location";
 import { Feather } from "@/components/Feather";
 import colors from "@/constants/colors";
+import ListingMap from "@/components/listing/ListingMap";
 
 export type SelectedLocation = {
   address: string;
@@ -45,6 +46,10 @@ type Props = {
   error?: string;
   onChangeText: (value: string) => void;
   onSelect: (location: SelectedLocation) => void;
+  latitude?: number | null;
+  longitude?: number | null;
+  showMap?: boolean;
+  mapTitle?: string;
 };
 
 function normalize(result: SearchResult): SelectedLocation {
@@ -58,11 +63,17 @@ function normalize(result: SearchResult): SelectedLocation {
   };
 }
 
-export function LocationAutocomplete({ value, error, onChangeText, onSelect }: Props) {
+export function LocationAutocomplete({ value, error, onChangeText, onSelect, latitude, longitude, showMap=false, mapTitle="Choose location" }: Props) {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [focused, setFocused] = useState(false);
+  const [mapVisible,setMapVisible]=useState(false);
+  const [mapLoading,setMapLoading]=useState(false);
+  const initialMarker=latitude!=null&&longitude!=null?{latitude,longitude}:null;
+  const [marker,setMarker]=useState(initialMarker);
+  const [region,setRegion]=useState({latitude:latitude??20.5937,longitude:longitude??78.9629,latitudeDelta:initialMarker?.latitude?0.01:12,longitudeDelta:initialMarker?.longitude?0.01:12});
+  const [pendingLocation,setPendingLocation]=useState<SelectedLocation|null>(null);
   const skipNextSearch = useRef(false);
 
   useEffect(() => {
@@ -174,6 +185,26 @@ export function LocationAutocomplete({ value, error, onChangeText, onSelect }: P
     }
   };
 
+  useEffect(()=>{if(latitude!=null&&longitude!=null){setMarker({latitude,longitude});setRegion({latitude,longitude,latitudeDelta:.01,longitudeDelta:.01});}},[latitude,longitude]);
+
+  const selectCoordinates=async(lat:number,lon:number)=>{
+    setMarker({latitude:lat,longitude:lon});setRegion({latitude:lat,longitude:lon,latitudeDelta:.01,longitudeDelta:.01});setMapLoading(true);setMessage("");
+    try{
+      let selected:SelectedLocation;
+      if(Platform.OS==="web") selected=await reverseGeocodeWeb(lat,lon);
+      else {const [a]=await Location.reverseGeocodeAsync({latitude:lat,longitude:lon});selected={address:[a?.name,a?.street,a?.district,a?.city,a?.region,a?.postalCode].filter(Boolean).join(", "),city:a?.city||a?.subregion||a?.region||"",area:a?.district||a?.street||"",latitude:lat,longitude:lon};}
+      setPendingLocation(selected);
+    }catch(e){console.error("Map reverse geocoding failed",e);setPendingLocation({address:value,city:"",area:"",latitude:lat,longitude:lon});setMessage("Coordinates selected. Address lookup failed, so you can enter the address manually.");}
+    finally{setMapLoading(false);}
+  };
+  const currentForMap=async()=>{
+    setLoading(true);setMessage("");
+    try{
+      if(Platform.OS==="web"){const position=await new Promise<GeolocationPosition>((resolve,reject)=>globalThis.navigator.geolocation.getCurrentPosition(resolve,reject,{timeout:15000,maximumAge:60000}));await selectCoordinates(position.coords.latitude,position.coords.longitude);}
+      else {const permission=await Location.requestForegroundPermissionsAsync();if(permission.status!=="granted"){setMessage("Location permission was not granted. Select the map or enter the address manually.");return;}const position=await Location.getCurrentPositionAsync({accuracy:Location.Accuracy.Balanced});await selectCoordinates(position.coords.latitude,position.coords.longitude);}
+    }catch(e){console.error("Map current location failed",e);setMessage("Current location could not be detected. Select the map or enter it manually.");}finally{setLoading(false);}
+  };
+
   return <View style={styles.root}>
     <Text style={styles.label}>LOCATION SEARCH</Text>
     <View style={[styles.inputRow, error && styles.inputError]}>
@@ -196,6 +227,7 @@ export function LocationAutocomplete({ value, error, onChangeText, onSelect }: P
       <Feather name="crosshair" size={16} color={colors.light.primary}/>
       <Text style={styles.currentText}>USE CURRENT LOCATION</Text>
     </Pressable>
+    {showMap?<Pressable style={styles.mapButton} onPress={()=>setMapVisible(true)}><Feather name="map" size={16} color={colors.light.primary}/><Text style={styles.currentText}>CHOOSE ON MAP</Text></Pressable>:null}
     {Platform.OS !== "web" && message.includes("Open app settings") ? <Pressable style={styles.settingsButton} onPress={() => void Linking.openSettings()}>
       <Text style={styles.currentText}>OPEN APP SETTINGS</Text>
     </Pressable> : null}
@@ -207,6 +239,7 @@ export function LocationAutocomplete({ value, error, onChangeText, onSelect }: P
       </Pressable>)}
       <Text style={styles.attribution}>Location results © OpenStreetMap contributors</Text>
     </View> : null}
+    <ListingMap visible={mapVisible} title={mapTitle} region={region} marker={marker} locationLoading={loading} mapLoading={mapLoading} selectedLocation={pendingLocation?.address||value} onClose={()=>setMapVisible(false)} onMapPress={selectCoordinates} onCurrentLocation={currentForMap} onConfirm={()=>{if(pendingLocation){onSelect(pendingLocation);}else if(marker){onSelect({address:value,city:"",area:"",...marker});}setMapVisible(false);}}/>
   </View>;
 }
 
@@ -217,6 +250,7 @@ const styles = StyleSheet.create({
   inputError: { borderColor: colors.light.destructive, borderWidth: 2 },
   input: { flex: 1, color: colors.light.foreground, paddingVertical: 13 },
   currentButton: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 7, paddingVertical: 10 },
+  mapButton: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 7, paddingBottom: 10 },
   settingsButton: { alignSelf: "flex-start", paddingBottom: 8 },
   currentText: { color: colors.light.primary, fontSize: 12, fontWeight: "900" },
   results: { borderWidth: 1, borderColor: colors.light.border, borderRadius: 12, backgroundColor: colors.light.card, overflow: "hidden" },

@@ -4,9 +4,9 @@ import type { BusinessStatus, ReportReason } from "@/lib/business";
 
 const priceError = "Enter a nonnegative price with up to 2 decimal places (maximum 9999999999.99).";
 export type OfferingKind = "product" | "service";
-export type BusinessOffering = { id: string; owner_user_id: string; business_id: string | null; kind: OfferingKind; listing_intent: "buy"|"sell"; name: string; category: string; subcategory: string | null; description: string; price: number | null; price_unit: string; in_stock: boolean; city: string; area: string | null; location_text: string | null; service_area: string | null; contact_phone: string; whatsapp: string | null; delivery_info: string | null; availability_hours: string | null; is_enabled: boolean; contact_public_consent_at:string|null; terms_version:string|null; terms_accepted_at:string|null; status: BusinessStatus; rejection_reason: string | null; created_at: string; updated_at: string };
+export type BusinessOffering = { id: string; owner_user_id: string; business_id: string | null; kind: OfferingKind; listing_intent: "buy"|"sell"; name: string; category: string; subcategory: string | null; description: string; price: number | null; price_unit: string; in_stock: boolean; city: string; area: string | null; location_text: string | null; latitude: number | null; longitude: number | null; service_area: string | null; contact_phone: string; whatsapp: string | null; delivery_info: string | null; availability_hours: string | null; is_enabled: boolean; contact_public_consent_at:string|null; terms_version:string|null; terms_accepted_at:string|null; status: BusinessStatus; rejection_reason: string | null; created_at: string; updated_at: string };
 /** Fields safe to return from public marketplace discovery and listing detail. */
-export type PublicBusinessOffering = Pick<BusinessOffering, "id" | "business_id" | "kind" | "listing_intent" | "name" | "category" | "subcategory" | "description" | "price" | "price_unit" | "in_stock" | "city" | "area" | "location_text" | "service_area" | "delivery_info" | "availability_hours" | "is_enabled" | "status" | "created_at" | "updated_at">;
+export type PublicBusinessOffering = Pick<BusinessOffering, "id" | "business_id" | "kind" | "listing_intent" | "name" | "category" | "subcategory" | "description" | "price" | "price_unit" | "in_stock" | "city" | "area" | "location_text" | "latitude" | "longitude" | "service_area" | "delivery_info" | "availability_hours" | "is_enabled" | "status" | "created_at" | "updated_at">;
 export type BusinessOfferingPhoto = { id: string; offering_id: string; storage_path: string; alt_text: string | null; sort_order: number; created_at: string; signedUrl?: string };
 export type BusinessOfferingReview = { id: string; offering_id: string; user_id: string; rating: number; body: string; is_approved: boolean; created_at: string; updated_at: string };
 /** Minimal row used by the offering moderation list. */
@@ -16,14 +16,14 @@ export type BusinessOfferingReportQueueItem = { id: string; offering_id: string 
 export type OfferingInput = Omit<BusinessOffering, "id" | "owner_user_id" | "status" | "rejection_reason" | "created_at" | "updated_at">;
 export type OfferingFilters = { query?: string; kind?: OfferingKind; category?: string; city?: string; area?: string; minPrice?: number; maxPrice?: number };
 export type BasketItem = { id:string; offering_id:string; buyer_id:string; status:"active"|"cancelled"; created_at:string; updated_at:string; business_offerings:PublicBusinessOffering };
-const ownerColumns = "id,owner_user_id,business_id,kind,listing_intent,name,category,subcategory,description,price,price_unit,in_stock,city,area,location_text,service_area,contact_phone,whatsapp,delivery_info,availability_hours,is_enabled,contact_public_consent_at,terms_version,terms_accepted_at,status,rejection_reason,created_at,updated_at";
+const ownerColumns = "id,owner_user_id,business_id,kind,listing_intent,name,category,subcategory,description,price,price_unit,in_stock,city,area,location_text,latitude,longitude,service_area,contact_phone,whatsapp,delivery_info,availability_hours,is_enabled,contact_public_consent_at,terms_version,terms_accepted_at,status,rejection_reason,created_at,updated_at";
 const pendingOfferingColumns = "id,name,kind,category,city";
 const offeringReportQueueColumns = "id,offering_id,review_id,reason,details,created_at,resolved_at";
 const offeringPhotoColumns = "id,offering_id,storage_path,alt_text,sort_order,created_at";
 const offeringReviewColumns = "id,offering_id,user_id,rating,body,is_approved,created_at,updated_at";
 // The table currently has no public-safe view/RPC for conditional contact
 // disclosure. Public queries deliberately never select owner or contact fields.
-const publicColumns = "id,business_id,kind,listing_intent,name,category,subcategory,description,price,price_unit,in_stock,city,area,location_text,service_area,delivery_info,availability_hours,is_enabled,status,created_at,updated_at";
+const publicColumns = "id,business_id,kind,listing_intent,name,category,subcategory,description,price,price_unit,in_stock,city,area,location_text,latitude,longitude,service_area,delivery_info,availability_hours,is_enabled,status,created_at,updated_at";
 const db = () => { if (!supabase) throw new Error("Offerings are unavailable: Supabase is not configured."); return supabase; };
 const fail = (error: { code?: string; message: string; details?: string; hint?: string } | null, operation = "unknown", table = "unknown") => {
   if (error) {
@@ -37,6 +37,8 @@ function valid(input: OfferingInput) {
   if (!/^\+?[0-9][0-9 ()-]{6,38}$/.test(input.contact_phone.trim())) throw new Error("Enter a valid contact phone.");
   if (input.whatsapp?.trim() && !/^\+?[0-9][0-9 ()-]{6,38}$/.test(input.whatsapp.trim())) throw new Error("Enter a valid WhatsApp number.");
   if (input.price != null && (!Number.isFinite(input.price) || input.price < 0 || input.price > 9999999999.99 || !/^\d+(?:\.\d{1,2})?$/.test(String(input.price)))) throw new Error(priceError);
+  if (input.latitude != null && (input.latitude < -90 || input.latitude > 90)) throw new Error("Latitude is invalid.");
+  if (input.longitude != null && (input.longitude < -180 || input.longitude > 180)) throw new Error("Longitude is invalid.");
 }
 function clean(input: OfferingInput) {
   valid(input);
@@ -54,6 +56,8 @@ function clean(input: OfferingInput) {
     city: input.city.trim(),
     area: text(input.area, 120),
     location_text: text(input.location_text, 500),
+    latitude: input.latitude,
+    longitude: input.longitude,
     service_area: text(input.service_area, 500),
     contact_phone: input.contact_phone.trim(),
     whatsapp: text(input.whatsapp, 40),
@@ -84,9 +88,11 @@ export async function getOffering(id: string) { if (!publicSupabase) throw new E
 export async function getMyOffering(id: string) { const privateDb = db(); const [o, p, r] = await Promise.all([privateDb.from("business_offerings").select(ownerColumns).eq("id", id).single(), privateDb.from("business_offering_photos").select(offeringPhotoColumns).eq("offering_id", id).order("sort_order"), privateDb.from("business_offering_reviews").select(offeringReviewColumns).eq("offering_id", id).eq("is_approved", true)]); fail(o.error); fail(p.error); fail(r.error); const paths = (p.data ?? []).map(x => x.storage_path); const signed = paths.length ? await privateDb.storage.from("business-media").createSignedUrls(paths, 600) : { data: [], error: null }; fail(signed.error); const map = new Map((signed.data ?? []).map(x => [x.path, x.signedUrl])); return { offering: o.data as BusinessOffering, photos: (p.data ?? []).map(x => ({ ...x, signedUrl: map.get(x.storage_path) })) as BusinessOfferingPhoto[], reviews: (r.data ?? []) as BusinessOfferingReview[], isSaved: false }; }
 export async function myOfferings() { const { data, error } = await db().from("business_offerings").select(ownerColumns).order("updated_at", { ascending: false }); fail(error); return (data ?? []) as BusinessOffering[]; }
 export async function saveOffering(input: OfferingInput, id?: string) {
-  const { data, error } = await db().rpc("business_offering_save_draft", {
+  const { data, error } = await db().rpc("business_offering_save_draft_with_location", {
     p_input: clean(input),
     p_offering_id: id ?? null,
+    p_latitude: input.latitude,
+    p_longitude: input.longitude,
   });
   fail(error, id ? "update-draft" : "insert-draft", "business_offerings");
   if (!data) throw new Error("The product or service was not returned after saving.");

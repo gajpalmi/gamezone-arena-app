@@ -77,6 +77,8 @@ export default function OfferingEdit() {
     whatsapp: "",
     delivery_info: "",
     availability_hours: "",
+    latitude: null as number | null,
+    longitude: null as number | null,
   });
   const [localPhotos, setLocalPhotos] = useState<ImagePicker.ImagePickerAsset[]>([]);
 
@@ -99,6 +101,8 @@ export default function OfferingEdit() {
       whatsapp: o.whatsapp ?? "",
       delivery_info: o.delivery_info ?? "",
       availability_hours: o.availability_hours ?? "",
+      latitude: o.latitude ?? null,
+      longitude: o.longitude ?? null,
     });
     setPrior({
       termsVersion: o.terms_version,
@@ -213,6 +217,8 @@ export default function OfferingEdit() {
       whatsapp: f.whatsapp || null,
       delivery_info: f.delivery_info || null,
       availability_hours: f.availability_hours || null,
+      latitude: f.latitude,
+      longitude: f.longitude,
       is_enabled: true,
       contact_public_consent_at: validation.sameContact ? prior.consentAt : consent ? now : null,
       terms_version: validation.sameTerms ? prior.termsVersion : terms ? legal : null,
@@ -335,6 +341,10 @@ export default function OfferingEdit() {
       {input("area", "Area / locality")}
       <LocationAutocomplete
         value={f.location_text}
+        latitude={f.latitude}
+        longitude={f.longitude}
+        showMap
+        mapTitle={`Choose ${f.kind} location`}
         onChangeText={value => setF(current => ({ ...current, location_text: value }))}
         onSelect={location => {
           setF(current => ({
@@ -342,6 +352,8 @@ export default function OfferingEdit() {
             location_text: location.address,
             city: location.city || current.city,
             area: location.area || current.area,
+            latitude: location.latitude,
+            longitude: location.longitude,
           }));
           clearError("city");
         }}
