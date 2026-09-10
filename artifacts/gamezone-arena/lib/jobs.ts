@@ -1,29 +1,849 @@
-import { publicSupabase, supabase } from "@/lib/supabase";
-export type JobStatus="draft"|"pending"|"active"|"paused"|"closed"|"rejected"|"suspended";export type ApplicationStatus="applied"|"viewed"|"shortlisted"|"contacted"|"interview"|"selected"|"rejected"|"withdrawn";export type WorkType="full_time"|"part_time"|"temporary"|"contract"|"internship"|"freelance";export type WorkplaceType="on_site"|"remote"|"hybrid";
-export type JobCategory={id:string;slug:string;name:string;sort_order:number};
-export type Job={id:string;employer_id:string;business_id:string|null;category_id:string|null;title:string;company_name:string;employer_name:string;job_role:string|null;description:string;responsibilities:string|null;required_skills:string[];required_experience_months:number|null;education_requirement:string|null;vacancies:number;salary_min:number|null;salary_max:number|null;salary_type:string;work_type:WorkType;workplace_type:WorkplaceType;location_text:string|null;city:string;area:string|null;working_hours:string|null;weekly_off:string|null;benefits:string|null;requirements:string|null;joining_date:string|null;application_deadline:string|null;is_featured:boolean;status:JobStatus;terms_version:string|null;terms_accepted_at:string|null;privacy_version:string|null;privacy_accepted_at:string|null;rules_version:string|null;rules_accepted_at:string|null;created_at:string;updated_at:string;verification_status?:string;category?:string;work_mode?:WorkplaceType;required_experience?:string};
-/** Minimal row used by the job moderation list. */
-export type PendingJob=Pick<Job,"id"|"title"|"company_name"|"employer_name"|"city">;
-export type JobContact={phone:string|null;whatsapp:string|null;email:string|null;website:string|null;phone_public?:boolean;whatsapp_public?:boolean;email_public?:boolean};export type JobInput=any;
-export type SeekerProfile={id:string;user_id:string;display_name:string;photo_path:string|null;category_id:string|null;job_role:string|null;skills:string[];experience_months:number|null;education:string|null;expected_salary_min:number|null;expected_salary_max:number|null;preferred_work_types:WorkType[];preferred_workplace_types:WorkplaceType[];city:string|null;area:string|null;available_from:string|null;bio:string;is_public:boolean;status:JobStatus;terms_version:string|null;terms_accepted_at:string|null;privacy_version:string|null;privacy_accepted_at:string|null;updated_at:string;role?:string;category?:string;experience?:string;contact_public?:boolean;contact_phone?:string|null;whatsapp?:string|null;email?:string|null;profile_public?:boolean};export type SeekerProfileInput=any;
-export type JobApplication={id:string;job_id:string;applicant_id:string;applicant_name:string;experience_months:number|null;skills:string[];introduction:string|null;resume_path:string|null;message:string|null;status:ApplicationStatus;created_at:string;updated_at:string;jobs?:Job};export type JobFilters={query?:string;categoryId?:string;city?:string;area?:string;workType?:WorkType;workplaceType?:WorkplaceType;minSalary?:number;maxSalary?:number;minExperience?:number;maxExperience?:number;education?:string;recent?:boolean;sort?:"newest"|"salary_asc"|"salary_desc"|"deadline"};export type WorkerFilters={query?:string;role?:string;skills?:string;city?:string;area?:string;categoryId?:string;minExperience?:number;maxExperience?:number;workType?:WorkType;minSalary?:number;maxSalary?:number;available?:boolean};
-const joc="id,employer_id,business_id,category_id,title,company_name,employer_name,job_role,description,responsibilities,required_skills,required_experience_months,education_requirement,vacancies,salary_min,salary_max,salary_type,work_type,workplace_type,location_text,city,area,working_hours,weekly_off,benefits,requirements,joining_date,application_deadline,is_featured,status,terms_version,terms_accepted_at,privacy_version,privacy_accepted_at,rules_version,rules_accepted_at,created_at,updated_at";const jc=joc;const jdc="id,employer_id,category_id,title,company_name,employer_name,job_role,description,responsibilities,required_skills,required_experience_months,education_requirement,vacancies,salary_min,salary_max,salary_type,work_type,workplace_type,location_text,city,area,working_hours,weekly_off,benefits,requirements,joining_date,application_deadline,is_featured,status,created_at,updated_at";const pendingJobColumns="id,title,company_name,employer_name,city";const pc="id,user_id,display_name,photo_path,category_id,job_role,skills,experience_months,education,expected_salary_min,expected_salary_max,preferred_work_types,preferred_workplace_types,city,area,available_from,bio,is_public,status,terms_version,terms_accepted_at,privacy_version,privacy_accepted_at,updated_at";const ac="id,job_id,applicant_id,applicant_name,experience_months,skills,introduction,resume_path,message,status,created_at,updated_at";
-const db=()=>{if(!supabase)throw Error("Jobs are unavailable: Supabase is not configured.");return supabase};const fail=(e:{code?:string;message:string;details?:string;hint?:string}|null,operation="unknown",table="unknown")=>{if(e){console.error("Jobs database operation failed",{table,operation,code:e.code,message:e.message,details:e.details,hint:e.hint});throw Error(`Jobs service error: ${e.message}`)}};const clean=(v:string|null|undefined,n:number)=>{const x=v?.trim()??"";if(x.length>n)throw Error(`Value must be ${n} characters or fewer.`);return x||null};const validPhone=(x:string|null)=>!x||/^\+?[0-9][0-9 ()-]{6,38}$/.test(x);const pick=(x:any,keys:string[])=>Object.fromEntries(keys.filter(k=>x[k]!==undefined).map(k=>[k,x[k]]));
-export async function jobCategories(){if(!publicSupabase)throw Error("Job categories are unavailable: Supabase is not configured.");const columns="id,slug,name,sort_order" as const;const{data,error}=await publicSupabase.from("job_categories").select(columns).eq("is_active",true).order("sort_order");if(error){console.error("Category query failed",{scope:"job",table:"job_categories",parameters:{is_active:true,order:"sort_order"},code:error.code,message:error.message,details:error.details,hint:error.hint});fail(error)}return(data??[])as JobCategory[]}
-async function resolveCategory(value:any){if(value==null||String(value).trim()==="")return null;const v=String(value).trim();const cats=await jobCategories();const category=cats.find(x=>x.id===v||x.slug.toLowerCase()===v.toLowerCase()||x.name.toLowerCase()===v.toLowerCase());if(!category)throw Error(`Unknown job category "${v}". Choose a category from the available list.`);return category.id}
-async function names<T extends {category_id:string|null}>(rows:T[]){const cats=await jobCategories();const map=new Map(cats.map(x=>[x.id,x.name]));return rows.map(x=>({...x,category:x.category_id?map.get(x.category_id):undefined}))}
-function imageInfo(filename:string,contentType:string){const base=filename.split(/[\\/]/).pop()?.toLowerCase()||"";const ext=base.split(".").pop();if(!ext||!["jpg","jpeg","png","webp"].includes(ext)||!["image/jpeg","image/png","image/webp"].includes(contentType))throw Error("Only JPG, PNG, and WebP images are accepted.");const expected=ext==="png"?"image/png":ext==="webp"?"image/webp":"image/jpeg";if(contentType!==expected)throw Error("The image file extension does not match its type.");return ext}
-async function saveContact(jobId:string,c:JobContact){if(!validPhone(c.phone)||!validPhone(c.whatsapp))throw Error("Enter a valid contact number.");const{error}=await db().rpc("job_upsert_employer_contact",{p_job_id:jobId,p_phone:clean(c.phone,40),p_whatsapp:clean(c.whatsapp,40),p_email:clean(c.email,254),p_website:clean(c.website,500),p_phone_public:!!c.phone_public,p_whatsapp_public:!!c.whatsapp_public,p_email_public:!!c.email_public});fail(error)}
-export async function browseJobs(f:JobFilters={}){let q=db().from("jobs").select(jc).eq("status","active");if(f.categoryId)q=q.eq("category_id",f.categoryId);if(f.city)q=q.ilike("city",`%${f.city}%`);if(f.area)q=q.ilike("area",`%${f.area}%`);if(f.workType)q=q.eq("work_type",f.workType);if(f.workplaceType)q=q.eq("workplace_type",f.workplaceType);if(f.minSalary!=null)q=q.or(`salary_max.gte.${f.minSalary},salary_max.is.null`);if(f.maxSalary!=null)q=q.or(`salary_min.lte.${f.maxSalary},salary_min.is.null`);if(f.minExperience!=null)q=q.gte("required_experience_months",f.minExperience);if(f.maxExperience!=null)q=q.lte("required_experience_months",f.maxExperience);if(f.education)q=q.ilike("education_requirement",`%${f.education.replace(/[%_]/g," ")}%`);if(f.recent)q=q.gte("created_at",new Date(Date.now()-6048e5).toISOString());if(f.query){const x=f.query.replace(/[%,()]/g," ");q=q.or(`title.ilike.%${x}%,company_name.ilike.%${x}%,job_role.ilike.%${x}%`)}const order:[string,boolean]=f.sort==="salary_asc"?["salary_min",true]:f.sort==="salary_desc"?["salary_max",false]:f.sort==="deadline"?["application_deadline",true]:["created_at",false];const{data,error}=await q.order(order[0],{ascending:order[1],nullsFirst:false});fail(error);return names((data??[])as Job[])}
-export async function getJob(id:string){const{data,error}=await db().from("jobs").select(jdc).eq("id",id).single();fail(error);return(await names([data as Job]))[0]}export async function getOwnerJob(id:string){const{data,error}=await db().from("jobs").select(joc).eq("id",id).single();fail(error);return(await names([data as Job]))[0]}export async function getEmployerContact(id:string){const{data,error}=await db().rpc("job_get_employer_contact",{p_job_id:id});fail(error);return(data?.[0]??null)as JobContact|null}export async function myJobs(){const{data,error}=await db().from("jobs").select(jc).order("updated_at",{ascending:false});fail(error);return names((data??[])as Job[])}
-export async function saveJob(x:JobInput,id?:string){const contact=x.contact??{phone:x.contact_phone??null,whatsapp:x.whatsapp??null,email:x.email??null,website:x.website??null,phone_public:x.contact_public,whatsapp_public:x.contact_public,email_public:x.contact_public};const acceptedAt=x.terms_accepted_at||null;const source={...x,category_id:await resolveCategory(x.category_id??x.category),employer_name:x.employer_name??x.contact_person,job_role:x.job_role??x.role,required_experience_months:x.required_experience_months===""?null:x.required_experience_months??null,workplace_type:x.workplace_type??x.work_mode??"on_site",terms_accepted_at:acceptedAt,privacy_version:x.privacy_version??"2026-09-10",privacy_accepted_at:x.privacy_accepted_at||acceptedAt,rules_version:x.rules_version??"2026-09-10",rules_accepted_at:x.rules_accepted_at||acceptedAt};const row=pick(source,["business_id","category_id","title","company_name","employer_name","job_role","description","responsibilities","required_skills","required_experience_months","education_requirement","vacancies","salary_min","salary_max","salary_type","work_type","workplace_type","location_text","city","area","working_hours","weekly_off","benefits","requirements","joining_date","application_deadline","terms_version","terms_accepted_at","privacy_version","privacy_accepted_at","rules_version","rules_accepted_at"]);if(!row.title?.trim()||!row.company_name?.trim()||!row.employer_name?.trim()||!row.description?.trim()||row.description.trim().length<20||!row.city?.trim())throw Error("Title, company, employer name, a 20-character description, and city are required to save a draft.");const q=id?db().from("jobs").update({...row,updated_at:new Date().toISOString()}).eq("id",id):db().from("jobs").insert(row);const{data,error}=await q.select(jc).single();fail(error,id?"update":"insert","jobs");if(!data)throw Error("Job could not be saved.");await saveContact(data.id,contact);return(await names([data as Job]))[0]}
-export async function submitJob(id:string){const{data,error}=await db().rpc("job_submit",{p_job_id:id});fail(error,"submit","jobs");return data as Job}export async function setJobStatus(id:string,status:"paused"|"active"|"closed"){const{data,error}=await db().rpc("job_set_status",{p_job_id:id,p_status:status});fail(error);return data as Job}export async function deleteJob(id:string){const{error}=await db().from("jobs").delete().eq("id",id);fail(error)}
-export async function submitSeekerProfile(id:string){const{data,error}=await db().rpc("job_submit_seeker_profile",{p_profile_id:id});fail(error,"submit","job_seeker_profiles");return data as SeekerProfile}
-export async function saveJobFavorite(id:string,on:boolean){const{error}=on?await db().rpc("job_save",{p_job_id:id}):await db().from("job_saved").delete().eq("job_id",id);fail(error)}export async function savedJobs(){const{data,error}=await db().from("job_saved").select(`job_id,jobs(${jc})`);fail(error);return names((data??[]).map((x:any)=>x.jobs).filter(Boolean)as Job[])}export async function reportJob(id:string,reason:string,details?:string){const{error}=await db().from("job_reports").insert({job_id:id,reason,details:clean(details,2000)});fail(error)}export async function reportWorker(id:string,report:string|{reason:string;details?:string},details?:string){const reason=typeof report==="string"?report:report.reason;const reportDetails=typeof report==="string"?details:report.details;const{error}=await db().from("job_reports").insert({profile_id:id,reason,details:clean(reportDetails,2000)});fail(error)}export async function isUserBlocked(id:string){const{data,error}=await db().from("job_blocks").select("blocked_id").eq("blocked_id",id).maybeSingle();fail(error);return!!data}export async function blockUser(id:string,on:boolean){const{error}=on?await db().rpc("job_block_user",{p_blocked_id:id}):await db().from("job_blocks").delete().eq("blocked_id",id);fail(error)}
-export async function applyForJob(x:any){const row=pick({...x,experience_months:x.experience_months??(x.experience===""?null:Number(x.experience)||null),resume_path:null},["job_id","applicant_name","phone","email","experience_months","skills","introduction","resume_path","message"]);const{data,error}=await db().from("job_applications").insert(row).select(ac).single();fail(error);return data as JobApplication}
-export async function uploadApplicationResume(applicationId:string,filename:string,file:Blob,contentType:string){const ext=imageInfo(filename,contentType);if(file.size<=0||file.size>5*1024*1024)throw Error("Use an image up to 5 MB.");const{data:path,error}=await db().rpc("job_prepare_application_resume",{p_application_id:applicationId,p_extension:ext});fail(error);if(!path)throw Error("Could not prepare resume upload.");const upload=await db().storage.from("job-private-media").upload(path,file,{contentType,upsert:false});if(upload.error)throw Error(`Resume upload failed: ${upload.error.message}`);const attached=await db().rpc("job_attach_application_resume",{p_application_id:applicationId,p_path:path});if(attached.error){await db().storage.from("job-private-media").remove([path]);fail(attached.error)}return path as string}
-export async function myApplications(){const{data,error}=await db().from("job_applications").select(`${ac},jobs(${jc})`).order("updated_at",{ascending:false});fail(error);return(data??[])as unknown as JobApplication[]}export async function jobApplications(jobId:string){const{data,error}=await db().from("job_applications").select(ac).eq("job_id",jobId).order("created_at",{ascending:false});fail(error);return(data??[])as JobApplication[]}export async function setApplicationStatus(id:string,status:ApplicationStatus){const{error}=await db().rpc("job_set_application_status",{p_application_id:id,p_status:status});fail(error)}
-export async function mySeekerProfile(){const{data,error}=await db().from("job_seeker_profiles").select(pc).maybeSingle();fail(error);return data?(await names([data as SeekerProfile]))[0]:null}
-export async function saveSeekerProfile(x:SeekerProfileInput){if(!x.display_name.trim())throw Error("Display name is required.");const c=x.contact??{phone:x.contact_phone??null,whatsapp:x.whatsapp??null,email:x.email??null,phone_public:x.contact_public,whatsapp_public:x.contact_public,email_public:x.contact_public};if(!validPhone(c.phone)||!validPhone(c.whatsapp))throw Error("Enter a valid contact number.");const acceptedAt=x.terms_accepted_at||null;const source={...x,photo_path:x.photo_path??null,category_id:await resolveCategory(x.category_id??x.category),job_role:x.job_role??x.role,experience_months:x.experience_months===""?null:x.experience_months??(x.experience===""?null:Number(x.experience)||null),is_public:x.is_public??x.profile_public??false,preferred_workplace_types:x.preferred_workplace_types??[x.preferred_work_mode??"on_site"],terms_accepted_at:acceptedAt,privacy_version:x.privacy_version??"2026-09-10",privacy_accepted_at:x.privacy_accepted_at||acceptedAt};const row=pick(source,["display_name","photo_path","category_id","job_role","skills","experience_months","education","expected_salary_min","expected_salary_max","preferred_work_types","preferred_workplace_types","city","area","available_from","bio","is_public","terms_version","terms_accepted_at","privacy_version","privacy_accepted_at"]);const{data,error}=await db().from("job_seeker_profiles").upsert(row,{onConflict:"user_id"}).select(pc).single();fail(error,"upsert","job_seeker_profiles");if(!data)throw Error("Profile could not be saved.");const result=await db().rpc("job_upsert_seeker_contact",{p_profile_id:data.id,p_phone:clean(c.phone,40),p_whatsapp:clean(c.whatsapp,40),p_email:clean(c.email,254),p_phone_public:!!c.phone_public,p_whatsapp_public:!!c.whatsapp_public,p_email_public:!!c.email_public});fail(result.error,"upsert-contact","job_seeker_contacts");return(await names([data as SeekerProfile]))[0]}
-export async function uploadSeekerPhoto(profileId:string,filename:string,file:Blob,contentType:string){const ext=imageInfo(filename,contentType);if(file.size<=0||file.size>5*1024*1024)throw Error("Use an image up to 5 MB.");const{data:path,error}=await db().rpc("job_prepare_seeker_photo",{p_profile_id:profileId,p_extension:ext});fail(error);if(!path)throw Error("Could not prepare profile photo upload.");const upload=await db().storage.from("job-private-media").upload(path,file,{contentType,upsert:false});if(upload.error)throw Error(`Profile photo upload failed: ${upload.error.message}`);const attached=await db().rpc("job_attach_seeker_photo",{p_profile_id:profileId,p_path:path});if(attached.error){await db().storage.from("job-private-media").remove([path]);fail(attached.error)}return path as string}
-export async function findWorkers(f:WorkerFilters={}){let q=db().from("job_seeker_profiles").select(pc).eq("is_public",true).eq("status","active");if(f.city)q=q.ilike("city",`%${f.city}%`);if(f.area)q=q.ilike("area",`%${f.area}%`);if(f.categoryId)q=q.eq("category_id",f.categoryId);if(f.role)q=q.ilike("job_role",`%${f.role.replace(/[%_]/g," ")}%`);if(f.skills){const skills=f.skills.split(",").map(x=>x.trim()).filter(Boolean);if(skills.length)q=q.overlaps("skills",skills)}if(f.minExperience!=null)q=q.gte("experience_months",f.minExperience);if(f.maxExperience!=null)q=q.lte("experience_months",f.maxExperience);if(f.workType)q=q.contains("preferred_work_types",[f.workType]);if(f.minSalary!=null)q=q.or(`expected_salary_max.gte.${f.minSalary},expected_salary_max.is.null`);if(f.maxSalary!=null)q=q.or(`expected_salary_min.lte.${f.maxSalary},expected_salary_min.is.null`);if(f.available)q=q.lte("available_from",new Date().toISOString().slice(0,10));if(f.query){const x=f.query.replace(/[%,()]/g," ");q=q.or(`display_name.ilike.%${x}%,job_role.ilike.%${x}%`)}const{data,error}=await q.order("updated_at",{ascending:false});fail(error);return names((data??[])as SeekerProfile[])}export async function getWorker(id:string){const{data,error}=await db().from("job_seeker_profiles").select(pc).eq("id",id).eq("is_public",true).eq("status","active").maybeSingle();fail(error);if(data)return(await names([data as SeekerProfile]))[0];try{const mine=await mySeekerProfile();if(mine?.id===id)return mine}catch{}throw Error("Worker unavailable.");}export async function inviteWorker(jobId:string,profileId:string,message?:string){const{error}=await db().rpc("job_invite_worker",{p_job_id:jobId,p_profile_id:profileId,p_message:clean(message,2000)});fail(error)}export async function saveNotificationSettings(x:{jobs:boolean;applications:boolean;employer:boolean;matches:boolean}){const{error}=await db().from("job_notification_settings").upsert({job_notifications:x.jobs,application_notifications:x.applications,employer_notifications:x.employer,match_notifications:x.matches});fail(error)}export async function pendingJobs(){const{data,error}=await db().from("jobs").select(pendingJobColumns).eq("status","pending").order("created_at",{ascending:true});fail(error);return(data??[])as PendingJob[]}export async function moderateJob(id:string,action:"approve"|"reject",reason?:string){const{error}=await db().rpc("job_admin_moderate",{p_target_type:"job",p_target_id:id,p_action:action,p_reason:clean(reason,1000)});fail(error)}
+import { listCategories } from "@/lib/business";
+
+// =========================================================
+// JOB CATEGORIES
+// =========================================================
+// IMPORTANT:
+// Keep this function separate from saveJob().
+// useJobCategories() calls this function directly.
+// =========================================================
+
+export async function jobCategories() {
+  try {
+    const categories = await listCategories();
+
+    const result = (categories ?? [])
+      .map((category: any) => ({
+        id: String(category?.id ?? "").trim(),
+
+        name: String(
+          category?.name ??
+            category?.title ??
+            category?.label ??
+            ""
+        ).trim(),
+
+        slug:
+          category?.slug !== undefined &&
+          category?.slug !== null &&
+          String(category.slug).trim()
+            ? String(category.slug).trim()
+            : undefined,
+      }))
+      .filter(
+        (category: { id: string; name: string }) =>
+          Boolean(category.id) &&
+          Boolean(category.name)
+      );
+
+    console.log(
+      "[GAMEZONE ARENA] JOB CATEGORIES LOADED:",
+      result.length
+    );
+
+    return result;
+  } catch (error) {
+    console.error(
+      "[GAMEZONE ARENA] JOB CATEGORIES ERROR:",
+      error
+    );
+
+    throw new Error(
+      "Unable to load job categories. Please try again."
+    );
+  }
+}
+
+
+// =========================================================
+// SAVE JOB
+// =========================================================
+
+export async function saveJob(
+  x: JobInput,
+  id?: string
+) {
+  // -------------------------------------------------------
+  // SAFE INPUT
+  // -------------------------------------------------------
+
+  const input = x ?? ({} as JobInput);
+
+
+  // -------------------------------------------------------
+  // CONTACT INFORMATION
+  // -------------------------------------------------------
+
+  const contact = input.contact ?? {
+    phone:
+      input.contact_phone?.trim() || null,
+
+    whatsapp:
+      input.whatsapp?.trim() || null,
+
+    email:
+      input.email?.trim() || null,
+
+    website:
+      input.website?.trim() || null,
+
+    phone_public:
+      Boolean(input.contact_public),
+
+    whatsapp_public:
+      Boolean(input.contact_public),
+
+    email_public:
+      Boolean(input.contact_public),
+  };
+
+
+  // -------------------------------------------------------
+  // TERMS
+  // -------------------------------------------------------
+
+  const acceptedAt =
+    input.terms_accepted_at || null;
+
+
+  // -------------------------------------------------------
+  // CATEGORY
+  // -------------------------------------------------------
+
+  const categoryValue = String(
+    input.category_id ??
+      input.category ??
+      ""
+  ).trim();
+
+  if (!categoryValue) {
+    throw new Error(
+      "Please select a job category."
+    );
+  }
+
+  let categoryId: string | null = null;
+
+  try {
+    categoryId =
+      await resolveCategory(categoryValue);
+  } catch (error) {
+    console.error(
+      "[GAMEZONE ARENA] CATEGORY RESOLVE FAILED:",
+      error
+    );
+
+    throw new Error(
+      "Selected job category could not be found. Please select a valid category and try again."
+    );
+  }
+
+  if (!categoryId) {
+    throw new Error(
+      "Selected job category could not be found. Please select a valid category and try again."
+    );
+  }
+
+
+  // -------------------------------------------------------
+  // BASIC INFORMATION
+  // -------------------------------------------------------
+
+  const title = String(
+    input.title ?? ""
+  ).trim();
+
+  const companyName = String(
+    input.company_name ?? ""
+  ).trim();
+
+  const employerName = String(
+    input.employer_name ??
+      input.contact_person ??
+      ""
+  ).trim();
+
+  const jobRole =
+    String(
+      input.job_role ??
+        input.role ??
+        ""
+    ).trim() || null;
+
+  const description = String(
+    input.description ?? ""
+  ).trim();
+
+  const responsibilities =
+    String(
+      input.responsibilities ?? ""
+    ).trim() || null;
+
+
+  // -------------------------------------------------------
+  // REQUIRED BASIC VALIDATION
+  // -------------------------------------------------------
+
+  if (!title) {
+    throw new Error(
+      "Job title is required."
+    );
+  }
+
+  if (!companyName) {
+    throw new Error(
+      "Company name is required."
+    );
+  }
+
+  if (!employerName) {
+    throw new Error(
+      "Contact person is required."
+    );
+  }
+
+  if (!description) {
+    throw new Error(
+      "Job description is required."
+    );
+  }
+
+  if (description.length < 20) {
+    throw new Error(
+      "Job description must contain at least 20 characters."
+    );
+  }
+
+
+  // -------------------------------------------------------
+  // LOCATION
+  // -------------------------------------------------------
+
+  const locationText = String(
+    input.location_text ??
+      input.full_location ??
+      input.selected_location ??
+      ""
+  ).trim() || null;
+
+  const city = String(
+    input.city ??
+      input.selected_city ??
+      ""
+  ).trim();
+
+  const area =
+    String(
+      input.area ??
+        input.selected_area ??
+        ""
+    ).trim() || null;
+
+  const state =
+    String(
+      input.state ??
+        input.selected_state ??
+        ""
+    ).trim() || null;
+
+  const country =
+    String(
+      input.country ??
+        input.selected_country ??
+        ""
+    ).trim() || null;
+
+
+  // -------------------------------------------------------
+  // REQUIRED LOCATION VALIDATION
+  // -------------------------------------------------------
+
+  if (!city) {
+    throw new Error(
+      "Please select or enter a city."
+    );
+  }
+
+
+  // -------------------------------------------------------
+  // GPS VALUES
+  // -------------------------------------------------------
+  // These are accepted from current-location/map UI when
+  // available and validated safely.
+  //
+  // IMPORTANT:
+  // They are NOT added to the database row here because
+  // latitude/longitude columns were not confirmed.
+  // -------------------------------------------------------
+
+  const latitude =
+    input.latitude !== undefined &&
+    input.latitude !== null &&
+    input.latitude !== ""
+      ? Number(input.latitude)
+      : null;
+
+  const longitude =
+    input.longitude !== undefined &&
+    input.longitude !== null &&
+    input.longitude !== ""
+      ? Number(input.longitude)
+      : null;
+
+  const safeLatitude =
+    latitude !== null &&
+    Number.isFinite(latitude) &&
+    latitude >= -90 &&
+    latitude <= 90
+      ? latitude
+      : null;
+
+  const safeLongitude =
+    longitude !== null &&
+    Number.isFinite(longitude) &&
+    longitude >= -180 &&
+    longitude <= 180
+      ? longitude
+      : null;
+
+
+  // -------------------------------------------------------
+  // NUMERIC VALUES
+  // -------------------------------------------------------
+
+  const requiredExperience =
+    nonNegativeInteger(
+      input.required_experience_months ??
+        input.required_experience,
+      "Required experience"
+    );
+
+  const vacancies =
+    nonNegativeInteger(
+      input.vacancies,
+      "Vacancies",
+      true
+    );
+
+  const salaryMin =
+    nonNegativeNumber(
+      input.salary_min,
+      "Minimum salary"
+    );
+
+  const salaryMax =
+    nonNegativeNumber(
+      input.salary_max,
+      "Maximum salary"
+    );
+
+
+  // -------------------------------------------------------
+  // SALARY VALIDATION
+  // -------------------------------------------------------
+
+  if (
+    salaryMin !== null &&
+    salaryMax !== null &&
+    salaryMin > salaryMax
+  ) {
+    throw new Error(
+      "Maximum salary must be equal to or greater than minimum salary."
+    );
+  }
+
+
+  // -------------------------------------------------------
+  // WORK TYPE
+  // -------------------------------------------------------
+
+  const allowedWorkTypes = new Set([
+    "full_time",
+    "part_time",
+    "temporary",
+    "contract",
+    "internship",
+    "freelance",
+  ]);
+
+  const workType =
+    String(
+      input.work_type ??
+        "full_time"
+    ).trim();
+
+  if (!allowedWorkTypes.has(workType)) {
+    throw new Error(
+      "Please select a valid job type."
+    );
+  }
+
+
+  // -------------------------------------------------------
+  // WORKPLACE TYPE
+  // -------------------------------------------------------
+
+  const allowedWorkplaceTypes = new Set([
+    "on_site",
+    "remote",
+    "hybrid",
+  ]);
+
+  const workplaceType =
+    String(
+      input.workplace_type ??
+        input.work_mode ??
+        "on_site"
+    ).trim();
+
+  if (!allowedWorkplaceTypes.has(workplaceType)) {
+    throw new Error(
+      "Please select a valid workplace type."
+    );
+  }
+
+
+  // -------------------------------------------------------
+  // REQUIRED SKILLS
+  // -------------------------------------------------------
+
+  const requiredSkills =
+    Array.isArray(input.required_skills)
+      ? input.required_skills
+          .map((item: unknown) =>
+            String(item).trim()
+          )
+          .filter(Boolean)
+      : String(
+          input.required_skills ?? ""
+        )
+          .split(",")
+          .map((value) =>
+            value.trim()
+          )
+          .filter(Boolean);
+
+  if (requiredSkills.length === 0) {
+    throw new Error(
+      "Please enter at least one required skill."
+    );
+  }
+
+
+  // -------------------------------------------------------
+  // OTHER INFORMATION
+  // -------------------------------------------------------
+
+  const educationRequirement =
+    String(
+      input.education_requirement ?? ""
+    ).trim() || null;
+
+  const workingHours =
+    String(
+      input.working_hours ?? ""
+    ).trim() || null;
+
+  const weeklyOff =
+    String(
+      input.weekly_off ?? ""
+    ).trim() || null;
+
+  const benefits =
+    String(
+      input.benefits ?? ""
+    ).trim() || null;
+
+  const requirements =
+    String(
+      input.requirements ?? ""
+    ).trim() || null;
+
+  const joiningDate =
+    input.joining_date || null;
+
+  const applicationDeadline =
+    input.application_deadline || null;
+
+
+  // -------------------------------------------------------
+  // DATE VALIDATION
+  // -------------------------------------------------------
+
+  const isValidDateString = (
+    value: unknown
+  ) => {
+    if (!value) return true;
+
+    const text = String(value).trim();
+
+    if (!text) return true;
+
+    const date = new Date(text);
+
+    return !Number.isNaN(
+      date.getTime()
+    );
+  };
+
+  if (
+    !isValidDateString(joiningDate)
+  ) {
+    throw new Error(
+      "Joining date is not valid."
+    );
+  }
+
+  if (
+    !isValidDateString(
+      applicationDeadline
+    )
+  ) {
+    throw new Error(
+      "Application deadline is not valid."
+    );
+  }
+
+
+  // -------------------------------------------------------
+  // DEADLINE / JOINING DATE LOGIC
+  // -------------------------------------------------------
+
+  if (
+    joiningDate &&
+    applicationDeadline
+  ) {
+    const joining =
+      new Date(
+        String(joiningDate)
+      ).getTime();
+
+    const deadline =
+      new Date(
+        String(applicationDeadline)
+      ).getTime();
+
+    if (
+      Number.isFinite(joining) &&
+      Number.isFinite(deadline) &&
+      deadline > joining
+    ) {
+      throw new Error(
+        "Application deadline should not be after the joining date."
+      );
+    }
+  }
+
+
+  // -------------------------------------------------------
+  // FINAL LOCATION
+  // -------------------------------------------------------
+
+  const generatedLocation =
+    locationText ||
+    [
+      area,
+      city,
+      state,
+      country,
+    ]
+      .filter(Boolean)
+      .join(", ") ||
+    null;
+
+
+  // -------------------------------------------------------
+  // DATABASE ROW
+  // -------------------------------------------------------
+  // IMPORTANT:
+  // Keep this limited to the existing job fields.
+  // Do not add latitude/longitude/state/country columns
+  // unless those columns actually exist in Supabase.
+  // -------------------------------------------------------
+
+  const row = {
+    business_id:
+      input.business_id ?? null,
+
+    category_id:
+      categoryId,
+
+    title,
+
+    company_name:
+      companyName,
+
+    employer_name:
+      employerName,
+
+    job_role:
+      jobRole,
+
+    description,
+
+    responsibilities,
+
+    required_skills:
+      requiredSkills,
+
+    required_experience_months:
+      requiredExperience,
+
+    education_requirement:
+      educationRequirement,
+
+    vacancies,
+
+    salary_min:
+      salaryMin,
+
+    salary_max:
+      salaryMax,
+
+    salary_type:
+      input.salary_type ||
+      "monthly",
+
+    work_type:
+      workType,
+
+    workplace_type:
+      workplaceType,
+
+    location_text:
+      generatedLocation,
+
+    city,
+
+    area,
+
+    working_hours:
+      workingHours,
+
+    weekly_off:
+      weeklyOff,
+
+    benefits,
+
+    requirements,
+
+    joining_date:
+      joiningDate,
+
+    application_deadline:
+      applicationDeadline,
+
+    terms_version:
+      input.terms_version ||
+      "2026-09-10",
+
+    terms_accepted_at:
+      acceptedAt,
+
+    privacy_version:
+      input.privacy_version ||
+      "2026-09-10",
+
+    privacy_accepted_at:
+      input.privacy_accepted_at ||
+      acceptedAt,
+
+    rules_version:
+      input.rules_version ||
+      "2026-09-10",
+
+    rules_accepted_at:
+      acceptedAt,
+  };
+
+
+  // -------------------------------------------------------
+  // DEBUG LOG
+  // -------------------------------------------------------
+
+  console.log(
+    "[GAMEZONE ARENA] SAVE JOB",
+    {
+      operation:
+        id
+          ? "UPDATE"
+          : "INSERT",
+
+      id:
+        id ?? "new",
+
+      categoryId,
+
+      title,
+
+      companyName,
+
+      employerName,
+
+      city,
+
+      area,
+
+      location:
+        generatedLocation,
+
+      latitude:
+        safeLatitude,
+
+      longitude:
+        safeLongitude,
+
+      workType,
+
+      workplaceType,
+
+      requiredSkillsCount:
+        requiredSkills.length,
+    }
+  );
+
+
+  // -------------------------------------------------------
+  // INSERT / UPDATE
+  // -------------------------------------------------------
+
+  let query;
+
+  if (id) {
+    query = db()
+      .from("jobs")
+      .update({
+        ...row,
+
+        updated_at:
+          new Date()
+            .toISOString(),
+      })
+      .eq(
+        "id",
+        id
+      );
+  } else {
+    query = db()
+      .from("jobs")
+      .insert(row);
+  }
+
+
+  // -------------------------------------------------------
+  // EXECUTE DATABASE REQUEST
+  // -------------------------------------------------------
+
+  const result =
+    await query
+      .select(jc)
+      .single();
+
+
+  // -------------------------------------------------------
+  // DATABASE ERROR
+  // -------------------------------------------------------
+
+  if (result.error) {
+    console.error(
+      "[GAMEZONE ARENA] JOB DATABASE ERROR:",
+      result.error
+    );
+
+    throw new Error(
+      `Job save failed: ${
+        result.error.message ||
+        "Unknown database error"
+      }`
+    );
+  }
+
+
+  // -------------------------------------------------------
+  // NO DATA ERROR
+  // -------------------------------------------------------
+
+  if (!result.data) {
+    throw new Error(
+      "Job was saved but no job record was returned."
+    );
+  }
+
+
+  // -------------------------------------------------------
+  // FORMAT SAVED JOB
+  // -------------------------------------------------------
+
+  let formattedJobs;
+
+  try {
+    formattedJobs =
+      await names([
+        result.data as Job,
+      ]);
+  } catch (formatError) {
+    console.error(
+      "[GAMEZONE ARENA] JOB FORMAT ERROR:",
+      formatError
+    );
+
+    throw new Error(
+      "Job was saved, but the saved job could not be loaded correctly."
+    );
+  }
+
+  const job =
+    formattedJobs?.[0];
+
+
+  // -------------------------------------------------------
+  // FORMATTING VALIDATION
+  // -------------------------------------------------------
+
+  if (!job) {
+    throw new Error(
+      "Job was saved but could not be formatted."
+    );
+  }
+
+
+  // -------------------------------------------------------
+  // SAVE CONTACT INFORMATION
+  // -------------------------------------------------------
+  // Contact failure must NOT delete/fail the main job.
+  // No instanceof check is used here.
+  // -------------------------------------------------------
+
+  try {
+    await saveContact(
+      result.data.id,
+      contact
+    );
+
+    console.log(
+      "[GAMEZONE ARENA] CONTACT INFORMATION SAVED:",
+      result.data.id
+    );
+  } catch (contactError) {
+    console.error(
+      "[GAMEZONE ARENA] CONTACT SAVE ERROR:",
+      contactError
+    );
+
+    console.warn(
+      "[GAMEZONE ARENA] JOB SAVED SUCCESSFULLY. CONTACT SAVE FAILED, CONTINUING."
+    );
+  }
+
+
+  // -------------------------------------------------------
+  // SUCCESS
+  // -------------------------------------------------------
+
+  console.log(
+    "[GAMEZONE ARENA] JOB SAVED SUCCESSFULLY:",
+    result.data.id
+  );
+
+  return job;
+}

@@ -1,0 +1,603 @@
+GAMEZONE ARENA
+
+SAVE PROBLEM MASTER FIX — READ/AUDIT FIRST, FREE SOLUTION ONLY
+
+You are working on the existing GAMEZONE ARENA project.
+
+The major problem is:
+
+SAVE actions are failing.
+
+Examples include:
+
+- Business → Save Draft
+- Business → Publish
+- Product → Save Draft
+- Product → Publish
+- Service → Save
+- Job → Save Draft
+- Job → Publish
+- Worker Profile → Save
+- Application-related saves/updates
+- Any other existing authenticated database mutation that currently fails
+
+The previous investigation found a likely Clerk → Supabase JWT compatibility problem involving PGRST301.
+
+Your job is to investigate the COMPLETE SAVE FAILURE carefully.
+
+==================================================
+🚨 ABSOLUTE RULES
+
+THIS TASK STARTS IN READ/AUDIT MODE.
+
+DO NOT immediately change code.
+
+DO NOT bypass authentication.
+
+DO NOT weaken RLS.
+
+DO NOT disable security.
+
+DO NOT use service_role in the client.
+
+DO NOT hard-code a user ID.
+
+DO NOT fake successful saves.
+
+DO NOT store data only locally and pretend it was saved remotely.
+
+DO NOT create a second authentication system.
+
+DO NOT create another Clerk account.
+
+DO NOT change the existing Replit-managed Clerk architecture.
+
+DO NOT change AdMob.
+
+DO NOT change the Ludo game.
+
+DO NOT redesign unrelated UI.
+
+DO NOT use paid services.
+
+DO NOT upgrade Replit.
+
+DO NOT purchase Clerk Pro.
+
+DO NOT run an EAS build.
+
+DO NOT deploy.
+
+DO NOT push a Supabase migration.
+
+DO NOT modify live Supabase unless I explicitly approve it later.
+
+First determine the exact root cause.
+
+==================================================
+PHASE 1 — COMPLETE SAVE FLOW AUDIT
+
+Trace the complete save flow for every affected feature.
+
+Start from:
+
+BUTTON
+↓
+SCREEN
+↓
+HOOK
+↓
+LIB/API FUNCTION
+↓
+SUPABASE CLIENT
+↓
+AUTH TOKEN
+↓
+SUPABASE
+↓
+RLS/POLICY
+↓
+DATABASE
+
+Inspect at least:
+
+Business
+Product
+Service
+Jobs
+Worker Profile
+Applications
+Any other authenticated Save/Insert/Update/Delete mutation that currently fails.
+
+For each feature document:
+
+FILE
+FUNCTION
+TABLE
+OPERATION
+AUTHENTICATION SOURCE
+SUPABASE CLIENT
+TOKEN SOURCE
+ERROR
+WHERE FAILURE OCCURS
+
+Do not assume the failure point.
+
+==================================================
+PHASE 2 — CAPTURE THE EXACT ERROR
+
+Find the exact error generated when the user presses Save.
+
+Especially inspect for:
+
+PGRST301
+JWT
+JWT expired
+JWT verification failed
+JWKS
+issuer
+audience
+kid
+role
+authenticated
+permission denied
+RLS
+401
+403
+PostgREST
+SupabaseAuthBridge
+getToken
+accessToken
+
+Determine whether the failure occurs:
+
+A. Before Supabase
+B. During JWT verification
+C. During PostgREST authorization
+D. During RLS
+E. During database constraint validation
+F. During storage upload
+G. During application navigation
+
+Clearly identify the FIRST failure.
+
+IMPORTANT:
+
+If PGRST301 happens before PostgreSQL/RLS, do not waste time changing RLS.
+
+==================================================
+PHASE 3 — INSPECT CURRENT AUTH ARCHITECTURE
+
+Inspect:
+
+app/_layout.tsx
+
+SupabaseAuthBridge
+
+lib/supabase.ts
+
+ClerkProvider
+
+Clerk getToken()
+
+Supabase client initialization
+
+Any auth/session hooks
+
+Confirm exactly how the Supabase access token is obtained.
+
+Confirm whether the client is effectively doing:
+
+Clerk session
+→ getToken()
+→ Supabase accessToken callback
+→ Supabase request
+
+Do not replace this architecture unless a verified free solution requires it.
+
+==================================================
+PHASE 4 — JWT INSPECTION
+
+Without exposing secrets or printing the complete token, inspect the JWT claims safely.
+
+Never print the full JWT.
+
+Inspect only safe metadata/claims needed for diagnosis, such as:
+
+iss
+aud
+sub
+role
+exp
+iat
+azp
+kid
+
+Confirm:
+
+- issuer
+- audience
+- subject exists
+- expiration
+- role
+- key ID
+- signing algorithm if safely available
+
+Compare these with the current Supabase Third-party Auth configuration.
+
+DO NOT expose tokens in logs.
+
+DO NOT save tokens to files.
+
+DO NOT send tokens to external services.
+
+==================================================
+PHASE 5 — SUPABASE THIRD-PARTY AUTH
+
+Inspect the existing Supabase Third-party Auth configuration.
+
+Current Clerk issuer/domain is believed to be:
+
+select-kitten-72.clerk.accounts.dev
+
+Verify the actual current runtime issuer rather than blindly assuming it.
+
+Check whether Supabase trusts the same issuer.
+
+Check:
+
+- issuer
+- JWKS discovery
+- signing key
+- key ID
+- algorithm
+- role mapping
+- authenticated role
+- provider configuration
+
+Determine exactly why Supabase is rejecting the Clerk JWT, if it is.
+
+==================================================
+PHASE 6 — DETERMINE WHETHER A FREE FIX EXISTS
+
+This is the most important requirement.
+
+Search the existing project configuration and official/current documentation available to you.
+
+Determine whether the current Replit-managed Clerk + Supabase setup can be made compatible WITHOUT:
+
+- Clerk Pro
+- Replit Pro
+- paid services
+- new Clerk account
+- new Supabase project
+- changing authentication provider
+- weakening security
+
+Possible FREE solutions may include configuration that already exists but is unused.
+
+Do NOT invent a workaround.
+
+Do NOT claim a solution is free unless it is actually available in the current environment.
+
+If a free solution exists:
+
+EXPLAIN IT FIRST.
+
+Then determine the smallest safe implementation.
+
+If no free solution exists:
+
+STOP BEFORE MODIFYING AUTH.
+
+Clearly report:
+
+"NO SAFE FREE FIX IS AVAILABLE WITH THE CURRENT REPLIT-MANAGED CLERK CONFIGURATION."
+
+Then explain exactly what capability is missing.
+
+==================================================
+PHASE 7 — CHECK FOR NON-AUTH SAVE BUGS
+
+Even if PGRST301 exists, inspect whether there are additional independent Save bugs.
+
+Check:
+
+- malformed payload
+- missing required fields
+- wrong column names
+- enum mismatch
+- UUID validation
+- null handling
+- date formatting
+- numeric conversion
+- image upload ordering
+- storage upload failure
+- duplicate records
+- unique constraints
+- RLS policy mismatch
+- ownership mismatch
+- account/session switching
+- stale React Query cache
+- navigation before mutation completion
+- loading state
+- error state
+- retry logic
+
+Do not change anything yet.
+
+Separate findings into:
+
+1. AUTH BLOCKER
+2. DATABASE/RLS BLOCKER
+3. FRONTEND BUG
+4. STORAGE BUG
+5. VALIDATION BUG
+6. UX/STATE BUG
+
+==================================================
+PHASE 8 — VERIFY CLIENT-SIDE AUTHORIZATION
+
+Confirm that the application does NOT send:
+
+- owner_id supplied by user
+- employer_id supplied by user
+- applicant_id supplied by user
+- arbitrary auth identity
+
+Confirm database ownership is derived from authenticated identity.
+
+Do not introduce client-supplied ownership as a workaround.
+
+==================================================
+PHASE 9 — TEST AN AUTH-INDEPENDENT SAVE PATH
+
+Identify whether there is any existing authenticated database operation that successfully works.
+
+Examples:
+
+- profile read
+- Business read
+- Product read
+- Job read
+- favorite
+- report
+- settings
+
+Compare successful and failed requests.
+
+Determine whether the failure is universal to authenticated writes or specific to one table/function.
+
+Do not create fake test data in production.
+
+==================================================
+PHASE 10 — SAFE LOCAL FIX ONLY
+
+After completing the audit:
+
+IF the root cause is a normal application bug that can be fixed without changing authentication/security:
+
+You may fix ONLY that bug.
+
+Examples:
+
+- wrong Supabase client
+- missing await
+- incorrect payload
+- wrong table
+- incorrect mutation function
+- UI navigating before save completes
+- incorrect error handling
+
+Then run local/static checks.
+
+IF the root cause requires Clerk-side configuration that is unavailable on the current free Replit-managed account:
+
+DO NOT modify the auth system.
+
+Report the blocker.
+
+IF the root cause requires a Supabase migration:
+
+DO NOT apply it.
+
+Prepare the migration design only and wait for explicit approval.
+
+==================================================
+PHASE 11 — USER EXPERIENCE
+
+Regardless of the root cause, ensure Save does NOT falsely report success.
+
+When authentication/database save is unavailable:
+
+Show a truthful message such as:
+
+"Could not save because your sign-in session was not accepted by the server. Your entered information is still on this screen. Please try again after authentication is fixed."
+
+Do not silently discard entered information.
+
+Do not say "Saved" unless the database confirms success.
+
+Do not make a local-only copy appear as a server save.
+
+Keep retry functionality.
+
+==================================================
+PHASE 12 — DO NOT TOUCH SECURITY ARCHITECTURE
+
+The following must remain unchanged unless explicitly approved:
+
+- Replit-managed Clerk
+- Supabase Third-party Auth
+- auth.jwt()->>'sub'
+- RLS default-deny
+- owner-only writes
+- admin authorization
+- private storage
+- signed URLs
+- contact consent
+- block checks
+- job authorization
+- no client service_role
+- no anonymous mutations
+
+Never solve PGRST301 by:
+
+- disabling RLS
+- allowing anonymous writes
+- adding service_role to frontend
+- accepting client-supplied owner IDs
+- disabling JWT verification
+- making tables public
+- bypassing Supabase authentication
+
+==================================================
+PHASE 13 — REQUIRED FINAL REPORT
+
+Return the following exact structure:
+
+A) SAVE FLOW MAP
+
+For each affected Save operation:
+
+Screen
+→ Hook
+→ Function
+→ Supabase client
+→ Auth token
+→ Table
+→ Result
+
+B) FIRST FAILURE POINT
+
+State exactly where the first failure happens.
+
+C) EXACT ERROR
+
+Include the relevant error text, but NEVER include a full JWT/token.
+
+D) ROOT CAUSE
+
+Classify as:
+
+- Clerk/JWT
+- Supabase Third-party Auth
+- RLS
+- Database
+- Storage
+- Frontend
+- Validation
+- Multiple causes
+
+E) FREE FIX AVAILABLE?
+
+Answer exactly:
+
+YES — SAFE FREE FIX AVAILABLE
+
+or
+
+NO — SAFE FREE FIX NOT AVAILABLE
+
+Explain why.
+
+F) IF YES
+
+Explain:
+
+- exact change
+- files affected
+- why it is safe
+- whether database changes are required
+- whether Clerk changes are required
+- whether Supabase changes are required
+
+Only apply ordinary code fixes that are clearly safe.
+
+G) IF NO
+
+Explain:
+
+- exact missing capability
+- whether it requires Replit Pro
+- whether it requires Clerk Pro
+- whether it requires an external configuration
+- what the minimum future requirement would be
+
+DO NOT purchase or enable anything.
+
+H) OTHER SAVE BUGS
+
+List every additional independent problem discovered.
+
+I) FILES TO CHANGE
+
+Only list files.
+
+Do not modify them unless the fix is clearly safe and auth-independent.
+
+J) TEST RESULTS
+
+Run only safe local/static tests.
+
+Include:
+
+- TypeScript
+- Expo checks
+- search for incorrect Supabase clients
+- search for client service_role
+- search for client-supplied ownership
+- mutation error handling
+- old unsafe auth workarounds
+
+K) SECURITY CHECK
+
+Confirm:
+
+- no RLS bypass
+- no service_role in client
+- no anonymous mutation
+- no fake save
+- no fake success
+- no auth bypass
+
+L) FINAL STATUS
+
+Clearly state:
+
+SAVE PROBLEM:
+BLOCKED / FIXED / PARTIALLY FIXED
+
+AUTH BLOCKER:
+PRESENT / NOT PRESENT
+
+FREE SAFE SOLUTION:
+YES / NO
+
+LIVE SUPABASE CHANGED:
+NO
+
+CLERK CHANGED:
+NO, unless an explicitly available free configuration was already present and safe
+
+PAID SERVICE USED:
+NO
+
+EAS BUILD:
+NOT RUN
+
+DEPLOYMENT:
+NOT RUN
+
+==================================================
+FINAL INSTRUCTION
+
+DO NOT GUESS.
+
+DO NOT FORCE A FIX.
+
+DO NOT LOWER SECURITY.
+
+If the current Replit-managed Clerk configuration is the actual blocker and there is no safe free configuration available, say so clearly.
+
+The goal is to find the REAL reason Save is failing and fix everything that can safely be fixed for FREE — without breaking the existing GAMEZONE ARENA application.

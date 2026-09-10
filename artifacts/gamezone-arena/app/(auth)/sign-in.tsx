@@ -27,12 +27,10 @@ export default function SignInScreen() {
     fetchStatus,
   } = useSignIn();
 
-  const [email, setEmail] =
-    useState('');
-
-  const [password, setPassword] =
-    useState('');
-
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] =
+    useState(false);
   const [localError, setLocalError] =
     useState('');
 
@@ -49,11 +47,25 @@ export default function SignInScreen() {
 
   const canSubmit =
     email.trim().length > 0 &&
-    password.length > 0 &&
+    password.length >= 8 &&
     !busy;
 
   async function submit() {
-    if (!canSubmit) {
+    if (!email.trim()) {
+      setLocalError(
+        'Please enter your email address.',
+      );
+      return;
+    }
+
+    if (password.length < 8) {
+      setLocalError(
+        'Password must be at least 8 characters.',
+      );
+      return;
+    }
+
+    if (busy) {
       return;
     }
 
@@ -79,16 +91,17 @@ export default function SignInScreen() {
         signIn.status ===
         'complete'
       ) {
-        const { error: finalizeError } =
-          await signIn.finalize({
-            navigate: ({
-              decorateUrl,
-            }) => {
-              router.replace(
-                decorateUrl('/') as Href,
-              );
-            },
-          });
+        const {
+          error: finalizeError,
+        } = await signIn.finalize({
+          navigate: ({
+            decorateUrl,
+          }) => {
+            router.replace(
+              decorateUrl('/') as Href,
+            );
+          },
+        });
 
         if (finalizeError) {
           setLocalError(
@@ -128,6 +141,7 @@ export default function SignInScreen() {
         error instanceof Error
           ? error.message
           : 'Unable to sign in. Please try again.';
+
       setLocalError(message);
     }
   }
@@ -142,11 +156,14 @@ export default function SignInScreen() {
       }
     >
       <View style={styles.container}>
+
+        {/* BACK BUTTON */}
         <Pressable
           onPress={() =>
             router.back()
           }
           style={styles.back}
+          disabled={busy}
         >
           <Feather
             name="arrow-left"
@@ -155,6 +172,7 @@ export default function SignInScreen() {
           />
         </Pressable>
 
+        {/* HEADER */}
         <Text style={styles.brand}>
           GAMEZONE ARENA
         </Text>
@@ -172,6 +190,8 @@ export default function SignInScreen() {
         </Text>
 
         <View style={styles.form}>
+
+          {/* EMAIL */}
           <Text style={styles.label}>
             EMAIL ADDRESS
           </Text>
@@ -192,27 +212,66 @@ export default function SignInScreen() {
             editable={!busy}
           />
 
+          {/* PASSWORD */}
           <Text style={styles.label}>
             PASSWORD
           </Text>
 
-          <TextInput
-            value={password}
-            onChangeText={(value) => {
-              setPassword(value);
-              setLocalError('');
-            }}
-            autoCapitalize="none"
-            autoCorrect={false}
-            secureTextEntry
-            autoComplete="password"
-            placeholder="Enter your password"
-            placeholderTextColor="#71809F"
-            style={styles.input}
-            editable={!busy}
-            onSubmitEditing={submit}
-          />
+          <View style={styles.passwordContainer}>
 
+            <TextInput
+              value={password}
+              onChangeText={(value) => {
+                setPassword(value);
+                setLocalError('');
+              }}
+              autoCapitalize="none"
+              autoCorrect={false}
+              secureTextEntry={!showPassword}
+              autoComplete="password"
+              placeholder="Enter your password"
+              placeholderTextColor="#71809F"
+              style={styles.passwordInput}
+              editable={!busy}
+              maxLength={64}
+              onSubmitEditing={submit}
+            />
+
+            {/* SHOW / HIDE PASSWORD */}
+            <Pressable
+              onPress={() =>
+                setShowPassword(
+                  !showPassword,
+                )
+              }
+              style={styles.showButton}
+              disabled={busy}
+            >
+              <Feather
+                name={
+                  showPassword
+                    ? 'eye-off'
+                    : 'eye'
+                }
+                size={18}
+                color="#43DDF8"
+              />
+
+              <Text style={styles.showText}>
+                {showPassword
+                  ? 'HIDE'
+                  : 'SHOW'}
+              </Text>
+            </Pressable>
+
+          </View>
+
+          {/* PASSWORD HINT */}
+          <Text style={styles.passwordHint}>
+            Password must be at least 8 characters.
+          </Text>
+
+          {/* FORGOT PASSWORD */}
           <Pressable
             onPress={() =>
               router.push(
@@ -227,8 +286,10 @@ export default function SignInScreen() {
             </Text>
           </Pressable>
 
+          {/* ERROR */}
           {!!errorMessage && (
             <View style={styles.errorBox}>
+
               <Feather
                 name="alert-circle"
                 size={17}
@@ -238,9 +299,11 @@ export default function SignInScreen() {
               <Text style={styles.error}>
                 {errorMessage}
               </Text>
+
             </View>
           )}
 
+          {/* LOGIN BUTTON */}
           <Pressable
             disabled={!canSubmit}
             onPress={submit}
@@ -256,7 +319,9 @@ export default function SignInScreen() {
               />
             ) : (
               <>
-                <Text style={styles.buttonText}>
+                <Text
+                  style={styles.buttonText}
+                >
                   ENTER THE ARENA
                 </Text>
 
@@ -269,8 +334,10 @@ export default function SignInScreen() {
             )}
           </Pressable>
 
+          {/* SIGN UP */}
           <Text style={styles.switchText}>
             New to Gamezone?{' '}
+
             <Link
               href="/sign-up"
               style={styles.link}
@@ -278,6 +345,7 @@ export default function SignInScreen() {
               Create an account
             </Link>
           </Text>
+
         </View>
       </View>
     </KeyboardAvoidingView>
@@ -358,6 +426,47 @@ const styles = StyleSheet.create({
     borderColor: '#304162',
     color: '#FFFFFF',
     fontSize: 15,
+  },
+
+  passwordContainer: {
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: '#111C34',
+    borderWidth: 1,
+    borderColor: '#304162',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  passwordInput: {
+    flex: 1,
+    height: 54,
+    paddingLeft: 16,
+    paddingRight: 8,
+    color: '#FFFFFF',
+    fontSize: 15,
+  },
+
+  showButton: {
+    height: 54,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 6,
+  },
+
+  showText: {
+    color: '#43DDF8',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.8,
+  },
+
+  passwordHint: {
+    color: '#71809F',
+    fontSize: 11,
+    marginTop: -2,
   },
 
   forgot: {

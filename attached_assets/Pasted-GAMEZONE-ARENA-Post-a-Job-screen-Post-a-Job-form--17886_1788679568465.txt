@@ -107,4 +107,4 @@ Metro startup और Jobs screen render test करें।
 - कौन-कौन से tests PASS हुए
 - कोई database/security change हुआ या नहीं
 
-जब तक मैं अलग से न कहूँ, कोई build/deployment/publishing शुरू न करें।
+जब  मैं अलग से न कहूँ, कोई build/deployment/publishing शुरू न करें।

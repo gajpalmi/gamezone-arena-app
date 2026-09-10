@@ -89,8 +89,9 @@ export default function BusinessDiscoveryScreen() {
           ['📋 My Job Posts', '/business/jobs/mine'], ['📄 My Applications', '/business/jobs/applications'], ['❤️ Saved Jobs', '/business/jobs/saved'],
            ['📩 Job Messages', '/business/jobs/messages'], ['🔔 Job Notifications', '/business/jobs/settings'],
            [`🛒 My Basket${(basketCount.data ?? 0) > 0 ? ` (${basketCount.data})` : ''}`, '/business/offering/basket'],
-          ['➕ Add Business', '/business/edit'], ['🛍️ Add Product', '/business/offering/edit?kind=product'],
-          ['🛠️ Add Service', '/business/offering/edit?kind=service'], ['📋 My Listings', '/business/offerings-mine'],
+          ['➕ Add Business', '/business/edit'], ['🏢 My Businesses', '/business/mine'],
+          ['🛍️ Add Product', '/business/offering/edit?kind=product'],
+          ['🛠️ Add Service', '/business/offering/edit?kind=service'], ['📋 My Products & Services', '/business/offerings-mine'],
           ['❤️ Saved', '/business/offerings-saved'], ['🔍 Search Listings', '/business/offerings'],
           ['⚙️ Settings', '/settings'],
         ].map(([label, path]) => <Pressable key={label} testID={`business-${label.replace(/\W/g, '-').toLowerCase()}`} style={styles.quickAction} onPress={() => router.push(path as Href)}><Text style={styles.quickText}>{label}</Text></Pressable>)}
@@ -110,10 +111,10 @@ export default function BusinessDiscoveryScreen() {
       </View>
       
       <View style={styles.actions}>
-        <Pressable style={styles.actionBtn} onPress={() => router.push('/business/saved' as Href)}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Saved businesses" style={styles.actionBtn} onPress={() => router.push('/business/saved' as Href)}>
           <Feather name="bookmark" size={20} color={colors.light.primary} />
         </Pressable>
-        <Pressable style={styles.actionBtn} onPress={() => router.push('/business/mine' as Href)}>
+        <Pressable accessibilityRole="button" accessibilityLabel="My Businesses" style={styles.actionBtn} onPress={() => router.push('/business/mine' as Href)}>
           <Feather name="briefcase" size={20} color={colors.light.accent} />
         </Pressable>
       </View>

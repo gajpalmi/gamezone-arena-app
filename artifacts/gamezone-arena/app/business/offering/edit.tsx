@@ -31,6 +31,7 @@ import type { OfferingInput } from "@/lib/offerings";
 import { refreshSupabaseAccessToken } from "@/lib/supabase";
 
 const legal = "2026-09-10";
+const priceError = "Enter a nonnegative price with up to 2 decimal places (maximum 9999999999.99).";
 type Field = "name" | "category" | "subcategory" | "description" | "price" | "city" | "contact_phone" | "whatsapp" | "consent" | "terms";
 type Errors = Partial<Record<Field, string>>;
 
@@ -39,10 +40,12 @@ export default function OfferingEdit() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const scroll = useRef<ScrollView>(null);
+  const hydratedOfferingId = useRef<string | null>(null);
   const auth = useSupabaseAuth();
 
   const detail = useMyOffering(id ?? "");
-  const save = useSaveOffering(id);
+  const [savedOfferingId, setSavedOfferingId] = useState<string | undefined>();
+  const save = useSaveOffering(id ?? savedOfferingId);
   const photo = useOfferingPhoto();
   const deletePhoto = useDeleteOfferingPhoto();
   const [terms, setTerms] = useState(false);
@@ -84,7 +87,8 @@ export default function OfferingEdit() {
 
   useEffect(() => {
     const o = detail.data?.offering;
-    if (!o) return;
+    if (!o || hydratedOfferingId.current === o.id) return;
+    hydratedOfferingId.current = o.id;
     setF({
       ...o,
       subcategory: o.subcategory ?? "",
@@ -140,7 +144,8 @@ export default function OfferingEdit() {
     if (!f.city.trim()) next.city = "City is required.";
     if (!/^\+?[0-9][0-9 ()-]{6,38}$/.test(f.contact_phone.trim())) next.contact_phone = "Enter a valid contact phone number.";
     if (f.whatsapp.trim() && !/^\+?[0-9][0-9 ()-]{6,38}$/.test(f.whatsapp.trim())) next.whatsapp = "Enter a valid WhatsApp number.";
-    if (f.price.trim() && (!Number.isFinite(Number(f.price)) || Number(f.price) < 0)) next.price = "Enter a valid price of 0 or more.";
+    const price = f.price.trim();
+    if (price && (!/^\d+(?:\.\d{1,2})?$/.test(price) || Number(price) > 9999999999.99)) next.price = priceError;
 
     const sameTerms = prior.termsVersion === legal && !!prior.termsAt;
     const sameContact = prior.phone === f.contact_phone && prior.whatsapp === (f.whatsapp || null) && !!prior.consentAt;
@@ -169,6 +174,10 @@ export default function OfferingEdit() {
       const lower = filename.toLowerCase();
       const contentType = lower.endsWith(".png") ? "image/png" : lower.endsWith(".webp") ? "image/webp" : "image/jpeg";
       await photo.mutateAsync({ offeringId, filename, file: blob, contentType });
+      setLocalPhotos(current => {
+        const index = current.indexOf(asset);
+        return index < 0 ? current : [...current.slice(0, index), ...current.slice(index + 1)];
+      });
     }
   };
 
@@ -193,7 +202,7 @@ export default function OfferingEdit() {
       category: f.category,
       subcategory: f.subcategory || null,
       description: f.description,
-      price: f.price ? Number(f.price) : null,
+      price: f.price.trim() ? Number(f.price.trim()) : null,
       price_unit: f.price_unit,
       in_stock: f.in_stock,
       city: f.city,
@@ -220,6 +229,7 @@ export default function OfferingEdit() {
         await refreshSupabaseAccessToken();
         result = await save.mutateAsync(payload);
       }
+      setSavedOfferingId(result.id);
       try {
         await uploadPhotos(result.id);
       } catch (error) {
@@ -227,7 +237,6 @@ export default function OfferingEdit() {
         setSaveError("Your listing was saved, but one or more photos could not be uploaded. Please try saving again to retry the remaining photos.");
         return;
       }
-      setLocalPhotos([]);
       router.replace((preview ? `/business/offering/preview?id=${result.id}` : "/business/offerings-mine") as never);
     } catch (error) {
       console.error("Offering save failed", error);
@@ -241,6 +250,15 @@ export default function OfferingEdit() {
 
   if (id && detail.isLoading) {
     return <View style={[s.root, s.center, { paddingTop: insets.top }]}><ActivityIndicator color={colors.light.primary}/></View>;
+  }
+
+  if (id && detail.error && !detail.data) {
+    const message = detail.error instanceof Error ? detail.error.message : "Unable to load this listing.";
+    return <View style={[s.root, s.center, { paddingTop: insets.top, paddingHorizontal: 24 }]}>
+      <Feather name="alert-circle" size={36} color={colors.light.destructive}/>
+      <Text style={s.loadError}>{message}</Text>
+      <Pressable style={s.retryButton} onPress={() => void detail.refetch()}><Text style={s.buttonText}>RETRY</Text></Pressable>
+    </View>;
   }
 
   return <View style={[s.root, { paddingTop: insets.top }]}>
@@ -376,6 +394,8 @@ export default function OfferingEdit() {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.light.background },
   center: { alignItems: "center", justifyContent: "center" },
+  loadError: { color: colors.light.destructive, fontSize: 14, lineHeight: 20, textAlign: "center", marginTop: 12 },
+  retryButton: { backgroundColor: colors.light.primary, borderRadius: 12, paddingHorizontal: 24, paddingVertical: 13, marginTop: 18 },
   head: { padding: 20, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   title: { color: colors.light.foreground, fontWeight: "800", fontSize: 18 },
   content: { padding: 20, paddingBottom: 60 },

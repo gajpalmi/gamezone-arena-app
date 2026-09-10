@@ -27,141 +27,95 @@ export default function SignUpScreen() {
     fetchStatus,
   } = useSignUp();
 
-  const {
-    user,
-  } = useUser();
+  const { user } = useUser();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] =
-    useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [code, setCode] = useState('');
-  const [verifying, setVerifying] =
-    useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [localError, setLocalError] = useState('');
 
-  const [localError, setLocalError] =
-    useState('');
+  const busy = fetchStatus === 'fetching';
 
-  const busy =
-    fetchStatus === 'fetching';
-
-  /*
-   * Clerk error message
-   */
   const clerkError =
     errors?.fields?.emailAddress?.message ||
     errors?.fields?.password?.message ||
     '';
 
-  const errorMessage =
-    localError || clerkError;
+  const errorMessage = localError || clerkError;
 
-  /*
-   * CREATE ACCOUNT
-   */
   async function createAccount() {
     setLocalError('');
 
     const cleanName = name.trim();
-    const cleanEmail =
-      email.trim().toLowerCase();
+    const cleanEmail = email.trim().toLowerCase();
 
-    /*
-     * Basic validation
-     */
     if (!cleanName) {
-      setLocalError(
-        'Please enter your full name.',
-      );
+      setLocalError('Please enter your full name.');
       return;
     }
 
     if (!cleanEmail) {
-      setLocalError(
-        'Please enter your email address.',
-      );
+      setLocalError('Please enter your email address.');
       return;
     }
 
-    /*
-     * Simple email validation
-     */
-    const emailRegex =
-      /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (!emailRegex.test(cleanEmail)) {
-      setLocalError(
-        'Please enter a valid email address.',
-      );
+      setLocalError('Please enter a valid email address.');
       return;
     }
 
     if (!password) {
-      setLocalError(
-        'Please create a password.',
-      );
+      setLocalError('Please create a password.');
       return;
     }
 
+    /*
+     * Keep this compatible with Clerk.
+     * Do not artificially limit the password to 8 characters.
+     */
     if (password.length < 8) {
-      setLocalError(
-        'Password must be at least 8 characters.',
-      );
+      setLocalError('Password must be at least 8 characters.');
       return;
     }
 
     if (!confirmPassword) {
-      setLocalError(
-        'Please enter your password again.',
-      );
+      setLocalError('Please enter your password again.');
+      return;
+    }
+
+    if (confirmPassword.length < 8) {
+      setLocalError('Confirm password must be at least 8 characters.');
       return;
     }
 
     if (password !== confirmPassword) {
-      setLocalError(
-        'Passwords do not match.',
-      );
+      setLocalError('Passwords do not match.');
       return;
     }
 
-    /*
-     * IMPORTANT:
-     *
-     * Do NOT send firstName or lastName here.
-     *
-     * Current Clerk Expo API expects:
-     * emailAddress
-     * password
-     *
-     * Sending firstName here caused:
-     *
-     * "first_name is not a valid parameter
-     * for this request."
-     */
-    const { error } =
-      await signUp.password({
-        emailAddress: cleanEmail,
-        password: password,
-      });
+    const { error } = await signUp.password({
+      emailAddress: cleanEmail,
+      password,
+    });
 
     if (error) {
       setLocalError(
-        error.message ||
-          'Unable to create account.',
+        error.message || 'Unable to create account.',
       );
       return;
     }
 
-    /*
-     * Send email verification code
-     */
-    const {
-      error: sendError,
-    } =
-      await signUp.verifications
-        .sendEmailCode();
+    const { error: sendError } =
+      await signUp.verifications.sendEmailCode();
 
     if (sendError) {
       setLocalError(
@@ -171,25 +125,16 @@ export default function SignUpScreen() {
       return;
     }
 
-    /*
-     * Show verification screen
-     */
     setVerifying(true);
   }
 
-  /*
-   * VERIFY EMAIL
-   */
   async function verifyCode() {
     setLocalError('');
 
-    const cleanCode =
-      code.trim();
+    const cleanCode = code.trim();
 
     if (!cleanCode) {
-      setLocalError(
-        'Please enter the verification code.',
-      );
+      setLocalError('Please enter the verification code.');
       return;
     }
 
@@ -200,31 +145,19 @@ export default function SignUpScreen() {
       return;
     }
 
-    /*
-     * Verify email code
-     */
-    const {
-      error,
-    } =
-      await signUp.verifications
-        .verifyEmailCode({
-          code: cleanCode,
-        });
+    const { error } =
+      await signUp.verifications.verifyEmailCode({
+        code: cleanCode,
+      });
 
     if (error) {
       setLocalError(
-        error.message ||
-          'Invalid verification code.',
+        error.message || 'Invalid verification code.',
       );
       return;
     }
 
-    /*
-     * Finalize Clerk session
-     */
-    const {
-      error: finalizeError,
-    } =
+    const { error: finalizeError } =
       await signUp.finalize();
 
     if (finalizeError) {
@@ -235,76 +168,38 @@ export default function SignUpScreen() {
       return;
     }
 
-    /*
-     * Save the user's name AFTER
-     * the Clerk account/session exists.
-     *
-     * This avoids the:
-     * "first_name is not a valid parameter"
-     * error.
-     */
     try {
       if (user) {
-        const nameParts =
-          name.trim().split(/\s+/);
-
-        const firstName =
-          nameParts.shift() || '';
-
-        const lastName =
-          nameParts.join(' ');
+        const nameParts = name.trim().split(/\s+/);
+        const firstName = nameParts.shift() || '';
+        const lastName = nameParts.join(' ');
 
         await user.update({
-          firstName: firstName,
-          lastName:
-            lastName || undefined,
+          firstName,
+          lastName: lastName || undefined,
         });
       }
-    } catch (nameError: any) {
-      /*
-       * Account is already created.
-       *
-       * If name update fails, do not
-       * tell the user that account creation
-       * failed.
-       */
-      console.log(
-        'Name update error:',
-        nameError,
-      );
+    } catch (nameError) {
+      console.log('Name update error:', nameError);
     }
 
-    /*
-     * Go to home screen
-     */
     router.replace('/');
   }
 
-  /*
-   * VERIFICATION SCREEN
-   */
   if (verifying) {
     return (
       <View style={styles.container}>
-        <Text style={styles.brand}>
-          GAMEZONE ARENA
-        </Text>
+        <Text style={styles.brand}>GAMEZONE ARENA</Text>
 
-        <Text style={styles.title}>
-          Verify your email
-        </Text>
+        <Text style={styles.title}>Verify your email</Text>
 
         <Text style={styles.body}>
           We sent a verification code to:
         </Text>
 
-        <Text style={styles.email}>
-          {email}
-        </Text>
+        <Text style={styles.email}>{email}</Text>
 
-        <Text style={styles.label}>
-          VERIFICATION CODE
-        </Text>
+        <Text style={styles.label}>VERIFICATION CODE</Text>
 
         <TextInput
           value={code}
@@ -313,7 +208,7 @@ export default function SignUpScreen() {
             setLocalError('');
           }}
           keyboardType="number-pad"
-          maxLength={8}
+          maxLength={64}
           autoCapitalize="none"
           placeholder="Enter verification code"
           placeholderTextColor="#71809F"
@@ -321,9 +216,7 @@ export default function SignUpScreen() {
         />
 
         {!!errorMessage && (
-          <Text style={styles.error}>
-            {errorMessage}
-          </Text>
+          <Text style={styles.error}>{errorMessage}</Text>
         )}
 
         <Pressable
@@ -335,9 +228,7 @@ export default function SignUpScreen() {
           ]}
         >
           {busy ? (
-            <ActivityIndicator
-              color="#06111D"
-            />
+            <ActivityIndicator color="#06111D" />
           ) : (
             <Text style={styles.buttonText}>
               VERIFY EMAIL
@@ -361,26 +252,17 @@ export default function SignUpScreen() {
     );
   }
 
-  /*
-   * SIGN-UP SCREEN
-   */
   return (
     <View style={styles.container}>
-      <Text style={styles.brand}>
-        GAMEZONE ARENA
-      </Text>
+      <Text style={styles.brand}>GAMEZONE ARENA</Text>
 
-      <Text style={styles.title}>
-        Create account
-      </Text>
+      <Text style={styles.title}>Create account</Text>
 
       <Text style={styles.body}>
         Create your player account.
       </Text>
 
-      <Text style={styles.label}>
-        FULL NAME
-      </Text>
+      <Text style={styles.label}>FULL NAME</Text>
 
       <TextInput
         value={name}
@@ -395,9 +277,7 @@ export default function SignUpScreen() {
         style={styles.input}
       />
 
-      <Text style={styles.label}>
-        EMAIL ADDRESS
-      </Text>
+      <Text style={styles.label}>EMAIL ADDRESS</Text>
 
       <TextInput
         value={email}
@@ -415,53 +295,86 @@ export default function SignUpScreen() {
         style={styles.input}
       />
 
-      <Text style={styles.label}>
-        PASSWORD
+      <Text style={styles.label}>PASSWORD</Text>
+
+      <View style={styles.passwordContainer}>
+        <TextInput
+          value={password}
+          onChangeText={(value) => {
+            setPassword(value);
+            setLocalError('');
+          }}
+          secureTextEntry={!showPassword}
+          autoCapitalize="none"
+          autoCorrect={false}
+          textContentType="newPassword"
+          autoComplete="password-new"
+          maxLength={64}
+          placeholder="8 or more characters"
+          placeholderTextColor="#71809F"
+          style={styles.passwordInput}
+        />
+
+        <Pressable
+          onPress={() => setShowPassword(!showPassword)}
+          style={styles.showButton}
+          accessibilityRole="button"
+          accessibilityLabel={
+            showPassword ? 'Hide password' : 'Show password'
+          }
+        >
+          <Text style={styles.showText}>
+            {showPassword ? 'HIDE' : 'SHOW'}
+          </Text>
+        </Pressable>
+      </View>
+
+      <Text style={styles.passwordHint}>
+        Use 8 or more characters.
       </Text>
 
-      <TextInput
-        value={password}
-        onChangeText={(value) => {
-          setPassword(value);
-          setLocalError('');
-        }}
-        secureTextEntry
-        autoCapitalize="none"
-        autoCorrect={false}
-        textContentType="newPassword"
-        autoComplete="password-new"
-        placeholder="Create password"
-        placeholderTextColor="#71809F"
-        style={styles.input}
-      />
+      <Text style={styles.label}>CONFIRM PASSWORD</Text>
 
-      <Text style={styles.label}>
-        CONFIRM PASSWORD
-      </Text>
+      <View style={styles.passwordContainer}>
+        <TextInput
+          value={confirmPassword}
+          onChangeText={(value) => {
+            setConfirmPassword(value);
+            setLocalError('');
+          }}
+          secureTextEntry={!showConfirmPassword}
+          autoCapitalize="none"
+          autoCorrect={false}
+          textContentType="newPassword"
+          autoComplete="password-new"
+          maxLength={64}
+          placeholder="Enter password again"
+          placeholderTextColor="#71809F"
+          style={styles.passwordInput}
+        />
 
-      <TextInput
-        value={confirmPassword}
-        onChangeText={(value) => {
-          setConfirmPassword(value);
-          setLocalError('');
-        }}
-        secureTextEntry
-        autoCapitalize="none"
-        autoCorrect={false}
-        textContentType="newPassword"
-        autoComplete="password-new"
-        placeholder="Enter password again"
-        placeholderTextColor="#71809F"
-        style={styles.input}
-      />
+        <Pressable
+          onPress={() =>
+            setShowConfirmPassword(!showConfirmPassword)
+          }
+          style={styles.showButton}
+          accessibilityRole="button"
+          accessibilityLabel={
+            showConfirmPassword
+              ? 'Hide confirm password'
+              : 'Show confirm password'
+          }
+        >
+          <Text style={styles.showText}>
+            {showConfirmPassword ? 'HIDE' : 'SHOW'}
+          </Text>
+        </Pressable>
+      </View>
 
-      {/* Clerk CAPTCHA for Expo Web */}
       <View nativeID="clerk-captcha" />
 
       {!!errorMessage && (
-        <Text style={styles.error}>
-          {errorMessage}
-        </Text>
+        <Text style={styles.error}>{errorMessage}</Text>
       )}
 
       <Pressable
@@ -473,9 +386,7 @@ export default function SignUpScreen() {
         ]}
       >
         {busy ? (
-          <ActivityIndicator
-            color="#06111D"
-          />
+          <ActivityIndicator color="#06111D" />
         ) : (
           <Text style={styles.buttonText}>
             CREATE ACCOUNT
@@ -485,10 +396,7 @@ export default function SignUpScreen() {
 
       <Text style={styles.switch}>
         Already have an account?{' '}
-        <Link
-          href="/sign-in"
-          style={styles.link}
-        >
+        <Link href="/sign-in" style={styles.link}>
           Login
         </Link>
       </Text>
@@ -550,6 +458,47 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 15,
     marginBottom: 4,
+  },
+
+  passwordContainer: {
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: '#111C34',
+    borderWidth: 1,
+    borderColor: '#304162',
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+
+  passwordInput: {
+    flex: 1,
+    height: 54,
+    paddingHorizontal: 16,
+    color: '#FFFFFF',
+    fontSize: 15,
+  },
+
+  showButton: {
+    minWidth: 58,
+    height: 54,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+  },
+
+  showText: {
+    color: '#43DDF8',
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+
+  passwordHint: {
+    color: '#71809F',
+    fontSize: 11,
+    marginTop: 3,
+    marginBottom: 2,
   },
 
   button: {

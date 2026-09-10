@@ -23,8 +23,12 @@ export default function ForgotPasswordScreen() {
 
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
+
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [codeSent, setCodeSent] = useState(false);
   const [localError, setLocalError] = useState('');
@@ -41,7 +45,7 @@ export default function ForgotPasswordScreen() {
 
   // ---------------------------------------------------------
   // STEP 1
-  // Email enter -> Send OTP
+  // Email -> Send OTP
   // ---------------------------------------------------------
   const sendCode = async () => {
     setLocalError('');
@@ -86,13 +90,16 @@ export default function ForgotPasswordScreen() {
       setCodeSent(true);
     } catch (error) {
       console.log('Forgot password error:', error);
-      setLocalError('Unable to send the verification code. Please try again.');
+
+      setLocalError(
+        'Unable to send the verification code. Please try again.',
+      );
     }
   };
 
   // ---------------------------------------------------------
   // STEP 2
-  // OTP verify
+  // OTP Verify
   // ---------------------------------------------------------
   const verifyCode = async () => {
     setLocalError('');
@@ -119,13 +126,16 @@ export default function ForgotPasswordScreen() {
       }
     } catch (error) {
       console.log('Verify OTP error:', error);
-      setLocalError('Invalid or expired OTP. Please try again.');
+
+      setLocalError(
+        'Invalid or expired OTP. Please try again.',
+      );
     }
   };
 
   // ---------------------------------------------------------
   // STEP 3
-  // New password
+  // New Password
   // ---------------------------------------------------------
   const submitNewPassword = async () => {
     setLocalError('');
@@ -136,7 +146,23 @@ export default function ForgotPasswordScreen() {
     }
 
     if (password.length < 8) {
-      setLocalError('Password must be at least 8 characters.');
+      setLocalError(
+        'Password must be at least 8 characters.',
+      );
+      return;
+    }
+
+    if (!confirmPassword) {
+      setLocalError(
+        'Please confirm your new password.',
+      );
+      return;
+    }
+
+    if (confirmPassword.length < 8) {
+      setLocalError(
+        'Confirm password must be at least 8 characters.',
+      );
       return;
     }
 
@@ -162,20 +188,25 @@ export default function ForgotPasswordScreen() {
 
       // Clerk should now have a complete sign-in.
       if (signIn.status === 'complete') {
-        const { error: finalizeError } = await signIn.finalize({
-          navigate: async ({ session, decorateUrl }) => {
-            // If Clerk requires another session task,
-            // do not redirect yet.
-            if (session?.currentTask) {
-              console.log('Clerk session task:', session.currentTask);
-              return;
-            }
+        const { error: finalizeError } =
+          await signIn.finalize({
+            navigate: async ({
+              session,
+              decorateUrl,
+            }) => {
+              if (session?.currentTask) {
+                console.log(
+                  'Clerk session task:',
+                  session.currentTask,
+                );
+                return;
+              }
 
-            const url = decorateUrl('/');
+              const url = decorateUrl('/');
 
-            router.replace(url as Href);
-          },
-        });
+              router.replace(url as Href);
+            },
+          });
 
         if (finalizeError) {
           setLocalError(
@@ -186,14 +217,20 @@ export default function ForgotPasswordScreen() {
         }
       }
     } catch (error) {
-      console.log('Reset password error:', error);
-      setLocalError('Could not update your password. Please try again.');
+      console.log(
+        'Reset password error:',
+        error,
+      );
+
+      setLocalError(
+        'Could not update your password. Please try again.',
+      );
     }
   };
 
   // ---------------------------------------------------------
   // STEP 4
-  // 2FA / unsupported extra requirement
+  // 2FA / Unsupported Extra Requirement
   // ---------------------------------------------------------
   if (signIn.status === 'needs_second_factor') {
     return (
@@ -203,25 +240,32 @@ export default function ForgotPasswordScreen() {
             <BrandMark />
           </View>
 
-          <Text style={styles.eyebrow}>PLAYER ACCESS</Text>
+          <Text style={styles.eyebrow}>
+            PLAYER ACCESS
+          </Text>
 
           <Text style={styles.title}>
             Verification required
           </Text>
 
           <Text style={styles.body}>
-            Your account requires an additional verification step.
-            Please complete it before continuing.
+            Your account requires an additional
+            verification step. Please complete it
+            before continuing.
           </Text>
 
           <Pressable
-            onPress={() => router.replace('/sign-in' as Href)}
+            onPress={() =>
+              router.replace('/sign-in' as Href)
+            }
             style={({ pressed }) => [
               styles.button,
               pressed && styles.pressed,
             ]}
           >
-            <Text style={styles.buttonText}>Back to login</Text>
+            <Text style={styles.buttonText}>
+              Back to login
+            </Text>
 
             <Feather
               name="arrow-right"
@@ -236,13 +280,17 @@ export default function ForgotPasswordScreen() {
 
   // ---------------------------------------------------------
   // STEP 3 UI
-  // New password screen
+  // New Password Screen
   // ---------------------------------------------------------
   if (signIn.status === 'needs_new_password') {
     return (
       <KeyboardAvoidingView
         style={styles.root}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={
+          Platform.OS === 'ios'
+            ? 'padding'
+            : undefined
+        }
       >
         <Screen contentStyle={styles.content}>
           <View style={styles.container}>
@@ -261,56 +309,140 @@ export default function ForgotPasswordScreen() {
               <BrandMark />
             </View>
 
-            <Text style={styles.eyebrow}>PASSWORD RESET</Text>
+            <Text style={styles.eyebrow}>
+              PASSWORD RESET
+            </Text>
 
             <Text style={styles.title}>
               Create a new password.
             </Text>
 
             <Text style={styles.body}>
-              Your email has been verified. Choose a strong new
-              password for your Gamezone Arena account.
+              Your email has been verified. Choose a
+              new password with at least 8 characters
+              for your Gamezone Arena account.
             </Text>
 
             <View style={styles.form}>
-              <Text style={styles.label}>NEW PASSWORD</Text>
 
-              <TextInput
-                testID="forgot-password-new-password"
-                value={password}
-                onChangeText={(value) => {
-                  setPassword(value);
-                  setLocalError('');
-                }}
-                secureTextEntry
-                autoCapitalize="none"
-                autoCorrect={false}
-                placeholder="Enter new password"
-                placeholderTextColor={colors.light.mutedForeground}
-                style={styles.input}
-              />
+              {/* NEW PASSWORD */}
+              <Text style={styles.label}>
+                NEW PASSWORD
+              </Text>
 
-              <Text style={styles.label}>CONFIRM PASSWORD</Text>
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  testID="forgot-password-new-password"
+                  value={password}
+                  onChangeText={(value) => {
+                    setPassword(value);
+                    setLocalError('');
+                  }}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  maxLength={64}
+                  placeholder="Enter your new password"
+                  placeholderTextColor={
+                    colors.light.mutedForeground
+                  }
+                  style={styles.passwordInput}
+                />
 
-              <TextInput
-                testID="forgot-password-confirm-password"
-                value={confirmPassword}
-                onChangeText={(value) => {
-                  setConfirmPassword(value);
-                  setLocalError('');
-                }}
-                secureTextEntry
-                autoCapitalize="none"
-                autoCorrect={false}
-                placeholder="Confirm new password"
-                placeholderTextColor={colors.light.mutedForeground}
-                style={styles.input}
-              />
+                <Pressable
+                  onPress={() =>
+                    setShowPassword(
+                      !showPassword,
+                    )
+                  }
+                  style={styles.showButton}
+                >
+                  <Feather
+                    name={
+                      showPassword
+                        ? 'eye-off'
+                        : 'eye'
+                    }
+                    size={18}
+                    color={colors.light.primary}
+                  />
 
+                  <Text style={styles.showText}>
+                    {showPassword
+                      ? 'HIDE'
+                      : 'SHOW'}
+                  </Text>
+                </Pressable>
+              </View>
+
+              <Text style={styles.passwordHint}>
+                Use 8 or more characters.
+              </Text>
+
+              {/* CONFIRM PASSWORD */}
+              <Text style={styles.label}>
+                CONFIRM PASSWORD
+              </Text>
+
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  testID="forgot-password-confirm-password"
+                  value={confirmPassword}
+                  onChangeText={(value) => {
+                    setConfirmPassword(value);
+                    setLocalError('');
+                  }}
+                  secureTextEntry={
+                    !showConfirmPassword
+                  }
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  maxLength={64}
+                  placeholder="Confirm your password"
+                  placeholderTextColor={
+                    colors.light.mutedForeground
+                  }
+                  style={styles.passwordInput}
+                />
+
+                <Pressable
+                  onPress={() =>
+                    setShowConfirmPassword(
+                      !showConfirmPassword,
+                    )
+                  }
+                  style={styles.showButton}
+                >
+                  <Feather
+                    name={
+                      showConfirmPassword
+                        ? 'eye-off'
+                        : 'eye'
+                    }
+                    size={18}
+                    color={colors.light.primary}
+                  />
+
+                  <Text style={styles.showText}>
+                    {showConfirmPassword
+                      ? 'HIDE'
+                      : 'SHOW'}
+                  </Text>
+                </Pressable>
+              </View>
+
+              <Text style={styles.passwordHint}>
+                Re-enter the same password.
+              </Text>
+
+              {/* ERROR */}
               {errorMessage ? (
-                <Text style={styles.error}>{errorMessage}</Text>
+                <Text style={styles.error}>
+                  {errorMessage}
+                </Text>
               ) : null}
 
+              {/* UPDATE BUTTON */}
               <Pressable
                 testID="forgot-password-submit"
                 disabled={
@@ -330,7 +462,9 @@ export default function ForgotPasswordScreen() {
               >
                 {busy ? (
                   <ActivityIndicator
-                    color={colors.light.primaryForeground}
+                    color={
+                      colors.light.primaryForeground
+                    }
                   />
                 ) : (
                   <>
@@ -341,7 +475,9 @@ export default function ForgotPasswordScreen() {
                     <Feather
                       name="check"
                       size={18}
-                      color={colors.light.primaryForeground}
+                      color={
+                        colors.light.primaryForeground
+                      }
                     />
                   </>
                 )}
@@ -359,13 +495,17 @@ export default function ForgotPasswordScreen() {
 
   // ---------------------------------------------------------
   // STEP 2 UI
-  // OTP screen
+  // OTP Screen
   // ---------------------------------------------------------
   if (codeSent) {
     return (
       <KeyboardAvoidingView
         style={styles.root}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={
+          Platform.OS === 'ios'
+            ? 'padding'
+            : undefined
+        }
       >
         <Screen contentStyle={styles.content}>
           <View style={styles.container}>
@@ -388,7 +528,9 @@ export default function ForgotPasswordScreen() {
               <BrandMark />
             </View>
 
-            <Text style={styles.eyebrow}>VERIFY ACCOUNT</Text>
+            <Text style={styles.eyebrow}>
+              VERIFY ACCOUNT
+            </Text>
 
             <Text style={styles.title}>
               Check your email.
@@ -403,21 +545,30 @@ export default function ForgotPasswordScreen() {
             </Text>
 
             <View style={styles.form}>
-              <Text style={styles.label}>VERIFICATION CODE</Text>
+              <Text style={styles.label}>
+                VERIFICATION CODE
+              </Text>
 
               <TextInput
                 testID="forgot-password-code"
                 value={code}
                 onChangeText={(value) => {
-                  setCode(value.replace(/[^0-9]/g, ''));
+                  setCode(
+                    value.replace(
+                      /[^0-9]/g,
+                      '',
+                    ),
+                  );
                   setLocalError('');
                 }}
                 keyboardType="number-pad"
-                maxLength={8}
+                maxLength={64}
                 autoCapitalize="none"
                 autoCorrect={false}
                 placeholder="Enter OTP"
-                placeholderTextColor={colors.light.mutedForeground}
+                placeholderTextColor={
+                  colors.light.mutedForeground
+                }
                 style={[
                   styles.input,
                   styles.codeInput,
@@ -425,22 +576,31 @@ export default function ForgotPasswordScreen() {
               />
 
               {errorMessage ? (
-                <Text style={styles.error}>{errorMessage}</Text>
+                <Text style={styles.error}>
+                  {errorMessage}
+                </Text>
               ) : null}
 
               <Pressable
                 testID="forgot-password-verify"
-                disabled={busy || !code.trim()}
+                disabled={
+                  busy ||
+                  !code.trim()
+                }
                 onPress={verifyCode}
                 style={({ pressed }) => [
                   styles.button,
-                  (busy || !code.trim()) && styles.disabled,
+                  (busy ||
+                    !code.trim()) &&
+                    styles.disabled,
                   pressed && styles.pressed,
                 ]}
               >
                 {busy ? (
                   <ActivityIndicator
-                    color={colors.light.primaryForeground}
+                    color={
+                      colors.light.primaryForeground
+                    }
                   />
                 ) : (
                   <>
@@ -451,7 +611,9 @@ export default function ForgotPasswordScreen() {
                     <Feather
                       name="arrow-right"
                       size={18}
-                      color={colors.light.primaryForeground}
+                      color={
+                        colors.light.primaryForeground
+                      }
                     />
                   </>
                 )}
@@ -481,12 +643,16 @@ export default function ForgotPasswordScreen() {
 
   // ---------------------------------------------------------
   // STEP 1 UI
-  // Email screen
+  // Email Screen
   // ---------------------------------------------------------
   return (
     <KeyboardAvoidingView
       style={styles.root}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={
+        Platform.OS === 'ios'
+          ? 'padding'
+          : undefined
+      }
     >
       <Screen contentStyle={styles.content}>
         <View style={styles.container}>
@@ -505,7 +671,9 @@ export default function ForgotPasswordScreen() {
             <BrandMark />
           </View>
 
-          <Text style={styles.eyebrow}>PLAYER ACCESS</Text>
+          <Text style={styles.eyebrow}>
+            PLAYER ACCESS
+          </Text>
 
           <Text style={styles.title}>
             Forgot your password?
@@ -513,12 +681,14 @@ export default function ForgotPasswordScreen() {
 
           <Text style={styles.body}>
             Enter the email address connected to your
-            Gamezone Arena account and we'll send you a
-            verification code.
+            Gamezone Arena account and we'll send you
+            a verification code.
           </Text>
 
           <View style={styles.form}>
-            <Text style={styles.label}>EMAIL ADDRESS</Text>
+            <Text style={styles.label}>
+              EMAIL ADDRESS
+            </Text>
 
             <TextInput
               testID="forgot-password-email"
@@ -531,27 +701,38 @@ export default function ForgotPasswordScreen() {
               autoCorrect={false}
               keyboardType="email-address"
               placeholder="player@email.com"
-              placeholderTextColor={colors.light.mutedForeground}
+              placeholderTextColor={
+                colors.light.mutedForeground
+              }
               style={styles.input}
             />
 
             {errorMessage ? (
-              <Text style={styles.error}>{errorMessage}</Text>
+              <Text style={styles.error}>
+                {errorMessage}
+              </Text>
             ) : null}
 
             <Pressable
               testID="forgot-password-send"
-              disabled={busy || !email.trim()}
+              disabled={
+                busy ||
+                !email.trim()
+              }
               onPress={sendCode}
               style={({ pressed }) => [
                 styles.button,
-                (busy || !email.trim()) && styles.disabled,
+                (busy ||
+                  !email.trim()) &&
+                  styles.disabled,
                 pressed && styles.pressed,
               ]}
             >
               {busy ? (
                 <ActivityIndicator
-                  color={colors.light.primaryForeground}
+                  color={
+                    colors.light.primaryForeground
+                  }
                 />
               ) : (
                 <>
@@ -562,7 +743,9 @@ export default function ForgotPasswordScreen() {
                   <Feather
                     name="arrow-right"
                     size={18}
-                    color={colors.light.primaryForeground}
+                    color={
+                      colors.light.primaryForeground
+                    }
                   />
                 </>
               )}
@@ -571,8 +754,10 @@ export default function ForgotPasswordScreen() {
 
           <Text style={styles.switchText}>
             Remember your password?{' '}
+
             <Link
-              href="/sign-in" asChild
+              href="/sign-in"
+              asChild
             >
               <Text style={styles.link}>
                 Back to login
@@ -581,8 +766,8 @@ export default function ForgotPasswordScreen() {
           </Text>
 
           <Text style={styles.securityText}>
-            Password reset codes are sent securely to your
-            registered email address.
+            Password reset codes are sent securely
+            to your registered email address.
           </Text>
         </View>
       </Screen>
@@ -680,6 +865,47 @@ const styles = StyleSheet.create({
     borderColor: colors.light.border,
     color: colors.light.foreground,
     fontSize: 15,
+  },
+
+  passwordContainer: {
+    minHeight: 54,
+    borderRadius: 16,
+    backgroundColor: colors.light.input,
+    borderWidth: 1,
+    borderColor: colors.light.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  passwordInput: {
+    flex: 1,
+    minHeight: 52,
+    paddingLeft: 16,
+    paddingRight: 8,
+    color: colors.light.foreground,
+    fontSize: 15,
+  },
+
+  showButton: {
+    minHeight: 52,
+    paddingHorizontal: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 6,
+  },
+
+  showText: {
+    color: colors.light.primary,
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.8,
+  },
+
+  passwordHint: {
+    color: colors.light.mutedForeground,
+    fontSize: 11,
+    marginTop: -5,
   },
 
   codeInput: {

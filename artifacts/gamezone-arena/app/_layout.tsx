@@ -21,19 +21,60 @@ import {
 import { BusinessQueryProvider } from '@/components/BusinessQueryProvider';
 import { AdService } from '@/services/AdService';
 import { PreferencesProvider } from '@/context/PreferencesContext';
-import { setSupabaseAccessTokenGetter } from '@/lib/supabase';
+import {
+  setSupabaseAccessTokenGetter,
+} from '@/lib/supabase';
 
 const CLERK_PUBLISHABLE_KEY =
   process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
+
 const CLERK_PROXY_URL =
   process.env.EXPO_PUBLIC_CLERK_PROXY_URL || undefined;
 
-function SupabaseAuthBridge({ children }: { children: React.ReactNode }) {
-  const { getToken, isLoaded } = useAuth();
+function SupabaseAuthBridge({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const {
+    getToken,
+    isLoaded,
+    isSignedIn,
+  } = useAuth();
+
   React.useEffect(() => {
-    if (!isLoaded) return;
-    setSupabaseAccessTokenGetter(options => getToken(options));
-  }, [getToken, isLoaded]);
+    if (!isLoaded) {
+      return;
+    }
+
+    if (!isSignedIn) {
+      setSupabaseAccessTokenGetter(null);
+      return;
+    }
+
+    setSupabaseAccessTokenGetter(
+      async (options) => {
+        try {
+          return await getToken(options);
+        } catch (error) {
+          console.error(
+            'Clerk token error for Supabase:',
+            error,
+          );
+          return null;
+        }
+      },
+    );
+
+    return () => {
+      setSupabaseAccessTokenGetter(null);
+    };
+  }, [
+    getToken,
+    isLoaded,
+    isSignedIn,
+  ]);
+
   return <>{children}</>;
 }
 

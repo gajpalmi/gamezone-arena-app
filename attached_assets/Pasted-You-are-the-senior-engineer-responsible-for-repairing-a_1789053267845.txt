@@ -1,0 +1,565 @@
+You are the senior engineer responsible for repairing and preparing my existing GAMEZONE ARENA app.
+
+IMPORTANT:
+
+- DO NOT create a new app.
+- DO NOT delete or replace the existing project.
+- DO NOT remove existing games, navigation, authentication, profile, friends, leaderboard, virtual coins, rewards, AdMob configuration, assets, legal pages, or existing UI unless absolutely necessary for a confirmed bug fix.
+- Preserve the existing GAMEZONE ARENA branding.
+- Preserve the existing Expo project configuration and Android package.
+- Current app name: GAMEZONE ARENA
+- Tagline: Play sharp. Rise fast.
+- Android package: com.gamezonearena.app
+- Expo project: gamezone-arena
+- Expo owner: gajpalgamezones-team
+- Existing Expo project ID: 4e9dc944-2a7b-4051-95be-b276401e6e06
+- Project path: artifacts/gamezone-arena
+- The app uses Expo SDK 54. DO NOT upgrade to Expo 57 or another SDK unless absolutely required and explicitly explained first.
+- DO NOT install a different Expo SDK just because the command is being executed from the wrong directory.
+- Work only inside the correct project directory: artifacts/gamezone-arena.
+
+MAIN OBJECTIVE:
+Repair the existing GAMEZONE ARENA app completely, make navigation/state saving reliable, fix Android/runtime problems, fix web bundling problems without breaking Android, verify all existing games and screens, and make the project production-ready for Google Play Store.
+
+==================================================
+
+1. FIRST: AUDIT THE ENTIRE PROJECT
+   ==================================================
+
+Before changing anything:
+
+1. Confirm the actual project root.
+2. Confirm package.json, app.json/app.config, expo-router configuration, tsconfig, metro config, babel config and all source directories.
+3. Detect the installed Expo SDK version.
+4. Detect React and React Native versions.
+5. Detect all native-only dependencies.
+6. Detect duplicate or incompatible dependencies.
+7. Run the appropriate Expo diagnostics from the correct project directory.
+8. Inspect all build/runtime errors.
+9. Do NOT blindly run npm install or upgrade dependencies.
+10. Do NOT change Expo SDK version without explaining why.
+
+Create a short internal diagnosis first, then repair the confirmed issues.
+
+==================================================
+2. FIX THE CURRENT WEB BUNDLING ERROR
+
+Current known error:
+
+ERROR Importing native-only module
+"react-native/Libraries/Utilities/codegenNativeCommands"
+on web from react-native-maps / react-native-web.
+
+This must be fixed properly.
+
+Requirements:
+
+- Find exactly where react-native-maps is imported.
+- Determine whether maps are actually required on Android.
+- If maps are required only on Android/iOS, isolate the native map component from the web bundle.
+- Use platform-specific files such as:
+  Component.native.tsx
+  Component.web.tsx
+  when appropriate.
+- Do not remove maps from Android merely to make web work.
+- Do not import native-only modules from files that Expo Router loads on web.
+- Make the web fallback safe and useful instead of crashing.
+- Android/iOS must retain the real map functionality if the app needs it.
+- Web must show a proper fallback screen instead of a bundling error.
+- Verify Expo Router does not eagerly import the native-only component on web.
+- Search the entire project for react-native-maps and all related imports.
+- Fix every unsafe web import.
+
+==================================================
+3. FIX ANDROID RUNNING / EXPO GO COMPATIBILITY
+
+The Replit Linux environment does not have Android SDK/ADB, producing:
+
+Failed to resolve the Android SDK path
+Error: spawn adb ENOENT
+
+Do NOT attempt to install a full Android SDK in Replit just to hide this error.
+
+The app must be configured so development can be tested through Expo/Expo Go or an appropriate development build from a supported environment.
+
+Requirements:
+
+- Do not treat missing Replit Android SDK as an application-code error.
+- Make sure the project itself is valid for Android.
+- Verify Expo configuration.
+- Verify entry point and Expo Router configuration.
+- Verify app.json/app.config package and scheme.
+- Verify all required dependencies.
+- Ensure there are no code errors that prevent Android startup.
+- Do not use ngrok robot-user tunnel as a permanent solution.
+- Do not add paid services.
+
+==================================================
+4. FIX NAVIGATION COMPLETELY
+
+The user reports that things are not properly moving from one screen to another.
+
+Audit every navigation route.
+
+Check:
+
+- Expo Router route structure
+- _layout.tsx
+- nested layouts
+- auth routes
+- tabs
+- games
+- profile
+- friends
+- leaderboard
+- Ludo
+- Quick Quiz
+- all game screens
+- back navigation
+- forward navigation
+- buttons
+- links
+- modal navigation
+- deep links
+- protected routes
+- loading states
+
+Requirements:
+
+- Every button must perform the correct action.
+- No button may silently do nothing.
+- No navigation should leave the user stuck.
+- Back should return to the correct previous screen.
+- Prevent duplicate navigation taps.
+- Prevent navigation during invalid loading states.
+- Fix any incorrect route names or case-sensitive route paths.
+- Do not use hardcoded navigation to nonexistent routes.
+- Make all routes compile successfully.
+
+==================================================
+5. FIX ALL SAVE / PERSISTENCE PROBLEMS
+
+The user reports that things are not saving properly.
+
+Audit ALL state that should persist.
+
+Check:
+
+- profile information
+- username/name
+- login/session state
+- game progress
+- XP
+- levels
+- virtual coins
+- settings
+- sound setting
+- game preferences
+- completed challenges
+- leaderboard-related local state
+- selected player count
+- Ludo state where appropriate
+- app settings
+
+Determine for each item whether it should be:
+
+- server-side persistent data
+- Supabase persistent data
+- Clerk/session data
+- AsyncStorage/local persistent data
+- temporary React state
+
+Requirements:
+
+- Do not store permanent user data only in React component state.
+- Do not overwrite saved data with default values when the app reloads.
+- Do not reset user profile accidentally.
+- Add proper loading/saving/error states.
+- Prevent race conditions.
+- Prevent duplicate saves.
+- Handle offline/network failure gracefully.
+- Show a clear success/error state when appropriate.
+- Ensure saved values are restored after app restart.
+- Preserve existing Supabase/Clerk architecture instead of replacing it unnecessarily.
+
+IMPORTANT:
+Do not expose secret keys in client code.
+Do not move server secrets into EXPO_PUBLIC variables.
+
+==================================================
+6. FIX CLERK AUTHENTICATION AND PROFILE FLOW
+
+Audit the existing Clerk integration.
+
+Known previous problem:
+Build my profile could remain loading/spinning or fail to proceed after entering information.
+
+Check:
+
+- Clerk publishable key
+- authentication state
+- useUser()
+- session loading
+- sign-in
+- sign-up
+- sign-out
+- profile creation
+- profile update
+- protected routes
+- loading states
+- error handling
+
+Requirements:
+
+- No infinite spinner.
+- No screen should remain permanently in loading state.
+- If Clerk is unavailable, show a useful error/retry state.
+- Do not create duplicate profiles.
+- Do not lose profile data after navigation.
+- Ensure authenticated user data is synchronized correctly.
+
+==================================================
+7. FIX LUDO COMPLETELY
+
+Preserve the existing Ludo game and improve/fix it instead of replacing it with a simple demo.
+
+Known requirements:
+
+- Human multiplayer Ludo.
+- No computer player.
+- No AI player.
+- 2, 3 and 4 player modes.
+- Visible colored tokens/goti.
+- Working dice.
+- Dice must visibly show the rolled pip result.
+- Tokens must visibly move.
+- Correct turn system.
+- Correct capture/cut rules.
+- Correct safe/star positions.
+- Opening/base locations must be safe.
+- Two opponent tokens on the same square form a block.
+- Three consecutive sixes rule.
+- Correct home/finish behavior.
+- Correct winner detection.
+- No false "This player is not finished" warning.
+- Correct color-specific home lanes.
+- Red lane = red.
+- Green lane = green.
+- Yellow lane = yellow.
+- Blue lane = blue.
+- Yellow/blue star positions must be correct.
+- Stars must remain visually stars.
+- Do not replace tokens with numbers.
+- Board must remain visually professional.
+
+Sound requirements:
+
+- No sound automatically on app load.
+- No unwanted sound on ordinary screen taps.
+- Dice rolling sound while dice is rolling.
+- Dice result sound.
+- Token movement sound for each step.
+- Capture sound.
+- Star/safe-square sound.
+- Home/win sound.
+- Sound on/off setting must work.
+- Missing local audio files must not crash the app.
+- Do not use broken remote sound URLs as the only sound source.
+- If sound assets are missing, implement a safe fallback and clearly identify required assets.
+- Never allow audio errors to crash the game.
+
+IMPORTANT:
+Remove/fix any logic that causes:
+"This player is not finished"
+
+Do not hide the warning merely with CSS. Fix the underlying game-state logic.
+
+==================================================
+8. FIX LOADING / SPINNER PROBLEMS
+
+Search the entire application for:
+
+- ActivityIndicator
+- loading
+- isLoading
+- pending
+- submitting
+- saving
+- session loading
+- profile loading
+- auth loading
+
+For every loading state:
+
+- ensure it has a valid success path
+- ensure it has an error path
+- ensure it has a timeout/retry strategy where appropriate
+- ensure navigation cannot leave it permanently stuck
+- ensure state is reset correctly when the screen unmounts/remounts
+
+No infinite spinner is acceptable.
+
+==================================================
+9. FIX SUPABASE INTEGRATION
+
+Audit all Supabase calls.
+
+Check:
+
+- client configuration
+- environment variables
+- authentication/session handling
+- database queries
+- insert
+- update
+- upsert
+- select
+- error handling
+- row-level security assumptions
+- profile saving
+- game data saving
+- leaderboard
+- friends
+
+Requirements:
+
+- No silent database failures.
+- Display useful errors.
+- Prevent duplicate records.
+- Do not overwrite valid data with null/default values.
+- Do not expose service-role keys to the client.
+- Do not break existing Supabase configuration.
+
+==================================================
+10. FIX GAMEZONE ARENA MAIN APP FLOW
+
+The following must all work:
+
+Home
+Games
+Ludo
+Cricket
+Carrom
+Spin/Spinning game
+Racing
+Quiz/Puzzle
+Profile
+Friends
+Leaderboard
+Rewards
+Settings
+Authentication
+Logout
+Back navigation
+
+Check every button and every screen manually through code analysis.
+
+==================================================
+11. KEEP MONETIZATION SAFE
+
+Preserve the existing monetization architecture.
+
+Existing intended monetization:
+
+- AdMob ads
+- rewarded ads
+- virtual coin rewards
+- premium cosmetics
+- optional subscription
+- sponsored challenges/events
+
+Rules:
+
+- Do not make virtual coins withdrawable.
+- Keep the legal notice:
+  "Virtual coins have no monetary value and cannot be withdrawn."
+- Do not introduce real-money gambling.
+- Do not make Ludo or spin rewards depend on real-money wagering.
+- Do not change existing production AdMob IDs without explicit approval.
+- Do not create another AdMob/AdSense account.
+- Do not place ads in a way that violates Google policies.
+- Do not make fake ad buttons.
+- Rewarded ads must grant rewards only after the ad reward callback is actually confirmed.
+
+==================================================
+12. CHECK WEBSITE / LEGAL INTEGRATION
+
+Do not delete the existing legal website links.
+
+Existing legal website:
+
+https://gajpalmi.github.io/
+
+Existing pages include:
+
+- Privacy Policy
+- Account Deletion
+- GAMEZONE ARENA Home Page
+
+Make sure app links to legal pages are correct.
+
+Do not change the website unless required for an app/legal integration bug.
+
+==================================================
+13. PLAY STORE PRODUCTION READINESS
+
+Prepare the existing app for Google Play Store production.
+
+Check:
+
+- app name
+- Android package
+- version
+- versionCode
+- icon
+- adaptive icon if configured
+- splash screen
+- permissions
+- privacy policy URL
+- account deletion URL
+- target SDK compatibility
+- Android build configuration
+- Expo config
+- app scheme
+- release configuration
+- ProGuard/minification issues if applicable
+- native dependency compatibility
+- asset references
+- missing files
+- production environment variables
+- crashes
+- console errors
+
+Do NOT automatically submit or publish to Google Play.
+
+Do NOT start a paid EAS build.
+
+Do NOT consume EAS build quota without explicit permission.
+
+First make the project production-ready and report what is required for the final build.
+
+==================================================
+14. ENVIRONMENT VARIABLES / SECRETS
+
+Audit all environment variables.
+
+Preserve existing secret names unless a confirmed bug requires a change.
+
+Important:
+
+- EXPO_PUBLIC_* variables may be exposed to the client.
+- Clerk secret keys must remain server-side.
+- Supabase service-role keys must remain server-side.
+- session secrets must remain server-side.
+- never print secret values in logs.
+- never commit secrets to GitHub.
+- never place private credentials into public files.
+
+If a required secret is missing, report only the variable NAME, never its value.
+
+==================================================
+15. CODE QUALITY
+
+Fix:
+
+- TypeScript errors
+- invalid imports
+- unused broken imports
+- incorrect route imports
+- missing assets
+- platform-specific import problems
+- incorrect React hooks
+- stale state
+- race conditions
+- memory leaks
+- duplicate listeners
+- duplicate subscriptions
+- incorrect useEffect dependencies
+- unsafe async operations
+- state updates after unmount
+
+Do not rewrite the whole project unnecessarily.
+
+Make the smallest safe changes that solve the confirmed problems.
+
+==================================================
+16. TESTING
+
+After repairs, run appropriate checks from:
+
+artifacts/gamezone-arena
+
+Run diagnostics and type/build checks that do NOT require paid services.
+
+At minimum verify:
+
+- dependency consistency
+- TypeScript
+- Expo configuration
+- Android bundling
+- web bundling
+- route resolution
+- asset resolution
+
+For web:
+
+There must be NO:
+
+"Cannot parse given Error object"
+
+and NO:
+
+"Cannot use native-only module ... on web"
+
+For Android:
+
+The project must not contain code errors caused by the previous runtime issues.
+
+==================================================
+17. DO NOT DO THESE THINGS
+
+DO NOT:
+
+- upgrade Expo from SDK 54 to 57 automatically
+- create a new project
+- delete the existing project
+- delete the games
+- delete Supabase
+- delete Clerk
+- delete AdMob
+- change production AdMob IDs
+- create another AdMob account
+- create another AdSense account
+- install paid services
+- purchase anything
+- start a paid EAS build
+- publish automatically to Google Play
+- remove maps merely to fix web
+- hide errors instead of fixing their cause
+- replace the complete app with a demo
+- remove existing functionality just to make the build pass
+
+==================================================
+18. FINAL REPORT
+
+When finished, give me a clear report containing:
+
+1. Problems found.
+2. Problems fixed.
+3. Files changed.
+4. Why each important change was made.
+5. Remaining problems, if any.
+6. Exact commands I need to run next.
+7. Whether Android is ready for an EAS build.
+8. Whether web bundling is fixed.
+9. Whether save/persistence is fixed.
+10. Whether navigation is fixed.
+11. Whether Ludo is fixed.
+12. Whether the app is production-ready.
+13. Any manual action still required from me.
+
+IMPORTANT:
+If a fix requires a secret, paid service, external account, or Google Play Console action, STOP before performing that action and tell me exactly what is required.
+
+The goal is not to merely make one command pass.
+The goal is to make the EXISTING GAMEZONE ARENA app stable, functional, testable, and ready for the final Google Play Store release without destroying existing work.

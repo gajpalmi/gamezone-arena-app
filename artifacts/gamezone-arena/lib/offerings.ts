@@ -2,6 +2,7 @@ import { publicSupabase, supabase } from "@/lib/supabase";
 import { BUSINESS_REPORT_REASONS } from "@/constants/business";
 import type { BusinessStatus, ReportReason } from "@/lib/business";
 
+const priceError = "Enter a nonnegative price with up to 2 decimal places (maximum 9999999999.99).";
 export type OfferingKind = "product" | "service";
 export type BusinessOffering = { id: string; owner_user_id: string; business_id: string | null; kind: OfferingKind; listing_intent: "buy"|"sell"; name: string; category: string; subcategory: string | null; description: string; price: number | null; price_unit: string; in_stock: boolean; city: string; area: string | null; location_text: string | null; service_area: string | null; contact_phone: string; whatsapp: string | null; delivery_info: string | null; availability_hours: string | null; is_enabled: boolean; contact_public_consent_at:string|null; terms_version:string|null; terms_accepted_at:string|null; status: BusinessStatus; rejection_reason: string | null; created_at: string; updated_at: string };
 /** Fields safe to return from public marketplace discovery and listing detail. */
@@ -35,7 +36,7 @@ function valid(input: OfferingInput) {
   if (!input.name.trim() || !input.category.trim() || !input.subcategory?.trim() || !input.description.trim() || !input.city.trim() || !input.contact_phone.trim()) throw new Error("Name, category, subcategory, description, city, and contact phone are required.");
   if (!/^\+?[0-9][0-9 ()-]{6,38}$/.test(input.contact_phone.trim())) throw new Error("Enter a valid contact phone.");
   if (input.whatsapp?.trim() && !/^\+?[0-9][0-9 ()-]{6,38}$/.test(input.whatsapp.trim())) throw new Error("Enter a valid WhatsApp number.");
-  if (input.price != null && (!Number.isFinite(input.price) || input.price < 0)) throw new Error("Price must be a positive number.");
+  if (input.price != null && (!Number.isFinite(input.price) || input.price < 0 || input.price > 9999999999.99 || !/^\d+(?:\.\d{1,2})?$/.test(String(input.price)))) throw new Error(priceError);
 }
 function clean(input: OfferingInput) {
   valid(input);
