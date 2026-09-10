@@ -12,6 +12,11 @@ export const appConfig = {
   ],
 } as const;
 
+export const LUDO_MATCH_REWARD = {
+  xp: 100,
+  coins: 50,
+} as const;
+
 export const games = [
   {
     id: 'quick-quiz',
@@ -69,7 +74,7 @@ export const games = [
     category: 'Puzzle',
     description: 'Roll the dice, move your tokens, and race to victory.',
     difficulty: 'Medium',
-    reward: '+200 XP',
+    reward: '+100 XP',
     color: '#FF5A5F',
     icon: 'target' as const,
   },

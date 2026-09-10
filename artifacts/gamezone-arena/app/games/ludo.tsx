@@ -25,6 +25,7 @@ import { AdService } from "@/services/AdService";
 import { RewardedAdService } from "@/services/RewardedAdService";
 import { SubscriptionService } from "@/services/SubscriptionService";
 import { usePreferences } from "@/context/PreferencesContext";
+import { useAppSession } from "@/context/AppSessionContext";
 import { copyLink, gameLink, shareLink } from "@/lib/share";
 import {
   refreshSupabaseRealtimeAuth,
@@ -302,6 +303,7 @@ export default function Ludo() {
   const { user, isLoaded } = useUser();
   const { getToken } = useAuth();
   const router = useRouter();
+  const { ready: playerProgressReady, awardLudoCompletion } = useAppSession();
   const { preferences, canPlayGameSound, canUseGameHaptics, updatePreferences } =
     usePreferences();
 
@@ -320,6 +322,7 @@ export default function Ludo() {
   const [rolled, setRolled] = useState(false);
   const [movingToken, setMovingToken] = useState<string | null>(null);
   const [finishOrder, setFinishOrder] = useState<Player[]>([]);
+  const [confirmedOnlineFinishOrder, setConfirmedOnlineFinishOrder] = useState<Player[]>([]);
   const [sixCount, setSixCount] = useState(0);
   const [gameStarted, setGameStarted] = useState(false);
 
@@ -341,6 +344,7 @@ export default function Ludo() {
   const [rewardedMessage, setRewardedMessage] = useState("");
   const [adPrivacyMessage, setAdPrivacyMessage] = useState("");
   const [turnMessage, setTurnMessage] = useState("");
+  const [ludoRewardMessage, setLudoRewardMessage] = useState("");
 
   const roomChannel = useRef<any>(null);
   const roomRevision = useRef(0);
@@ -349,6 +353,7 @@ export default function Ludo() {
   const activeRoomId = useRef<string | null>(null);
   const pendingTimers = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
   const rollGeneration = useRef(0);
+  const offlineMatchId = useRef(Crypto.randomUUID());
   const webSoundsRef = useRef<Partial<Record<SoundFileKey, HTMLAudioElement>>>({});
   const activeWebSoundsRef = useRef<Set<HTMLAudioElement>>(new Set());
   const soundsReadyRef = useRef<Promise<void> | null>(null);
@@ -458,6 +463,51 @@ export default function Ludo() {
     !diceRolling &&
     !gameFinished;
 
+  useEffect(() => {
+    const completedOrder =
+      gameMode === "online" ? confirmedOnlineFinishOrder : finishOrder;
+    const completionConfirmed =
+      completedOrder.length >= Math.max(1, activePlayers.length - 1);
+    if (!playerProgressReady || !gameStarted || !completionConfirmed) {
+      return;
+    }
+
+    let matchId: string;
+    let won = false;
+    if (gameMode === "offline") {
+      matchId = `ludo:offline:${offlineMatchId.current}`;
+    } else {
+      if (
+        !roomId ||
+        !user?.id ||
+        !myOnlinePlayer ||
+        completedOrder[0] !== myOnlinePlayer
+      ) {
+        return;
+      }
+      matchId = `ludo:online:${roomId}:${user.id}`;
+      won = true;
+    }
+
+    const reward = awardLudoCompletion(matchId, won);
+    if (reward) {
+      setLudoRewardMessage(
+        `MATCH REWARD  +${reward.xp} XP  •  +${reward.coins} VIRTUAL COINS`,
+      );
+    }
+  }, [
+    activePlayers.length,
+    awardLudoCompletion,
+    confirmedOnlineFinishOrder,
+    finishOrder,
+    gameMode,
+    gameStarted,
+    myOnlinePlayer,
+    playerProgressReady,
+    roomId,
+    user?.id,
+  ]);
+
   function applyOnlineSnapshot(
     state: Partial<OnlineSnapshot> | null | undefined,
   ) {
@@ -471,7 +521,10 @@ export default function Ludo() {
     if (state.diceValues) setDiceValues(state.diceValues);
     if (typeof state.rolled === "boolean") setRolled(state.rolled);
     setMovingToken(state.movingToken ?? null);
-    if (Array.isArray(state.finishOrder)) setFinishOrder(state.finishOrder);
+    if (Array.isArray(state.finishOrder)) {
+      setFinishOrder(state.finishOrder);
+      setConfirmedOnlineFinishOrder(state.finishOrder);
+    }
     if (typeof state.sixCount === "number") {
       setSixCount(state.sixCount);
       authoritativeSixCount.current = state.sixCount;
@@ -1313,6 +1366,8 @@ export default function Ludo() {
     setFinishOrder([]);
     setSixCount(0);
     setGameStarted(false);
+    offlineMatchId.current = Crypto.randomUUID();
+    setLudoRewardMessage("");
 
     if (roomId && gameMode === "online") {
       void publishOnline({
@@ -1341,6 +1396,8 @@ export default function Ludo() {
     setFinishOrder([]);
     setSixCount(0);
     setGameStarted(false);
+    offlineMatchId.current = Crypto.randomUUID();
+    setLudoRewardMessage("");
   }
 
   async function disconnectRoom() {
@@ -1371,6 +1428,7 @@ export default function Ludo() {
     setRoomCode("");
     setOnlinePlayers([]);
     setMyOnlinePlayer(null);
+    setConfirmedOnlineFinishOrder([]);
     setOnlineConnected(false);
     setOnlineMessage("");
   }
@@ -1513,6 +1571,7 @@ export default function Ludo() {
         room: OnlineRoomRow;
         player: OnlinePlayer;
       };
+      setConfirmedOnlineFinishOrder([]);
       setRoomId(result.room.id);
       activeRoomId.current = result.room.id;
       roomRevision.current = 0;
@@ -1576,6 +1635,7 @@ export default function Ludo() {
         player: OnlinePlayer;
         reconnected?: boolean;
       };
+      setConfirmedOnlineFinishOrder([]);
       setRoomId(result.room.id);
       activeRoomId.current = result.room.id;
       roomRevision.current = 0;
@@ -1989,6 +2049,15 @@ export default function Ludo() {
         {turnMessage ? (
           <Text style={styles.turnMessage}>{turnMessage}</Text>
         ) : null}
+        {ludoRewardMessage ? (
+          <View style={styles.matchRewardBox}>
+            <Text style={styles.matchRewardTitle}>REWARD EARNED</Text>
+            <Text style={styles.matchRewardText}>{ludoRewardMessage}</Text>
+            <Text style={styles.matchRewardLegal}>
+              Virtual coins have no monetary value and cannot be withdrawn.
+            </Text>
+          </View>
+        ) : null}
 
         <View style={styles.modeBox}>
           <Text style={styles.sectionTitle}>GAME MODE</Text>
@@ -2006,6 +2075,8 @@ export default function Ludo() {
                 setFinishOrder([]);
                 setSixCount(0);
                 setGameStarted(false);
+                offlineMatchId.current = Crypto.randomUUID();
+                setLudoRewardMessage("");
               }}
               style={[
                 styles.modeButton,
@@ -2025,6 +2096,8 @@ export default function Ludo() {
                 }
                 setGameMode("online");
                 setGameStarted(false);
+                setConfirmedOnlineFinishOrder([]);
+                setLudoRewardMessage("");
                 setOnlineMessage("Create a room or join a friend's room.");
               }}
               style={[
@@ -2851,6 +2924,28 @@ const styles = StyleSheet.create({
     marginTop: -4,
     textAlign: "center",
   },
+  matchRewardBox: {
+    backgroundColor: "#15263A",
+    borderColor: "#F5C518",
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    alignItems: "center",
+  },
+  matchRewardTitle: {
+    color: "#F5C518",
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 1.1,
+  },
+  matchRewardText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "900",
+    marginTop: 4,
+  },
+  matchRewardLegal: { color: "#93A4BF", fontSize: 9, marginTop: 4 },
   cancelButton: {
     marginTop: 8,
     minHeight: 42,
