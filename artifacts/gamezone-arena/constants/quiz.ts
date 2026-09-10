@@ -165,6 +165,68 @@ export function createQuickQuizRound(count = 5, excludedIds: Iterable<string> = 
   return shuffled.slice(0, Math.min(count, shuffled.length));
 }
 
+function shuffledNumberOptions(correct: number): { options: string[]; correctIndex: number } {
+  const candidates = new Set([correct, correct + 1, correct - 1, correct + 2, Math.max(0, correct - 2), correct + 10]);
+  const values = [...candidates].slice(0, 4);
+  for (let index = values.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [values[index], values[swapIndex]] = [values[swapIndex], values[index]];
+  }
+  return { options: values.map(String), correctIndex: values.indexOf(correct) };
+}
+
+export function createEndlessQuizQuestion(excludedIds: ReadonlySet<string>): QuizQuestion {
+  for (let attempt = 0; attempt < 200; attempt += 1) {
+    const kind = Math.floor(Math.random() * 6);
+    const a = 2 + Math.floor(Math.random() * 98);
+    const b = 2 + Math.floor(Math.random() * 48);
+    let id: string;
+    let question: string;
+    let correct: number;
+    let category: string;
+
+    if (kind === 0) {
+      id = `add-${a}-${b}`; question = `What is ${a} + ${b}?`; correct = a + b; category = 'Math';
+    } else if (kind === 1) {
+      const larger = a + b;
+      id = `subtract-${larger}-${b}`; question = `What is ${larger} − ${b}?`; correct = a; category = 'Math';
+    } else if (kind === 2) {
+      const left = 2 + (a % 18);
+      const right = 2 + (b % 11);
+      id = `multiply-${left}-${right}`; question = `What is ${left} × ${right}?`; correct = left * right; category = 'Math';
+    } else if (kind === 3) {
+      const divisor = 2 + (b % 10);
+      const quotient = 2 + (a % 24);
+      id = `divide-${divisor * quotient}-${divisor}`; question = `What is ${divisor * quotient} ÷ ${divisor}?`; correct = quotient; category = 'Logic';
+    } else if (kind === 4) {
+      const base = (2 + (a % 19)) * 10;
+      const percent = [10, 20, 25, 50][b % 4];
+      id = `percent-${percent}-${base}`; question = `What is ${percent}% of ${base}?`; correct = (percent * base) / 100; category = 'Math';
+    } else {
+      const step = 2 + (b % 9);
+      const start = 1 + (a % 30);
+      id = `sequence-${start}-${step}`;
+      question = `What comes next: ${start}, ${start + step}, ${start + step * 2}, ${start + step * 3}, ?`;
+      correct = start + step * 4;
+      category = 'Logic';
+    }
+
+    if (!excludedIds.has(id)) {
+      const answer = shuffledNumberOptions(correct);
+      return { id, question, options: answer.options, correctIndex: answer.correctIndex, category };
+    }
+  }
+  const fallback = Date.now();
+  const answer = shuffledNumberOptions(fallback + 7);
+  return {
+    id: `fallback-${fallback}`,
+    question: `What is ${fallback} + 7?`,
+    options: answer.options,
+    correctIndex: answer.correctIndex,
+    category: 'Math',
+  };
+}
+
 export function getQuickQuizReward(score: number, totalQuestions = quickQuizQuestions.length): QuizReward {
   const accuracy = totalQuestions > 0 ? score / totalQuestions : 0;
   return {
