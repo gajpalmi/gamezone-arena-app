@@ -86,10 +86,10 @@ export default function BusinessDiscoveryScreen() {
       <View style={styles.quickActions}>
         {[
           ['🔎 Find Jobs', '/business/jobs/discover'], ['💼 Post a Job', '/business/jobs/edit'], ['👤 Find Workers', '/business/jobs/workers'],
-          ['📋 My Job Posts', '/business/jobs/mine'], ['📄 My Applications', '/business/jobs/applications'], ['❤️ Saved Jobs', '/business/jobs/saved'],
+          ['📋 My Job', '/business/jobs/mine'], ['📄 My Applications', '/business/jobs/applications'], ['❤️ Saved Jobs', '/business/jobs/saved'],
            ['📩 Job Messages', '/business/jobs/messages'], ['🔔 Job Notifications', '/business/jobs/settings'],
            [`🛒 My Basket${(basketCount.data ?? 0) > 0 ? ` (${basketCount.data})` : ''}`, '/business/offering/basket'],
-          ['➕ Add Business', '/business/edit'], ['🏢 My Businesses', '/business/mine'],
+          ['➕ Add Business', '/business/edit'], ['🏢 My Business', '/business/mine'],
           ['🛍️ Add Product', '/business/offering/edit?kind=product'],
           ['🛠️ Add Service', '/business/offering/edit?kind=service'], ['📋 My Products & Services', '/business/offerings-mine'],
           ['❤️ Saved', '/business/offerings-saved'], ['🔍 Search Listings', '/business/offerings'],

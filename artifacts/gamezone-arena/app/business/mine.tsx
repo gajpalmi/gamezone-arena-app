@@ -22,11 +22,12 @@ export default function MyBusinessesScreen() {
   const insets = useSafeAreaInsets();
   useSupabaseAuth();
 
-  const { data: businesses, isLoading } = useMyBusinesses();
+  const { data: businesses, isLoading, isError, error, refetch, isFetching } = useMyBusinesses();
   const deleteBusiness = useDeleteBusiness();
   const submitBusiness = useSubmitBusiness();
 
   const handleDelete = (id: string, name: string) => {
+    if (deleteBusiness.isPending) return;
     Alert.alert('Delete Business', `Are you sure you want to delete ${name}?`, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: () => deleteBusiness.mutate(id, { onSuccess: () => Alert.alert('Listing deleted', `${name} has been deleted.`), onError: (error: Error) => Alert.alert('Unable to delete', error.message || 'Please try again.') }) }
@@ -34,6 +35,7 @@ export default function MyBusinessesScreen() {
   };
 
   const handleSubmit = (id: string, name: string) => {
+    if (submitBusiness.isPending) return;
     Alert.alert('Submit for Review', `Submit ${name} for moderation? You won't be able to edit it while pending.`, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Submit', onPress: () => submitBusiness.mutate(id, { onSuccess: () => Alert.alert('Submitted for review', `${name} is pending moderation.`), onError: (error: Error) => Alert.alert('Unable to submit', error.message || 'Please try again.') }) }
@@ -72,6 +74,15 @@ export default function MyBusinessesScreen() {
         <View style={styles.centered}>
           <ActivityIndicator color={colors.light.primary} size="large" />
         </View>
+      ) : isError ? (
+        <View style={styles.centered}>
+          <Feather name="alert-circle" size={40} color={colors.light.destructive} />
+          <Text style={styles.emptyTitle}>Unable to load your businesses</Text>
+          <Text style={styles.emptyDesc}>{error instanceof Error ? error.message : 'Please check your connection and try again.'}</Text>
+          <Pressable disabled={isFetching} style={styles.primaryBtn} onPress={() => void refetch()}>
+            {isFetching ? <ActivityIndicator color={colors.light.primaryForeground} /> : <Text style={styles.primaryBtnText}>RETRY</Text>}
+          </Pressable>
+        </View>
       ) : (
         <ScrollView contentContainerStyle={styles.scrollContent}>
           {businesses?.length === 0 ? (
@@ -101,7 +112,7 @@ export default function MyBusinessesScreen() {
                 )}
 
                 <View style={styles.cardActions}>
-                  {['draft', 'rejected', 'pending'].includes(b.status) && (
+                  {['draft', 'rejected'].includes(b.status) && (
                     <Pressable style={styles.actionBtn} onPress={() => router.push(`/business/edit?id=${b.id}` as Href)}>
                       <Feather name="edit-2" size={16} color={colors.light.foreground} />
                       <Text style={styles.actionText}>EDIT</Text>
@@ -115,13 +126,13 @@ export default function MyBusinessesScreen() {
                     <Feather name="share-2" size={16} color={colors.light.primary} />
                   </Pressable>
                   {['draft', 'rejected'].includes(b.status) && (
-                    <Pressable style={[styles.actionBtn, styles.actionBtnSubmit]} onPress={() => handleSubmit(b.id, b.name)}>
+                    <Pressable disabled={submitBusiness.isPending} style={[styles.actionBtn, styles.actionBtnSubmit, submitBusiness.isPending && { opacity: 0.5 }]} onPress={() => handleSubmit(b.id, b.name)}>
                       <Feather name="send" size={16} color={colors.light.primaryForeground} />
                       <Text style={[styles.actionText, { color: colors.light.primaryForeground }]}>SUBMIT</Text>
                     </Pressable>
                   )}
                   {['draft', 'pending', 'rejected'].includes(b.status) && (
-                    <Pressable style={styles.actionBtnIcon} onPress={() => handleDelete(b.id, b.name)}>
+                    <Pressable disabled={deleteBusiness.isPending} style={[styles.actionBtnIcon, deleteBusiness.isPending && { opacity: 0.5 }]} onPress={() => handleDelete(b.id, b.name)}>
                       <Feather name="trash-2" size={16} color={colors.light.destructive} />
                     </Pressable>
                   )}

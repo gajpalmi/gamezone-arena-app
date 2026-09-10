@@ -1,0 +1,602 @@
+You are the senior engineer responsible for COMPLETING AND REPAIRING my EXISTING GAMEZONE ARENA application.
+
+THIS IS AN EXISTING APP.
+DO NOT CREATE A NEW APP.
+DO NOT REBUILD THE APP FROM SCRATCH.
+DO NOT DELETE EXISTING WORK.
+
+MOST IMPORTANT:
+I want the existing GAMEZONE ARENA application completed and repaired using FREE/available project resources only.
+
+DO NOT ask me to upgrade to a paid Replit Agent plan.
+DO NOT use paid Agent services.
+DO NOT purchase anything.
+DO NOT start a paid EAS build.
+DO NOT consume paid build credits/quota.
+DO NOT add any paid third-party service.
+
+If something requires a paid service, STOP that part and report it. Continue fixing everything that can be completed for free.
+
+==================================================
+
+1. PROJECT PRESERVATION
+   ==================================================
+
+Preserve the existing:
+
+- GAMEZONE ARENA branding
+- Home screen
+- Games
+- Ludo
+- Cricket
+- Carrom
+- Spin game
+- Racing
+- Quiz/Puzzle
+- Profile
+- Friends
+- Leaderboard
+- Authentication
+- Clerk
+- Supabase
+- AdMob
+- virtual coins
+- rewards
+- settings
+- existing assets
+- existing legal pages
+- existing navigation
+
+Do not remove working functionality.
+
+Current project:
+
+Expo SDK: 54
+App name: GAMEZONE ARENA
+Android package: com.gamezonearena.app
+Expo owner: gajpalgamezones-team
+Expo project: gamezone-arena
+Project path: artifacts/gamezone-arena
+
+DO NOT automatically upgrade Expo SDK 54 to Expo 57.
+
+==================================================
+2. FIX THE APPLICATION FIRST
+
+Before adding anything new, inspect the entire existing application and find all current problems.
+
+The goal is:
+
+THE EXISTING APP MUST OPEN.
+THE EXISTING APP MUST NAVIGATE.
+THE EXISTING DATA MUST SAVE.
+THE EXISTING GAMES MUST RUN.
+THE EXISTING USER PROFILE MUST WORK.
+THE EXISTING BACKEND MUST WORK.
+
+Do not add unnecessary new features until these are stable.
+
+==================================================
+3. BUSINESS NAVIGATION
+
+The Business section must have a clearly visible:
+
+BUSINESS
+
+button.
+
+When tapped:
+
+BUSINESS → Business screen
+
+The Business button must not accidentally open another section.
+
+If an Enterprise Business section already exists:
+
+BUSINESS → ENTERPRISE BUSINESS
+
+must open the correct Enterprise Business screen.
+
+Do not create duplicate screens.
+
+==================================================
+4. MY BUSINESS
+
+There must be a clearly visible:
+
+MY BUSINESS
+
+button.
+
+When tapped:
+
+MY BUSINESS → My Business screen
+
+The My Business screen must show the user's saved business information.
+
+Preserve existing business fields.
+
+==================================================
+5. MY JOB
+
+There must be a clearly visible:
+
+MY JOB
+
+button.
+
+When tapped:
+
+MY JOB → My Job screen
+
+My Job must be separate from Business and My Business.
+
+==================================================
+6. CRITICAL: FIX ALL SAVE PROBLEMS
+
+THIS IS THE HIGHEST PRIORITY.
+
+The following currently do not save correctly:
+
+- Add Product
+- Business information
+- Job information
+- Other forms/data that are currently failing to persist
+
+Find the actual cause.
+
+Do NOT simply display a "Saved" message.
+
+A successful save means:
+
+FORM
+→ VALIDATE
+→ SEND TO DATABASE/STORAGE
+→ WAIT FOR SUCCESS RESPONSE
+→ CONFIRM SUCCESS
+→ KEEP DATA
+→ SHOW SAVED DATA WHEN SCREEN REOPENS
+
+If the database operation fails:
+
+→ DO NOT say Saved
+→ DO NOT clear the form
+→ SHOW the actual useful error
+→ Allow Retry
+
+==================================================
+7. ADD PRODUCT SAVE
+
+Completely repair Add Product.
+
+Required:
+
+- Product name saves.
+- Description saves.
+- Price saves.
+- Category saves.
+- Quantity/stock saves.
+- Existing image field works if already supported.
+- Product appears in product list after saving.
+- Product remains after leaving the screen.
+- Product remains after reopening the app.
+- Editing updates the existing product.
+- Duplicate Save taps do not create duplicate products.
+- Save button shows real saving state.
+- Save button cannot be pressed repeatedly during submission.
+- Save failure does not erase entered data.
+- No infinite spinner.
+
+Do not navigate away until the save actually succeeds.
+
+==================================================
+8. BUSINESS DATA SAVE
+
+Fix My Business creation and editing.
+
+When the user presses Save:
+
+- Validate fields.
+- Persist data.
+- Wait for confirmation.
+- Show success only after confirmation.
+- Return to My Business with the saved data.
+- Reopen My Business and confirm data remains.
+- Restart app and confirm data remains.
+- Editing must update existing data instead of creating duplicates.
+
+==================================================
+9. JOB DATA SAVE
+
+Fix My Job.
+
+When job information is entered and Save is pressed:
+
+- Validate.
+- Persist.
+- Confirm success.
+- Keep entered data.
+- Reopen My Job and display the saved data.
+- Restart app and display the saved data.
+- Editing must update instead of duplicating.
+- Failed saves must be visible.
+- No infinite loading.
+
+==================================================
+10. AUDIT EVERY OTHER SAVE BUTTON
+
+Search the entire project for:
+
+SAVE
+SUBMIT
+ADD
+CREATE
+UPDATE
+EDIT
+CONTINUE
+
+Check every associated handler.
+
+Find broken:
+
+- onPress
+- handleSave
+- insert
+- update
+- upsert
+- POST
+- PUT
+- PATCH
+- AsyncStorage
+- Supabase operations
+- API calls
+
+Fix actual persistence instead of hiding errors.
+
+==================================================
+11. SUPABASE
+
+Use the EXISTING Supabase integration.
+
+Do not replace it.
+
+Check:
+
+- Supabase client
+- tables
+- columns
+- insert()
+- update()
+- upsert()
+- select()
+- filters
+- authenticated user ID
+- relationships
+- Row Level Security
+- error handling
+
+Every database error must be handled.
+
+Never silently ignore errors.
+
+Never expose the Supabase service-role key in client code.
+
+==================================================
+12. CLERK
+
+Repair the existing Clerk authentication.
+
+Check:
+
+- sign in
+- sign up
+- sign out
+- session
+- useUser()
+- profile creation
+- profile update
+- protected routes
+- loading state
+
+Previous problem:
+
+The profile flow could remain stuck/spinning.
+
+Fix the underlying cause.
+
+NO infinite spinner is acceptable.
+
+==================================================
+13. NAVIGATION
+
+Audit all Expo Router routes.
+
+Check:
+
+- root
+- auth
+- tabs
+- games
+- profile
+- friends
+- leaderboard
+- Business
+- My Business
+- My Job
+- Ludo
+- Cricket
+- Carrom
+- Racing
+- Spin
+- Quiz/Puzzle
+
+Every button must open the correct screen.
+
+Every Back button must return correctly.
+
+No navigation to nonexistent routes.
+
+No button may silently do nothing.
+
+==================================================
+14. LUDO
+
+Preserve the existing Ludo implementation.
+
+Do not replace it with a simple demo.
+
+Fix known problems:
+
+- tokens/goti must be visible
+- dice must visibly roll
+- dice result must show pips
+- tokens must move correctly
+- correct turn system
+- capture/cut
+- safe/star squares
+- correct star positions
+- correct colored home lanes
+- correct finish/home logic
+- correct winner detection
+- no false "This player is not finished" warning
+- 2/3/4 player modes
+- human multiplayer
+- no computer
+- no AI
+
+Sound:
+
+- no sound on app startup
+- no unwanted click sound
+- dice rolling sound
+- dice result sound
+- token movement sound
+- capture sound
+- star sound
+- home/win sound
+- sound on/off setting
+
+Missing sound assets must never crash the app.
+
+Do not use broken remote URLs as the only audio solution.
+
+==================================================
+15. FIX THE MAP / WEB ERROR
+
+A previous web error was:
+
+Importing native-only module
+"react-native/Libraries/Utilities/codegenNativeCommands"
+
+from react-native-maps.
+
+Fix the actual platform import problem.
+
+Requirements:
+
+- Android/iOS can retain map functionality.
+- Web must not import native-only map modules.
+- Use platform-specific components where appropriate.
+- Do not remove maps merely to make web pass.
+- Expo Router must not eagerly load native-only modules on web.
+- Web must show a safe fallback if maps cannot run there.
+
+==================================================
+16. ANDROID DEVELOPMENT ENVIRONMENT
+
+The Replit environment previously showed:
+
+Failed to resolve Android SDK
+Error: spawn adb ENOENT
+
+Do not treat this as an application-code bug.
+
+Do not install a huge Android SDK just to hide the problem.
+
+The important goal is that the application code itself is Android-compatible.
+
+Expo Go can be used for phone testing where supported.
+
+Do not use a paid tunnel.
+
+Do not use paid services.
+
+==================================================
+17. WEB DEVELOPMENT
+
+Web must bundle without the previous native-module error.
+
+Fix all platform-specific imports.
+
+Do not break Android while fixing web.
+
+==================================================
+18. LOADING / SPINNER
+
+Search for every loading state.
+
+Every operation must have:
+
+IDLE
+→ LOADING
+→ SUCCESS
+
+or:
+
+IDLE
+→ LOADING
+→ ERROR
+
+No operation may remain:
+
+LOADING FOREVER
+
+Add Retry where appropriate.
+
+==================================================
+19. SECURITY
+
+Never expose:
+
+- Clerk secret key
+- Supabase service-role key
+- session secrets
+- private API keys
+
+Never commit secrets to GitHub.
+
+If a required secret is missing:
+
+REPORT ONLY THE VARIABLE NAME.
+
+Never print its value.
+
+==================================================
+20. MONETIZATION
+
+Preserve existing AdMob configuration.
+
+Do not create another AdMob account.
+
+Do not change production AdMob IDs without permission.
+
+Keep virtual coins non-withdrawable.
+
+Keep:
+
+"Virtual coins have no monetary value and cannot be withdrawn."
+
+Do not introduce real-money gambling.
+
+Do not create fake payment success.
+
+==================================================
+21. PLAY STORE READINESS
+
+Prepare the existing app for eventual Google Play submission.
+
+Check:
+
+- app name
+- package
+- version
+- versionCode
+- icon
+- splash
+- permissions
+- privacy policy
+- account deletion
+- Android compatibility
+- native dependencies
+- production configuration
+- crashes
+- missing assets
+- environment variables
+
+DO NOT publish automatically.
+
+DO NOT submit automatically.
+
+DO NOT start EAS build automatically.
+
+DO NOT spend money.
+
+After everything is ready, report exactly what remains for the final Play Store build/submission.
+
+==================================================
+22. TESTING
+
+Run safe checks from:
+
+artifacts/gamezone-arena
+
+Check:
+
+- TypeScript
+- Expo configuration
+- imports
+- routes
+- Supabase
+- Clerk
+- save operations
+- Business
+- My Business
+- My Job
+- Ludo
+- map/web imports
+
+Do not install Expo 57 just because a command suggests it.
+
+Do not change SDK versions without explicit approval.
+
+==================================================
+23. FINAL REQUIREMENT
+
+Do NOT stop after fixing only one error.
+
+Inspect the complete existing application.
+
+The order of priority is:
+
+1. APP OPENS
+2. NAVIGATION WORKS
+3. DATA SAVES
+4. BUSINESS WORKS
+5. MY BUSINESS WORKS
+6. MY JOB WORKS
+7. AUTHENTICATION WORKS
+8. EXISTING GAMES WORK
+9. LUDO WORKS
+10. MAP/WEB ERROR FIXED
+11. PRODUCTION READINESS
+12. PLAY STORE PREPARATION
+
+Do not add an Upgrade feature.
+Do not add a paid-service feature.
+Do not ask the user to upgrade Replit.
+Do not purchase anything.
+
+==================================================
+24. FINAL REPORT
+
+At the end, report:
+
+- Problems found
+- Problems fixed
+- Files changed
+- Save system fixed or not
+- Add Product save status
+- Business save status
+- Job save status
+- Navigation status
+- Clerk status
+- Supabase status
+- Ludo status
+- Map/web status
+- Android readiness
+- Remaining issues
+- Exact free next steps
+
+NEVER claim that something is fixed unless you actually verified the relevant code path.
+
+The goal is to make the EXISTING GAMEZONE ARENA application stable, functional, save data correctly, and ready for the final Google Play Store process using free/available resources wherever possible.

@@ -40,7 +40,30 @@ function valid(input: OfferingInput) {
 }
 function clean(input: OfferingInput) {
   valid(input);
-  return { ...input, name: input.name.trim(), category: input.category.trim(), subcategory: text(input.subcategory, 120), city: input.city.trim(), description: text(input.description, 5000) ?? "", price_unit: text(input.price_unit, 80) ?? "per item", area: text(input.area, 120), location_text: text(input.location_text, 500), service_area: text(input.service_area, 500), contact_phone: input.contact_phone.trim(), whatsapp: text(input.whatsapp, 40), delivery_info: text(input.delivery_info, 1000), availability_hours: text(input.availability_hours, 500) };
+  return {
+    business_id: input.business_id,
+    kind: input.kind,
+    listing_intent: input.listing_intent,
+    name: input.name.trim(),
+    category: input.category.trim(),
+    subcategory: text(input.subcategory, 120),
+    description: text(input.description, 5000) ?? "",
+    price: input.price,
+    price_unit: text(input.price_unit, 80) ?? "per item",
+    in_stock: input.in_stock,
+    city: input.city.trim(),
+    area: text(input.area, 120),
+    location_text: text(input.location_text, 500),
+    service_area: text(input.service_area, 500),
+    contact_phone: input.contact_phone.trim(),
+    whatsapp: text(input.whatsapp, 40),
+    delivery_info: text(input.delivery_info, 1000),
+    availability_hours: text(input.availability_hours, 500),
+    is_enabled: input.is_enabled,
+    contact_public_consent_at: input.contact_public_consent_at,
+    terms_version: input.terms_version,
+    terms_accepted_at: input.terms_accepted_at,
+  };
 }
 export type OfferingCategory = { id: string; kind: OfferingKind; slug: string; name: string; parent_id: string | null; sort_order: number };
 export async function offeringCategories(kind: OfferingKind) {
@@ -60,7 +83,15 @@ export async function getOffering(id: string) { if (!publicSupabase) throw new E
 /** Authenticated owner/admin projection; use only for editing and moderation UI. */
 export async function getMyOffering(id: string) { const privateDb = db(); const [o, p, r] = await Promise.all([privateDb.from("business_offerings").select(ownerColumns).eq("id", id).single(), privateDb.from("business_offering_photos").select(offeringPhotoColumns).eq("offering_id", id).order("sort_order"), privateDb.from("business_offering_reviews").select(offeringReviewColumns).eq("offering_id", id).eq("is_approved", true)]); fail(o.error); fail(p.error); fail(r.error); const paths = (p.data ?? []).map(x => x.storage_path); const signed = paths.length ? await privateDb.storage.from("business-media").createSignedUrls(paths, 600) : { data: [], error: null }; fail(signed.error); const map = new Map((signed.data ?? []).map(x => [x.path, x.signedUrl])); return { offering: o.data as BusinessOffering, photos: (p.data ?? []).map(x => ({ ...x, signedUrl: map.get(x.storage_path) })) as BusinessOfferingPhoto[], reviews: (r.data ?? []) as BusinessOfferingReview[], isSaved: false }; }
 export async function myOfferings() { const { data, error } = await db().from("business_offerings").select(ownerColumns).order("updated_at", { ascending: false }); fail(error); return (data ?? []) as BusinessOffering[]; }
-export async function saveOffering(input: OfferingInput, id?: string) { const q = id ? db().from("business_offerings").update({ ...clean(input), updated_at: new Date().toISOString() }).eq("id", id) : db().from("business_offerings").insert(clean(input)); const { data, error } = await q.select(ownerColumns).single(); fail(error, id ? "update" : "insert", "business_offerings"); return data as BusinessOffering; }
+export async function saveOffering(input: OfferingInput, id?: string) {
+  const { data, error } = await db().rpc("business_offering_save_draft", {
+    p_input: clean(input),
+    p_offering_id: id ?? null,
+  });
+  fail(error, id ? "update-draft" : "insert-draft", "business_offerings");
+  if (!data) throw new Error("The product or service was not returned after saving.");
+  return data as BusinessOffering;
+}
 export async function deleteOffering(id: string) { const { error } = await db().from("business_offerings").delete().eq("id", id); fail(error); }
 export async function submitOffering(id: string) { const { data, error } = await db().rpc("business_offering_submit", { p_offering_id: id }); fail(error, "submit", "business_offerings"); return data as BusinessOffering; }
 export async function setOfferingEnabled(id: string, isEnabled: boolean) { const { data, error } = await db().rpc("business_offering_set_enabled", { p_offering_id: id, p_is_enabled: isEnabled }); fail(error); return data as BusinessOffering; }
@@ -69,6 +100,7 @@ export async function uploadOfferingPhoto(offeringId: string, filename: string, 
   const safe = sanitizeOfferingFilename(filename); const ext = safe.split(".").pop()!; const expected = ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
   if (contentType !== expected || file.size <= 0 || file.size > 5 * 1024 * 1024) throw new Error("Use a matching JPG, PNG, or WebP image up to 5 MB.");
   const { data: prefix, error: prefixError } = await db().rpc("business_offering_prepare_photo", { p_offering_id: offeringId, p_extension: ext }); fail(prefixError);
+  if (typeof prefix !== "string" || !prefix.trim()) throw new Error("Could not prepare the product image upload.");
   const storage_path = `${prefix}${safe}`; const { error: storageError } = await db().storage.from("business-media").upload(storage_path, file, { contentType, upsert: false }); fail(storageError);
   const { data, error } = await db().from("business_offering_photos").insert({ offering_id: offeringId, storage_path, alt_text: text(altText, 240) }).select(offeringPhotoColumns).single();
   if (error) { await db().storage.from("business-media").remove([storage_path]); fail(error); } return data as BusinessOfferingPhoto;

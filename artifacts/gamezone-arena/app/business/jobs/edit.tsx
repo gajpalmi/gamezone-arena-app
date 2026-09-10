@@ -477,7 +477,7 @@ export default function EditJob() {
         "";
 
       setForm(
-        current => ({
+        (current: JobInput) => ({
           ...current,
 
           location_text:
@@ -1499,7 +1499,7 @@ export default function EditJob() {
             }
             onSelect={location => {
               setForm(
-                current => ({
+                (current: JobInput) => ({
                   ...current,
 
                   location_text:

@@ -1056,7 +1056,12 @@ export default function Ludo() {
 
     const onlineRoll =
       gameMode === "online" && roomId ? await rollOnlineDice(roomId) : null;
-    if (gameMode === "online" && onlineRoll === null) return;
+    if (gameMode === "online" && onlineRoll === null) {
+      if (rollGeneration.current === generation) {
+        setDiceRolling(false);
+      }
+      return;
+    }
     const value = onlineRoll?.value ?? Math.floor(Math.random() * 6) + 1;
     for (let frame = 0; frame < 7; frame++) {
       if (rollGeneration.current !== generation) return;
