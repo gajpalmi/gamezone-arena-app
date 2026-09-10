@@ -42,3 +42,17 @@ mtime_ms = 1789065221835
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7b7691e1-7821-483d-8acd-32f06728811e/4014df96-159b-46b3-a5a0-8bae7fda6a62/a7a5528a-d28e-4cc0-8a2c-6fcb450d5644"
 storage_version_token = "1789065314821515"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "4qcSsaF-oBpbigjO_Rimf"
+uri = "file://artifacts/gamezone-arena/assets/quiz-wrong-voice.mp3"
+type = "audio"
+title = "quiz wrong answer"
+description = "Text-to-speech audio: Wrong answer!"
+
+[[outputs]]
+id = "pIjpNEIN-DJFjffAXW1vU"
+uri = "file://artifacts/gamezone-arena/assets/quiz-correct-voice.mp3"
+type = "audio"
+title = "quiz correct answer"
+description = "Text-to-speech audio: Correct answer!"

@@ -1,10 +1,10 @@
 import { Feather } from '@/components/Feather';
 import * as Haptics from 'expo-haptics';
 import { Asset } from 'expo-asset';
-import { setAudioModeAsync, useAudioPlayer, type AudioPlayer } from 'expo-audio';
-import { useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus, type AudioPlayer } from 'expo-audio';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { QuizOption } from '@/components/QuizOption';
 import { Screen } from '@/components/Screen';
 import { createEndlessQuizQuestion } from '@/constants/quiz';
@@ -14,11 +14,12 @@ import { usePreferences } from '@/context/PreferencesContext';
 
 type QuizPhase = 'playing' | 'feedback';
 const QUESTION_TIME_SECONDS = 50;
+const ANSWER_FEEDBACK_MS = 1500;
 
 export default function QuickQuizScreen() {
   const router = useRouter();
   const { awardQuizCorrectAnswer } = useAppSession();
-  const { canUseGameHaptics, canPlayGameSound, preferences } = usePreferences();
+  const { canUseGameHaptics, canPlayGameSound, isReady: preferencesReady, preferences } = usePreferences();
   const usedQuestionIds = useRef<Set<string>>(new Set());
   const [question, setQuestion] = useState(() => createEndlessQuizQuestion(new Set()));
   const [questionNumber, setQuestionNumber] = useState(1);
@@ -28,9 +29,14 @@ export default function QuickQuizScreen() {
   const [secondsLeft, setSecondsLeft] = useState(QUESTION_TIME_SECONDS);
   const [phase, setPhase] = useState<QuizPhase>('playing');
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [screenFocused, setScreenFocused] = useState(false);
+  const [appStateStatus, setAppStateStatus] = useState(AppState.currentState);
   const playedNativeSounds = useRef<Set<number>>(new Set());
-  const correctSound = useAudioPlayer(require('../../assets/quiz-correct.wav'), { keepAudioSessionActive: true });
-  const incorrectSound = useAudioPlayer(require('../../assets/quiz-incorrect.wav'), { keepAudioSessionActive: true });
+  const webBackgroundSound = useRef<HTMLAudioElement | null>(null);
+  const backgroundSound = useAudioPlayer(require('../../assets/quiz-background.wav'), { keepAudioSessionActive: true });
+  const backgroundStatus = useAudioPlayerStatus(backgroundSound);
+  const correctSound = useAudioPlayer(require('../../assets/quiz-correct-voice.mp3'), { keepAudioSessionActive: true });
+  const incorrectSound = useAudioPlayer(require('../../assets/quiz-wrong-voice.mp3'), { keepAudioSessionActive: true });
 
   useEffect(() => {
     usedQuestionIds.current.add(question.id);
@@ -45,7 +51,78 @@ export default function QuickQuizScreen() {
     }).catch((error) => {
       if (__DEV__) console.warn('Quiz audio mode could not be prepared.', error);
     });
+    if (Platform.OS === 'web') {
+      const background = new window.Audio(Asset.fromModule(require('../../assets/quiz-background.wav')).uri);
+      background.loop = true;
+      webBackgroundSound.current = background;
+    }
+    return () => {
+      webBackgroundSound.current?.pause();
+      webBackgroundSound.current = null;
+      backgroundSound.pause();
+    };
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      setScreenFocused(true);
+      return () => setScreenFocused(false);
+    }, []),
+  );
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', setAppStateStatus);
+    return () => subscription.remove();
+  }, []);
+
+  useEffect(() => {
+    const shouldPlay =
+      preferencesReady &&
+      screenFocused &&
+      appStateStatus === 'active' &&
+      canPlayGameSound &&
+      preferences.musicEnabled;
+    const stopBackground = () => {
+      if (Platform.OS === 'web') {
+        if (webBackgroundSound.current) {
+          webBackgroundSound.current.pause();
+          webBackgroundSound.current.currentTime = 0;
+        }
+      } else {
+        backgroundSound.pause();
+      }
+    };
+    if (!shouldPlay) {
+      stopBackground();
+      return stopBackground;
+    }
+
+    const volume = preferences.volume * 0.18;
+    if (Platform.OS === 'web') {
+      const background = webBackgroundSound.current;
+      if (background) {
+        background.loop = true;
+        background.volume = volume;
+        void background.play().catch((error) => {
+          if (__DEV__) console.warn('Quiz background audio was blocked.', error);
+        });
+      }
+    } else if (backgroundStatus.isLoaded && !backgroundSound.playing) {
+      backgroundSound.loop = true;
+      backgroundSound.volume = volume;
+      backgroundSound.muted = false;
+      backgroundSound.play();
+    }
+    return stopBackground;
+  }, [
+    appStateStatus,
+    backgroundStatus.isLoaded,
+    canPlayGameSound,
+    preferences.musicEnabled,
+    preferences.volume,
+    preferencesReady,
+    screenFocused,
+  ]);
 
   useEffect(() => {
     if (phase !== 'playing') return;
@@ -67,7 +144,7 @@ export default function QuickQuizScreen() {
       setSelectedIndex(null);
       setSecondsLeft(QUESTION_TIME_SECONDS);
       setPhase('playing');
-    }, 900);
+    }, ANSWER_FEEDBACK_MS);
     return () => clearTimeout(advance);
   }, [phase]);
 
@@ -107,10 +184,10 @@ export default function QuickQuizScreen() {
       const earned = awardQuizCorrectAnswer(nextScore);
       setSessionXp((value) => value + earned.xp);
       setSessionCoins((value) => value + earned.coins);
-      playAnswerSound(correctSound, require('../../assets/quiz-correct.wav'));
+      playAnswerSound(correctSound, require('../../assets/quiz-correct-voice.mp3'));
       if (canUseGameHaptics) void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } else {
-      playAnswerSound(incorrectSound, require('../../assets/quiz-incorrect.wav'));
+      playAnswerSound(incorrectSound, require('../../assets/quiz-wrong-voice.mp3'));
       if (canUseGameHaptics) void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
     setPhase('feedback');
