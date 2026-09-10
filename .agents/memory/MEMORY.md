@@ -6,3 +6,4 @@
 - [PostgreSQL enum migration ordering](postgres-enum-migrations.md) — commit new enum values separately before using them in schema, policies, or functions.
 - [Public taxonomy RLS](public-taxonomy-rls.md) — split anon and authenticated read policies when admin helpers are unavailable to anon.
 - [Expo Router native component placement](expo-router-native-components.md) — keep platform-specific native components outside app/ so web route discovery cannot bundle native modules.
+- [Clerk JWT role compatibility](clerk-jwt-role-compat.md) — authorize Business/Jobs operations from verified JWT sub even when PostgREST maps the request to anon.
