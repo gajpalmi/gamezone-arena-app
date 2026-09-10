@@ -185,6 +185,7 @@ type SoundFileKey = keyof typeof SOUND_FILES;
 type EffectSoundFileKey = Exclude<SoundFileKey, "background">;
 
 const NATIVE_AUDIO_OPTIONS = { keepAudioSessionActive: true } as const;
+const BACKGROUND_VOLUME_SCALE = 0.34;
 
 const EMPTY_DICE: DiceMap = {
   red: null,
@@ -622,7 +623,7 @@ export default function Ludo() {
           player.loop = false;
         }),
       );
-      nativeBackgroundSound.volume = preferences.volume * 0.22;
+      nativeBackgroundSound.volume = preferences.volume * BACKGROUND_VOLUME_SCALE;
       nativeBackgroundSound.muted = false;
       nativeBackgroundSound.loop = true;
       if (__DEV__) {
@@ -729,7 +730,7 @@ export default function Ludo() {
       return;
     }
 
-    const backgroundVolume = preferences.volume * 0.22;
+    const backgroundVolume = preferences.volume * BACKGROUND_VOLUME_SCALE;
     if (Platform.OS === "web") {
       const background = webSoundsRef.current.background;
       if (!background) return;
