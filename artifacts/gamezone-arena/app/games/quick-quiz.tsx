@@ -13,15 +13,17 @@ import { useAppSession } from '@/context/AppSessionContext';
 import { usePreferences } from '@/context/PreferencesContext';
 
 type QuizPhase = 'playing' | 'feedback' | 'complete';
+const QUESTION_TIME_SECONDS = 50;
 
 export default function QuickQuizScreen() {
   const router = useRouter();
   const { progress, recordQuizResult } = useAppSession();
   const { canUseGameHaptics, canPlayGameSound, preferences } = usePreferences();
   const [questions, setQuestions] = useState(() => createQuickQuizRound());
+  const usedQuestionIds = useRef<Set<string>>(new Set());
   const [questionIndex, setQuestionIndex] = useState(0);
   const [score, setScore] = useState(0);
-  const [secondsLeft, setSecondsLeft] = useState(15);
+  const [secondsLeft, setSecondsLeft] = useState(QUESTION_TIME_SECONDS);
   const [phase, setPhase] = useState<QuizPhase>('playing');
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [reward, setReward] = useState<QuizReward | null>(null);
@@ -31,6 +33,10 @@ export default function QuickQuizScreen() {
   const incorrectSound = useAudioPlayer(require('../../assets/quiz-incorrect.wav'), { keepAudioSessionActive: true });
 
   const question = questions[questionIndex];
+
+  useEffect(() => {
+    questions.forEach((item) => usedQuestionIds.current.add(item.id));
+  }, [questions]);
 
   useEffect(() => {
     void setAudioModeAsync({
@@ -61,7 +67,7 @@ export default function QuickQuizScreen() {
       } else {
         setQuestionIndex((value) => value + 1);
         setSelectedIndex(null);
-        setSecondsLeft(15);
+        setSecondsLeft(QUESTION_TIME_SECONDS);
         setPhase('playing');
       }
     }, 900);
@@ -117,10 +123,15 @@ export default function QuickQuizScreen() {
   }
 
   function restartQuiz() {
-    setQuestions(createQuickQuizRound(5, questions[0]?.id));
+    if (usedQuestionIds.current.size > 15) {
+      usedQuestionIds.current = new Set(questions.map((item) => item.id));
+    }
+    const nextQuestions = createQuickQuizRound(5, usedQuestionIds.current);
+    nextQuestions.forEach((item) => usedQuestionIds.current.add(item.id));
+    setQuestions(nextQuestions);
     setQuestionIndex(0);
     setScore(0);
-    setSecondsLeft(15);
+    setSecondsLeft(QUESTION_TIME_SECONDS);
     setSelectedIndex(null);
     setReward(null);
     recordedResult.current = false;
@@ -167,7 +178,7 @@ export default function QuickQuizScreen() {
   }
 
   const progressPercent = ((questionIndex + 1) / questions.length) * 100;
-  const timerPercent = (secondsLeft / 15) * 100;
+  const timerPercent = (secondsLeft / QUESTION_TIME_SECONDS) * 100;
 
   return (
     <Screen contentStyle={styles.gameScreen}>

@@ -154,14 +154,13 @@ export const quickQuizQuestions: QuizQuestion[] = [
   },
 ];
 
-export function createQuickQuizRound(count = 5, avoidFirstId?: string): QuizQuestion[] {
-  const shuffled = [...quickQuizQuestions];
+export function createQuickQuizRound(count = 5, excludedIds: Iterable<string> = []): QuizQuestion[] {
+  const excluded = new Set(excludedIds);
+  const available = quickQuizQuestions.filter((question) => !excluded.has(question.id));
+  const shuffled = [...(available.length >= count ? available : quickQuizQuestions)];
   for (let index = shuffled.length - 1; index > 0; index -= 1) {
     const swapIndex = Math.floor(Math.random() * (index + 1));
     [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
-  }
-  if (avoidFirstId && shuffled.length > 1 && shuffled[0].id === avoidFirstId) {
-    [shuffled[0], shuffled[1]] = [shuffled[1], shuffled[0]];
   }
   return shuffled.slice(0, Math.min(count, shuffled.length));
 }
