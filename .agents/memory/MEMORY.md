@@ -5,3 +5,4 @@
 - [Offering RLS dependency cycles](offering-rls-cycles.md) — interaction policies must avoid circular reads back through offering visibility policies.
 - [PostgreSQL enum migration ordering](postgres-enum-migrations.md) — commit new enum values separately before using them in schema, policies, or functions.
 - [Public taxonomy RLS](public-taxonomy-rls.md) — split anon and authenticated read policies when admin helpers are unavailable to anon.
+- [Expo Router native component placement](expo-router-native-components.md) — keep platform-specific native components outside app/ so web route discovery cannot bundle native modules.

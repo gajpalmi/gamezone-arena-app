@@ -54,7 +54,7 @@ import {
  * JobMap.native.tsx  -> Android/iOS
  * JobMap.web.tsx     -> Web
  */
-import JobMap from "./JobMap.web";
+import JobMap from "@/components/jobs/JobMap";
 
 const legal = "2026-09-10";
 
