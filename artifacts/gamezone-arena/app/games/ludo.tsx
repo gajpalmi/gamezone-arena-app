@@ -15,9 +15,13 @@ import {
   Vibration,
 } from "react-native";
 import { useAuth, useUser } from "@clerk/expo";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { Asset } from "expo-asset";
-import { setAudioModeAsync, useAudioPlayer } from "expo-audio";
+import {
+  setAudioModeAsync,
+  useAudioPlayer,
+  useAudioPlayerStatus,
+} from "expo-audio";
 import * as Haptics from "expo-haptics";
 import * as Crypto from "expo-crypto";
 import { AdBannerPlaceholder } from "@/components/AdBannerPlaceholder";
@@ -166,6 +170,7 @@ const FINISH_LANES: Record<Player, [number, number][]> = {
 };
 
 const SOUND_FILES = {
+  background: require("./assets/sounds/ludo-background.wav"),
   dice: require("./assets/sounds/dice-roll.wav"),
   move: require("./assets/sounds/move.wav"),
   capture: require("./assets/sounds/capture.wav"),
@@ -177,6 +182,7 @@ const SOUND_FILES = {
   start: require("./assets/sounds/turn.wav"),
 } as const;
 type SoundFileKey = keyof typeof SOUND_FILES;
+type EffectSoundFileKey = Exclude<SoundFileKey, "background">;
 
 const NATIVE_AUDIO_OPTIONS = { keepAudioSessionActive: true } as const;
 
@@ -304,8 +310,13 @@ export default function Ludo() {
   const { getToken } = useAuth();
   const router = useRouter();
   const { ready: playerProgressReady, awardLudoCompletion } = useAppSession();
-  const { preferences, canPlayGameSound, canUseGameHaptics, updatePreferences } =
-    usePreferences();
+  const {
+    preferences,
+    isReady: preferencesReady,
+    canPlayGameSound,
+    canUseGameHaptics,
+    updatePreferences,
+  } = usePreferences();
 
   const boardSize = Math.min(width - 20, 500);
   const cell = boardSize / 15;
@@ -316,6 +327,8 @@ export default function Ludo() {
   const [playerCount, setPlayerCount] = useState<PlayerCount>(4);
   const [gameMode, setGameMode] = useState<GameMode>("offline");
   const [soundOn, setSoundOn] = useState(true);
+  const [screenFocused, setScreenFocused] = useState(false);
+  const [appStateStatus, setAppStateStatus] = useState(AppState.currentState);
   const [vibrationOn, setVibrationOn] = useState(true);
   const [diceRolling, setDiceRolling] = useState(false);
   const [diceValues, setDiceValues] = useState<DiceMap>(EMPTY_DICE);
@@ -357,6 +370,11 @@ export default function Ludo() {
   const webSoundsRef = useRef<Partial<Record<SoundFileKey, HTMLAudioElement>>>({});
   const activeWebSoundsRef = useRef<Set<HTMLAudioElement>>(new Set());
   const soundsReadyRef = useRef<Promise<void> | null>(null);
+  const nativeBackgroundSound = useAudioPlayer(
+    Platform.OS === "web" ? null : SOUND_FILES.background,
+    NATIVE_AUDIO_OPTIONS,
+  );
+  const nativeBackgroundStatus = useAudioPlayerStatus(nativeBackgroundSound);
   const nativeDiceSound = useAudioPlayer(
     Platform.OS === "web" ? null : SOUND_FILES.dice,
     NATIVE_AUDIO_OPTIONS,
@@ -425,7 +443,7 @@ export default function Ludo() {
     win: [nativeWinSound],
     start: [nativeStartSound],
   } as const;
-  const nativeSoundPoolIndexes = useRef<Record<SoundFileKey, number>>({
+  const nativeSoundPoolIndexes = useRef<Record<EffectSoundFileKey, number>>({
     dice: 0,
     move: 0,
     capture: 0,
@@ -543,6 +561,18 @@ export default function Ludo() {
     setVibrationOn(canUseGameHaptics);
   }, [canPlayGameSound, canUseGameHaptics]);
 
+  useFocusEffect(
+    React.useCallback(() => {
+      setScreenFocused(true);
+      return () => setScreenFocused(false);
+    }, []),
+  );
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", setAppStateStatus);
+    return () => subscription.remove();
+  }, []);
+
   useEffect(() => {
     void Promise.all([
       SubscriptionService.initialize(),
@@ -592,6 +622,9 @@ export default function Ludo() {
           player.loop = false;
         }),
       );
+      nativeBackgroundSound.volume = preferences.volume * 0.22;
+      nativeBackgroundSound.muted = false;
+      nativeBackgroundSound.loop = true;
       if (__DEV__) {
         console.log(
           `[LUDO AUDIO] ${entries.length} native effects prepared with expo-audio`,
@@ -667,7 +700,85 @@ export default function Ludo() {
     Object.values(nativeSoundPools).forEach((pool) =>
       pool.forEach((sound) => sound.pause()),
     );
+    nativeBackgroundSound.pause();
   }
+
+  function stopBackgroundSound() {
+    if (Platform.OS === "web") {
+      const background = webSoundsRef.current.background;
+      if (background) {
+        background.pause();
+        background.currentTime = 0;
+      }
+      return;
+    }
+    nativeBackgroundSound.pause();
+  }
+
+  async function startBackgroundSound() {
+    await soundsReadyRef.current;
+    if (
+      !preferencesReady ||
+      !screenFocused ||
+      appStateStatus !== "active" ||
+      !soundOn ||
+      !preferences.masterSound ||
+      !preferences.gameSound ||
+      !preferences.musicEnabled
+    ) {
+      return;
+    }
+
+    const backgroundVolume = preferences.volume * 0.22;
+    if (Platform.OS === "web") {
+      const background = webSoundsRef.current.background;
+      if (!background) return;
+      background.loop = true;
+      background.volume = backgroundVolume;
+      if (!background.paused) return;
+      void background.play().catch((error) => {
+        if (__DEV__) {
+          console.warn("Ludo background audio was blocked by the browser.", error);
+        }
+      });
+      return;
+    }
+
+    if (!nativeBackgroundStatus.isLoaded || nativeBackgroundSound.playing) return;
+    nativeBackgroundSound.loop = true;
+    nativeBackgroundSound.volume = backgroundVolume;
+    nativeBackgroundSound.muted = false;
+    nativeBackgroundSound.play();
+  }
+
+  useEffect(() => {
+    const shouldPlayBackground =
+      preferencesReady &&
+      screenFocused &&
+      appStateStatus === "active" &&
+      soundOn &&
+      preferences.masterSound &&
+      preferences.gameSound &&
+      preferences.musicEnabled;
+
+    if (shouldPlayBackground) {
+      void startBackgroundSound();
+    } else {
+      stopBackgroundSound();
+    }
+
+    return stopBackgroundSound;
+  }, [
+    appStateStatus,
+    nativeBackgroundStatus.isLoaded,
+    preferences.gameSound,
+    preferences.masterSound,
+    preferences.musicEnabled,
+    preferences.volume,
+    preferencesReady,
+    screenFocused,
+    soundOn,
+  ]);
 
   function toggleSound() {
     const next = !soundOn;
@@ -691,7 +802,7 @@ export default function Ludo() {
   function playSound(type: GameSound, force = false) {
     if (!soundOn || !preferences.masterSound) return;
 
-    const map: Record<GameSound, SoundFileKey> = {
+    const map: Record<GameSound, EffectSoundFileKey> = {
       dice: "dice",
       diceResult: "dice",
       move: "move",
