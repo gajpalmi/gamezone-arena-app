@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { getQuickQuizReward, type QuizReward } from '@/constants/quiz';
+import { getQuickQuizReward, QUIZ_CORRECT_ANSWER_REWARD, type QuizReward } from '@/constants/quiz';
 
 type AppSessionContextValue = {
   ready: boolean;
@@ -8,6 +8,7 @@ type AppSessionContextValue = {
   completeIntro: () => Promise<void>;
   clearLocalPlayerData: () => Promise<void>;
   progress: PlayerProgress;
+  awardQuizCorrectAnswer: (correctAnswers: number) => QuizReward;
   recordQuizResult: (score: number, totalQuestions: number) => QuizReward;
 };
 
@@ -84,6 +85,21 @@ export function AppSessionProvider({ children }: { children: React.ReactNode }) 
     return reward;
   };
 
+  const awardQuizCorrectAnswer = (correctAnswers: number): QuizReward => {
+    const reward = QUIZ_CORRECT_ANSWER_REWARD;
+    setProgress((current) => {
+      const next: PlayerProgress = {
+        ...current,
+        xp: current.xp + reward.xp,
+        coins: current.coins + reward.coins,
+        quizBestScore: Math.max(current.quizBestScore, correctAnswers),
+      };
+      void AsyncStorage.setItem(PROGRESS_KEY, JSON.stringify(next));
+      return next;
+    });
+    return reward;
+  };
+
   const value = useMemo(
     () => ({
       ready,
@@ -98,6 +114,7 @@ export function AppSessionProvider({ children }: { children: React.ReactNode }) 
         setProgress(initialProgress);
       },
       progress,
+      awardQuizCorrectAnswer,
       recordQuizResult,
     }),
     [hasSeenIntro, progress, ready],

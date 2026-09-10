@@ -11,6 +11,11 @@ export type QuizReward = {
   coins: number;
 };
 
+export const QUIZ_CORRECT_ANSWER_REWARD: QuizReward = {
+  xp: 10,
+  coins: 5,
+};
+
 export const quickQuizQuestions: QuizQuestion[] = [
   {
     id: 'quiz-1',

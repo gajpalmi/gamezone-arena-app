@@ -9,17 +9,23 @@ import { QuizOption } from '@/components/QuizOption';
 import { Screen } from '@/components/Screen';
 import { createEndlessQuizQuestion } from '@/constants/quiz';
 import colors from '@/constants/colors';
+import { useAppSession } from '@/context/AppSessionContext';
 import { usePreferences } from '@/context/PreferencesContext';
 
 type QuizPhase = 'playing' | 'feedback';
+const QUESTION_TIME_SECONDS = 50;
 
 export default function QuickQuizScreen() {
   const router = useRouter();
+  const { awardQuizCorrectAnswer } = useAppSession();
   const { canUseGameHaptics, canPlayGameSound, preferences } = usePreferences();
   const usedQuestionIds = useRef<Set<string>>(new Set());
   const [question, setQuestion] = useState(() => createEndlessQuizQuestion(new Set()));
   const [questionNumber, setQuestionNumber] = useState(1);
   const [score, setScore] = useState(0);
+  const [sessionXp, setSessionXp] = useState(0);
+  const [sessionCoins, setSessionCoins] = useState(0);
+  const [secondsLeft, setSecondsLeft] = useState(QUESTION_TIME_SECONDS);
   const [phase, setPhase] = useState<QuizPhase>('playing');
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const playedNativeSounds = useRef<Set<number>>(new Set());
@@ -42,6 +48,16 @@ export default function QuickQuizScreen() {
   }, []);
 
   useEffect(() => {
+    if (phase !== 'playing') return;
+    if (secondsLeft === 0) {
+      submitAnswer(null);
+      return;
+    }
+    const timer = setTimeout(() => setSecondsLeft((value) => value - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [phase, secondsLeft]);
+
+  useEffect(() => {
     if (phase !== 'feedback') return;
     const advance = setTimeout(() => {
       const nextQuestion = createEndlessQuizQuestion(usedQuestionIds.current);
@@ -49,6 +65,7 @@ export default function QuickQuizScreen() {
       setQuestion(nextQuestion);
       setQuestionNumber((value) => value + 1);
       setSelectedIndex(null);
+      setSecondsLeft(QUESTION_TIME_SECONDS);
       setPhase('playing');
     }, 900);
     return () => clearTimeout(advance);
@@ -81,11 +98,15 @@ export default function QuickQuizScreen() {
     })();
   }
 
-  function submitAnswer(optionIndex: number) {
+  function submitAnswer(optionIndex: number | null) {
     if (phase !== 'playing') return;
     setSelectedIndex(optionIndex);
     if (optionIndex === question.correctIndex) {
-      setScore((value) => value + 1);
+      const nextScore = score + 1;
+      setScore(nextScore);
+      const earned = awardQuizCorrectAnswer(nextScore);
+      setSessionXp((value) => value + earned.xp);
+      setSessionCoins((value) => value + earned.coins);
       playAnswerSound(correctSound, require('../../assets/quiz-correct.wav'));
       if (canUseGameHaptics) void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } else {
@@ -105,6 +126,19 @@ export default function QuickQuizScreen() {
         <View style={styles.scorePill}><Feather name="zap" size={13} color={colors.light.primary} /><Text style={styles.scorePillText}>{score}</Text></View>
       </View>
       <View style={styles.progressMeta}><Text style={styles.questionCount}>QUESTION {questionNumber}</Text><Text style={styles.category}>{question.category.toUpperCase()}</Text></View>
+      <View style={styles.rewardSummary}>
+        <Text style={styles.rewardSummaryText}>+{sessionXp} XP</Text>
+        <Text style={styles.rewardSummaryText}>+{sessionCoins} COINS</Text>
+      </View>
+      <View style={styles.timerRow}>
+        <View style={styles.timerLabel}>
+          <Feather name="clock" size={15} color={secondsLeft <= 10 ? colors.light.destructive : colors.light.primary} />
+          <Text style={[styles.timerText, secondsLeft <= 10 && styles.timerDanger]}>{secondsLeft}s</Text>
+        </View>
+        <View style={styles.timerTrack}>
+          <View style={[styles.timerFill, { width: `${(secondsLeft / QUESTION_TIME_SECONDS) * 100}%` }, secondsLeft <= 10 && styles.timerDangerFill]} />
+        </View>
+      </View>
       <View style={styles.questionCard}>
         <Text style={styles.questionEyebrow}>NEW CHALLENGE</Text>
         <Text style={styles.question}>{question.question}</Text>
@@ -129,7 +163,7 @@ export default function QuickQuizScreen() {
         })}
       </View>
       <View style={styles.feedbackSpace}>
-        {phase === 'feedback' ? <Text style={[styles.feedback, selectedIndex === question.correctIndex ? styles.feedbackCorrect : styles.feedbackIncorrect]}>{selectedIndex === question.correctIndex ? 'Correct. A new question is coming.' : `Not this time. The answer was ${question.options[question.correctIndex]}.`}</Text> : <Text style={styles.helper}>No timer. Choose an answer when you are ready.</Text>}
+        {phase === 'feedback' ? <Text style={[styles.feedback, selectedIndex === question.correctIndex ? styles.feedbackCorrect : styles.feedbackIncorrect]}>{selectedIndex === question.correctIndex ? 'Correct. +10 XP and +5 coins.' : selectedIndex === null ? `Time is up. The answer was ${question.options[question.correctIndex]}.` : `Not this time. The answer was ${question.options[question.correctIndex]}.`}</Text> : <Text style={styles.helper}>Choose the best answer within 50 seconds.</Text>}
       </View>
       <View style={styles.legalBlock}><Text style={styles.legal}>Skill-based play only · virtual rewards</Text></View>
     </Screen>
@@ -147,6 +181,8 @@ const styles = StyleSheet.create({
   scorePill: { minWidth: 58, height: 36, borderRadius: 13, backgroundColor: colors.light.card, borderWidth: 1, borderColor: colors.light.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   scorePillText: { color: colors.light.foreground, fontSize: 14, fontWeight: '900' },
   progressMeta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  rewardSummary: { flexDirection: 'row', justifyContent: 'center', gap: 18 },
+  rewardSummaryText: { color: colors.light.accent, fontSize: 11, fontWeight: '900', letterSpacing: 0.8 },
   questionCount: { color: colors.light.mutedForeground, fontSize: 10, fontWeight: '900', letterSpacing: 1.2 },
   category: { color: colors.light.accent, fontSize: 10, fontWeight: '900', letterSpacing: 1.2 },
   progressTrack: { height: 5, borderRadius: 3, backgroundColor: colors.light.muted, overflow: 'hidden' },
