@@ -120,7 +120,24 @@ create function public.job_storage_application_owner(p_id uuid) returns boolean 
 create function public.job_storage_application_upload_allowed(p_id uuid) returns boolean language sql stable security definer set search_path=public,pg_temp as $$ select nullif(btrim(auth.jwt()->>'sub'),'') is not null and exists(select 1 from public.job_applications where id=p_id and applicant_id=nullif(btrim(auth.jwt()->>'sub'),'') and status='applied') $$;
 revoke all on function public.job_storage_seeker_owner(uuid),public.job_storage_seeker_upload_allowed(uuid),public.job_storage_application_owner(uuid),public.job_storage_application_upload_allowed(uuid) from public;
 grant execute on function public.job_storage_seeker_owner(uuid),public.job_storage_seeker_upload_allowed(uuid),public.job_storage_application_owner(uuid),public.job_storage_application_upload_allowed(uuid) to anon,authenticated;
-create policy "job private media anon owner uploads" on storage.objects for insert to anon with check(((bucket_id='job-private-media' and (storage.foldername(storage.objects.name))[1]='job-seekers' and (storage.foldername(storage.objects.name))[2]=nullif(btrim(auth.jwt()->>'sub'),'') and storage.objects.name ~ '^job-seekers/[^/]+/[0-9a-f-]{36}/[^/]+\.(jpg|jpeg|png|webp)$' and public.job_storage_seeker_upload_allowed(((storage.foldername(storage.objects.name))[3])::uuid)) or (bucket_id='job-private-media' and (storage.foldername(storage.objects.name))[1]='job-resumes' and (storage.foldername(storage.objects.name))[2]=nullif(btrim(auth.jwt()->>'sub'),'') and storage.objects.name ~ '^job-resumes/[^/]+/[0-9a-f-]{36}/[^/]+\.(jpg|jpeg|png|webp)$' and public.job_storage_application_upload_allowed(((storage.foldername(storage.objects.name))[3])::uuid)));
+create policy "job private media anon owner uploads"
+on storage.objects for insert to anon
+with check (
+  (
+    bucket_id='job-private-media'
+    and (storage.foldername(storage.objects.name))[1]='job-seekers'
+    and (storage.foldername(storage.objects.name))[2]=nullif(btrim(auth.jwt()->>'sub'),'')
+    and storage.objects.name ~* '^job-seekers/[^/]+/[0-9a-f-]{36}/[^/]+\.(jpg|jpeg|png|webp)$'
+    and public.job_storage_seeker_upload_allowed(((storage.foldername(storage.objects.name))[3])::uuid)
+  )
+  or (
+    bucket_id='job-private-media'
+    and (storage.foldername(storage.objects.name))[1]='job-resumes'
+    and (storage.foldername(storage.objects.name))[2]=nullif(btrim(auth.jwt()->>'sub'),'')
+    and storage.objects.name ~ '^job-resumes/[^/]+/[0-9a-f-]{36}/[^/]+\.(jpg|jpeg|png|webp)$'
+    and public.job_storage_application_upload_allowed(((storage.foldername(storage.objects.name))[3])::uuid)
+  )
+);
 create policy "job private media anon owner reads" on storage.objects for select to anon using(
   (bucket_id='job-private-media' and storage.objects.name ~ '^job-seekers/[^/]+/[0-9a-f-]{36}/[^/]+\.(jpg|jpeg|png|webp)$' and (storage.foldername(storage.objects.name))[2]=nullif(btrim(auth.jwt()->>'sub'),'')
    and public.job_storage_seeker_owner(((storage.foldername(storage.objects.name))[3])::uuid))
