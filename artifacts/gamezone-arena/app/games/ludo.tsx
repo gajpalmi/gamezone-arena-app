@@ -185,7 +185,7 @@ type SoundFileKey = keyof typeof SOUND_FILES;
 type EffectSoundFileKey = Exclude<SoundFileKey, "background">;
 
 const NATIVE_AUDIO_OPTIONS = { keepAudioSessionActive: true } as const;
-const BACKGROUND_VOLUME_SCALE = 0.34;
+const BACKGROUND_VOLUME_SCALE = 0.5;
 
 const EMPTY_DICE: DiceMap = {
   red: null,

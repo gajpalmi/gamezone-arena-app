@@ -15,7 +15,7 @@ import { usePreferences } from '@/context/PreferencesContext';
 type QuizPhase = 'playing' | 'feedback';
 const QUESTION_TIME_SECONDS = 50;
 const ANSWER_FEEDBACK_MS = 1500;
-const BACKGROUND_VOLUME_SCALE = 0.3;
+const BACKGROUND_VOLUME_SCALE = 0.5;
 
 export default function QuickQuizScreen() {
   const router = useRouter();
