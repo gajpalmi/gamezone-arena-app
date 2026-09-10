@@ -99,6 +99,7 @@ is_closed: false,
 );
 
 const [uploading, setUploading] = useState(false);
+const [hoursError, setHoursError] = useState('');
 
 const [categorySearch, setCategorySearch] = useState('');
 const [subcategorySearch, setSubcategorySearch] = useState('');
@@ -387,7 +388,8 @@ const mutation = id
 
 mutation.mutate(payload, {  
   onSuccess: async (res) => {  
-    try {  
+    try {
+      setHoursError('');
       await saveBusinessHours(  
         res.id,  
         hours.map((hour) => ({  
@@ -400,11 +402,14 @@ mutation.mutate(payload, {
             : hour.closes_at,  
         }))  
       );  
-    } catch (error) {  
+    } catch (error) {
       console.error(  
         'Business hours save failed',  
         error  
       );  
+      setHoursError(error instanceof Error ? error.message : 'Business hours could not be saved. Please try again.');
+      Alert.alert('Business hours not saved', 'Your business details were saved, but the hours could not be saved. Please try again.');
+      return;
     }  
 
     if (afterSave) {  
@@ -412,19 +417,7 @@ mutation.mutate(payload, {
       return;  
     }  
 
-    Alert.alert(  
-      'Saved successfully',  
-      'Your business listing has been saved as a draft.',  
-      [  
-        {  
-          text: 'OK',  
-          onPress: () =>  
-            router.replace(  
-              '/business/mine' as any  
-            ),  
-        },  
-      ]  
-    );  
+    router.replace('/business/mine' as any);
   },  
 
   onError: (err: any) => {  

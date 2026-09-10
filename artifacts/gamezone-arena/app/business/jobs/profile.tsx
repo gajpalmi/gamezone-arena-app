@@ -13,9 +13,9 @@ const legal = "2026-09-10";
 const initial = (): SeekerProfileInput => ({ display_name:"", photo_path:null, category:"", role:"", skills:[], experience:"", education:null, expected_salary_min:null, expected_salary_max:null, preferred_work_types:["full_time"], preferred_work_mode:"on_site", city:null, area:null, available_from:null, bio:null, contact_phone:null, whatsapp:null, email:null, contact_public:false, profile_public:false, terms_version:legal, terms_accepted_at:"" });
 
 export default function Profile() {
-  useSupabaseAuth();
+  const auth = useSupabaseAuth();
   const router = useRouter();
-  const q = useMySeekerProfile();
+  const q = useMySeekerProfile(auth.ready);
   const categories = useJobCategories();
   const m = useJobMutation();
   const [f,setF] = useState<SeekerProfileInput>(initial());
@@ -27,7 +27,23 @@ export default function Profile() {
   useEffect(()=>{ if(categories.error) console.error("Job category loading failed", categories.error); },[categories.error]);
   const field=(k:keyof SeekerProfileInput,l:string)=><><Text style={s.label}>{l}</Text><TextInput style={s.input} value={String(f[k]??"")} onChangeText={v=>setF({...f,[k]:v} as SeekerProfileInput)} placeholder={l} placeholderTextColor={s.subtitle.color}/></>;
   const choosePhoto=()=>openImageMediaPicker({title:"Add Profile Photo",onPicked:assets=>setPhoto(assets[0])});
-  const save=()=>m.mutate({type:"profile",value:{...f,photo_path:q.data?.photo_path??null,skills:skills.split(",").map(x=>x.trim()).filter(Boolean),terms_accepted_at:terms?new Date().toISOString():f.terms_accepted_at}},{onSuccess:async profile=>{router.replace("/business/jobs" as never);if(photo)try{const blob=await(await fetch(photo.uri)).blob();await uploadSeekerPhoto((profile as any).id,photo.fileName||photo.uri.split("/").pop()||"profile.jpg",blob,photo.mimeType||"image/jpeg");setPhoto(null)}catch(e){console.error("Profile photo upload failed",e);setTimeout(()=>Alert.alert("Profile saved, photo upload failed","Photo upload failed. Please try again."),250);return}setTimeout(()=>Alert.alert("Saved successfully","Your worker profile was saved."),250)},onError:(e:Error)=>{console.error("Profile save failed",e);Alert.alert("Unable to save","Please try again.")}});
+  const save=()=>{
+    if(!auth.isLoaded)return Alert.alert("Account loading","Please wait a moment and try again.");
+    if(!auth.isSignedIn)return Alert.alert("Sign in required","You must sign in before saving your job profile.");
+    m.mutate({type:"profile",value:{...f,skills:skills.split(",").map(x=>x.trim()).filter(Boolean),terms_accepted_at:terms?new Date().toISOString():f.terms_accepted_at}},{onSuccess:async profile=>{
+      if(photo)try{
+        const blob=await(await fetch(photo.uri)).blob();
+        await uploadSeekerPhoto((profile as any).id,photo.fileName||photo.uri.split("/").pop()||"profile.jpg",blob,photo.mimeType||"image/jpeg");
+        setPhoto(null);
+      }catch(e){
+        console.error("Profile photo upload failed",e);
+        Alert.alert("Profile saved, photo upload failed","Your profile was saved. Keep this photo selected and press Save profile again to retry its upload.");
+        return;
+      }
+      router.replace("/business/jobs" as never);
+      setTimeout(()=>Alert.alert("Saved successfully","Your worker profile was saved."),250);
+    },onError:(e:Error)=>{console.error("Profile save failed",e);Alert.alert("Unable to save",e.message||"Please try again.")}});
+  };
   const submit=()=>{if(!q.data?.id)return Alert.alert("Save first","Save the worker profile before submitting it.");m.mutate({type:"submit-profile",id:q.data.id},{onSuccess:()=>{Alert.alert("Submitted for review","Your worker profile is pending moderation.");router.replace("/business/jobs" as never)},onError:(e:Error)=>{console.error("Profile submit failed",e);Alert.alert("Unable to publish","Please complete the required profile fields and try again.")}})};
   return <ScrollView style={s.root} contentContainerStyle={s.content}>
     <Text style={s.title}>Job seeker profile</Text><Text style={s.subtitle}>Only profile fields you mark public are shown to employers. Contact details remain private unless you explicitly allow them.</Text>
@@ -37,6 +53,6 @@ export default function Profile() {
     <TextInput style={s.input} value={String(f.category??"")} editable={false} placeholder="Choose a category below" placeholderTextColor={s.subtitle.color}/>
     {categories.isLoading?<Text style={s.meta}>Loading categories…</Text>:categories.error?<><Text style={s.meta}>Unable to load categories. Please try again.</Text><Button label="Retry categories" onPress={()=>void categories.refetch()}/></>:<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{gap:8,marginBottom:12}}>{(categories.data??[]).map(c=><Pressable key={c.id} style={s.card} onPress={()=>setF({...f,category:c.name,category_id:c.id})}><Text style={s.meta}>{f.category_id===c.id?"✓ ":""}{c.name}</Text></Pressable>)}</ScrollView>}
     {field("role","Job role")}<Text style={s.label}>Skills</Text><TextInput style={s.input} value={skills} onChangeText={setSkills} placeholder="Comma separated skills" placeholderTextColor={s.subtitle.color}/>{field("experience","Experience")}{field("education","Education")}<LocationAutocomplete value={locationSearch} onChangeText={setLocationSearch} onSelect={location=>{setLocationSearch(location.address);setF({...f,city:location.city||f.city,area:location.area||f.area})}}/>{field("city","City")}{field("area","Area")}{field("available_from","Available from")}{field("bio","Short bio")}{field("contact_phone","Contact phone")}{field("whatsapp","WhatsApp (optional)")}{field("email","Email (optional)")}
-    <Pressable style={s.card} onPress={()=>setF({...f,profile_public:!f.profile_public})}><Text style={s.meta}>{f.profile_public?"✓":"□"} Show professional profile publicly</Text></Pressable><Pressable style={s.card} onPress={()=>setF({...f,contact_public:!f.contact_public})}><Text style={s.meta}>{f.contact_public?"✓":"□"} Allow employers to see my contact details</Text></Pressable><Pressable style={s.card} onPress={()=>setTerms(!terms)}><Text style={s.meta}>{terms?"✓":"□"} I accept the privacy notice and Terms.</Text></Pressable><Button kind label={m.isPending?"Saving…":"Save profile"} onPress={save}/>{q.data&&["draft","rejected"].includes(q.data.status)?<Button label={m.isPending?"Submitting…":"Submit profile for review"} onPress={submit}/>:null}
+    <Pressable style={s.card} onPress={()=>setF({...f,profile_public:!f.profile_public})}><Text style={s.meta}>{f.profile_public?"✓":"□"} Show professional profile publicly</Text></Pressable><Pressable style={s.card} onPress={()=>{const next=!f.contact_public;setF({...f,contact_public:next,phone_public:next,whatsapp_public:next,email_public:next})}}><Text style={s.meta}>{f.contact_public?"✓":"□"} Allow employers to see my contact details</Text></Pressable><Pressable style={s.card} onPress={()=>setTerms(!terms)}><Text style={s.meta}>{terms?"✓":"□"} I accept the privacy notice and Terms.</Text></Pressable><Button kind label={m.isPending?"Saving…":"Save profile"} onPress={save}/>{q.data&&["draft","rejected"].includes(q.data.status)?<Button label={m.isPending?"Submitting…":"Submit profile for review"} onPress={submit}/>:null}
   </ScrollView>;
 }

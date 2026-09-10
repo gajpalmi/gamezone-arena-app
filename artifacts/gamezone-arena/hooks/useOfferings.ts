@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as api from "@/lib/offerings";
 
-const invalidate = (q: ReturnType<typeof useQueryClient>) => {
-  q.invalidateQueries({ queryKey: ["offerings"] });
-  q.invalidateQueries({ queryKey: ["offering"] });
-};
+const invalidate = (q: ReturnType<typeof useQueryClient>) => Promise.all([
+  q.invalidateQueries({ queryKey: ["offerings"] }),
+  q.invalidateQueries({ queryKey: ["offering"] }),
+  q.invalidateQueries({ queryKey: ["offerings", "mine"] }),
+]);
 export const useOfferings = (filters: api.OfferingFilters = {}) => useQuery({ queryKey: ["offerings", filters], queryFn: () => api.browseOfferings(filters) });
 export const useOffering = (id: string) => useQuery({ queryKey: ["offering", id], queryFn: () => api.getOffering(id), enabled: !!id });
 export const useMyOffering = (id: string) => useQuery({ queryKey: ["offering", "mine", id], queryFn: () => api.getMyOffering(id), enabled: !!id });

@@ -1,4 +1,5 @@
-import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { useEffect, useState } from "react";
 
 type Props = {
   visible: boolean;
@@ -14,12 +15,36 @@ type Props = {
 };
 
 export default function JobMap(props: Props) {
+  const [latitude, setLatitude] = useState(String(props.marker?.latitude ?? props.region.latitude));
+  const [longitude, setLongitude] = useState(String(props.marker?.longitude ?? props.region.longitude));
+  const [coordinateError, setCoordinateError] = useState("");
+  useEffect(() => {
+    if (!props.visible) return;
+    setLatitude(String(props.marker?.latitude ?? props.region.latitude));
+    setLongitude(String(props.marker?.longitude ?? props.region.longitude));
+    setCoordinateError("");
+  }, [props.marker?.latitude, props.marker?.longitude, props.region.latitude, props.region.longitude, props.visible]);
+  const applyTyped = () => {
+    const lat = Number(latitude), lon = Number(longitude);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+      setCoordinateError("Enter a latitude from -90 to 90 and longitude from -180 to 180.");
+      return;
+    }
+    setCoordinateError("");
+    void props.onMapPress(lat, lon);
+  };
   return (
     <Modal visible={props.visible} animationType="slide" onRequestClose={props.onClose}>
       <View style={styles.container}>
         <Text style={styles.icon}>🗺️</Text>
-        <Text style={styles.title}>Map available in the Android app</Text>
-        <Text style={styles.body}>The web preview uses a safe location fallback. You can still use your current location.</Text>
+        <Text style={styles.title}>Choose job location</Text>
+        <Text style={styles.body}>Use your current location, or enter coordinates and apply them.</Text>
+        <View style={styles.coordinates}>
+          <TextInput accessibilityLabel="Latitude" style={styles.input} value={latitude} onChangeText={setLatitude} keyboardType="numeric" placeholder="Latitude" />
+          <TextInput accessibilityLabel="Longitude" style={styles.input} value={longitude} onChangeText={setLongitude} keyboardType="numeric" placeholder="Longitude" />
+          <Pressable onPress={applyTyped} style={styles.apply}><Text style={styles.primaryText}>APPLY</Text></Pressable>
+        </View>
+        {coordinateError ? <Text accessibilityRole="alert" style={styles.error}>{coordinateError}</Text> : null}
         <Text style={styles.location}>{props.selectedLocation || "No location selected."}</Text>
         {props.mapLoading ? <ActivityIndicator /> : null}
         <Pressable disabled={props.locationLoading} onPress={() => void props.onCurrentLocation()} style={styles.primary}>
@@ -49,4 +74,8 @@ const styles = StyleSheet.create({
   secondary: { flex: 1, minHeight: 48, borderRadius: 12, backgroundColor: "#e2e8f0", alignItems: "center", justifyContent: "center" },
   secondaryText: { color: "#111827", fontWeight: "800" },
   disabled: { opacity: 0.5 },
+  coordinates: { width: "100%", maxWidth: 420, flexDirection: "row", gap: 8 },
+  input: { flex: 1, minHeight: 44, borderWidth: 1, borderColor: "#cbd5e1", borderRadius: 8, paddingHorizontal: 10, color: "#111827", backgroundColor: "#fff" },
+  apply: { minHeight: 44, borderRadius: 8, backgroundColor: "#0f766e", justifyContent: "center", paddingHorizontal: 12 },
+  error: { color: "#b91c1c", fontSize: 12, fontWeight: "700", textAlign: "center" },
 });

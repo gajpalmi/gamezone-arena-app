@@ -7,15 +7,16 @@ import { useSupabaseAuth } from "@/hooks/useBusiness";
 import { useJobMutation, useOwnerJob } from "@/hooks/useJobs";
 
 export default function Preview() {
-  useSupabaseAuth();
+  const auth = useSupabaseAuth();
   const params = useLocalSearchParams<{ id?: string | string[] }>();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const router = useRouter();
-  const { data, error, isLoading } = useOwnerJob(id ?? "");
+  const { data, error, isLoading, refetch } = useOwnerJob(id ?? "", auth.ready);
   const mutation = useJobMutation();
 
-  if (isLoading) return <ActivityIndicator />;
-  if (!data) return <Text style={s.empty}>{error ? (error as Error).message : "Draft unavailable"}</Text>;
+  if (!auth.isLoaded || (auth.isSignedIn && !auth.ready) || isLoading) return <ActivityIndicator />;
+  if (!auth.isSignedIn) return <View style={s.content}><Text style={s.empty}>Sign in to preview your job draft.</Text><Button label="Sign in" onPress={() => router.push("/sign-in" as never)} /></View>;
+  if (!data) return <View style={s.content}><Text style={s.empty}>{error ? (error as Error).message : "Draft unavailable"}</Text><Button label="Retry" onPress={() => void refetch()} /></View>;
 
   const detail = (label: string, value: unknown) => value != null && String(value).trim() ? (
     <View>

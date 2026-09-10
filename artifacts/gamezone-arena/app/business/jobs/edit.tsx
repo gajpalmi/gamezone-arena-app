@@ -12,6 +12,8 @@ import {
   Text,
   TextInput,
   View,
+  Linking,
+  Platform,
 } from "react-native";
 
 import * as Location from "expo-location";
@@ -131,6 +133,7 @@ const blank = (): JobInput => ({
   website: "",
 
   contact_public_consent_at: null,
+  contact_public: false,
 
   terms_version: legal,
   terms_accepted_at: "",
@@ -200,7 +203,10 @@ export default function EditJob() {
 
   const router = useRouter();
 
-  const draft = useOwnerJob(id ?? "");
+  const draft = useOwnerJob(
+    id ?? "",
+    auth.ready,
+  );
 
   const categories =
     useJobCategories();
@@ -303,6 +309,13 @@ export default function EditJob() {
 
       application_deadline:
         job.application_deadline ?? "",
+
+      contact_public:
+        Boolean(
+          job.phone_public ||
+            job.whatsapp_public ||
+            job.email_public,
+        ),
     });
 
     setTerms(
@@ -423,14 +436,76 @@ export default function EditJob() {
         longitudeDelta: 0.01,
       });
 
-      const results =
-        await Location.reverseGeocodeAsync({
-          latitude,
-          longitude,
-        });
+      let address: Record<
+        string,
+        string | null | undefined
+      > | undefined;
 
-      const address =
-        results?.[0];
+      let fullAddressFromProvider = "";
+
+      if (Platform.OS === "web") {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&lat=${encodeURIComponent(latitude)}&lon=${encodeURIComponent(longitude)}`,
+          {
+            headers: {
+              "Accept-Language":
+                "en-IN,hi-IN;q=0.9,en;q=0.8",
+            },
+          },
+        );
+
+        if (!response.ok) {
+          throw new Error(
+            `Reverse geocoding returned ${response.status}`,
+          );
+        }
+
+        const result =
+          (await response.json()) as {
+            display_name?: string;
+            address?: Record<
+              string,
+              string | undefined
+            >;
+          };
+
+        fullAddressFromProvider =
+          result.display_name ?? "";
+
+        address = {
+          name:
+            result.address?.amenity ||
+            result.address?.building,
+          street: result.address?.road,
+          streetNumber:
+            result.address?.house_number,
+          district:
+            result.address?.suburb ||
+            result.address?.neighbourhood,
+          subregion:
+            result.address?.county,
+          city:
+            result.address?.city ||
+            result.address?.town ||
+            result.address?.village,
+          region: result.address?.state,
+          country: result.address?.country,
+        };
+      } else {
+        const results =
+          await Location.reverseGeocodeAsync({
+            latitude,
+            longitude,
+          });
+
+        address =
+          results?.[0] as unknown as
+            | Record<
+                string,
+                string | null | undefined
+              >
+            | undefined;
+      }
 
       if (!address) {
         setFormError(
@@ -462,6 +537,7 @@ export default function EditJob() {
         );
 
       const fullAddress =
+        fullAddressFromProvider ||
         uniqueParts.join(", ");
 
       const city =
@@ -532,8 +608,23 @@ export default function EditJob() {
 
         setFormError("");
 
-        const servicesEnabled =
-          await Location.hasServicesEnabledAsync();
+        if (Platform.OS === "web") {
+          if (!globalThis.navigator?.geolocation) {
+            throw new Error("This browser does not support current location.");
+          }
+          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+            globalThis.navigator.geolocation.getCurrentPosition(resolve, reject, {
+              enableHighAccuracy: false,
+              timeout: 15_000,
+              maximumAge: 60_000,
+            });
+          });
+          await applyCoordinates(position.coords.latitude, position.coords.longitude);
+          setMapVisible(true);
+          return;
+        }
+
+        const servicesEnabled = await Location.hasServicesEnabledAsync();
 
         if (!servicesEnabled) {
           Alert.alert(
@@ -547,13 +638,15 @@ export default function EditJob() {
         const permission =
           await Location.requestForegroundPermissionsAsync();
 
-        if (
-          permission.status !==
-          Location.PermissionStatus.GRANTED
-        ) {
+        if (permission.status !== Location.PermissionStatus.GRANTED) {
           Alert.alert(
             "Location permission required",
-            "Please allow GAMEZONE ARENA to access your device location while using the app.",
+            permission.canAskAgain === false
+              ? "Location permission is blocked. Open settings and allow location access for GAMEZONE ARENA."
+              : "Please allow GAMEZONE ARENA to access your device location while using the app.",
+            permission.canAskAgain === false
+              ? [{ text: "Cancel", style: "cancel" }, { text: "Open settings", onPress: () => void Linking.openSettings() }]
+              : undefined,
           );
 
           return;
@@ -1645,6 +1738,33 @@ export default function EditJob() {
           "email",
           "Email (optional)",
         )}
+
+        <Pressable
+          onPress={() =>
+            setForm(
+              (current: JobInput) => ({
+                ...current,
+                contact_public:
+                  !current.contact_public,
+                phone_public:
+                  !current.contact_public,
+                whatsapp_public:
+                  !current.contact_public,
+                email_public:
+                  !current.contact_public,
+              }),
+            )
+          }
+          style={s.card}
+        >
+          <Text style={s.meta}>
+            {form.contact_public
+              ? "✓"
+              : "□"}{" "}
+            Allow applicants to see the
+            contact details entered above
+          </Text>
+        </Pressable>
 
         <View>
           <Pressable

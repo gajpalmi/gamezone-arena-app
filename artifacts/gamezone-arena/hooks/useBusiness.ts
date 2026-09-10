@@ -177,6 +177,8 @@ export function useUploadBusinessImage() {
     mutationFn: ({ businessId, filename, file, contentType, altText }: { businessId: string; filename: string; file: Blob | ArrayBuffer; contentType: "image/jpeg" | "image/png" | "image/webp"; altText?: string }) => api.uploadBusinessImage(businessId, filename, file, contentType, altText),
     onSuccess: (_, { businessId }) => {
       queryClient.invalidateQueries({ queryKey: ['business', businessId] });
+      queryClient.invalidateQueries({ queryKey: ['business', 'mine', businessId] });
+      queryClient.invalidateQueries({ queryKey: ['my-businesses'] });
     },
   });
 }
@@ -187,6 +189,8 @@ export function useDeleteBusinessImage() {
     mutationFn: (photo: api.BusinessPhoto) => api.deleteBusinessImage(photo),
     onSuccess: (_, photo) => {
       queryClient.invalidateQueries({ queryKey: ['business', photo.business_id] });
+      queryClient.invalidateQueries({ queryKey: ['business', 'mine', photo.business_id] });
+      queryClient.invalidateQueries({ queryKey: ['my-businesses'] });
     },
   });
 }

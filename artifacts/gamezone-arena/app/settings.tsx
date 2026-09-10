@@ -129,6 +129,7 @@ export default function SettingsScreen() {
         <View style={styles.card}>
           <Pressable style={styles.linkRow} onPress={() => router.push('/business/mine')}><Text style={styles.rowLabel}>My Business</Text><Feather name="chevron-right" size={18} color="#71809F" /></Pressable>
           <Pressable style={styles.linkRow} onPress={() => router.push('/business/offerings-mine')}><Text style={styles.rowLabel}>My Products</Text><Feather name="chevron-right" size={18} color="#71809F" /></Pressable>
+          <Pressable style={styles.linkRow} onPress={() => router.push('/business/jobs/mine' as never)}><Text style={styles.rowLabel}>My Jobs</Text><Feather name="chevron-right" size={18} color="#71809F" /></Pressable>
           <Pressable style={styles.linkRow} onPress={() => router.push('/business/offerings-mine')}><Text style={styles.rowLabel}>My Services</Text><Feather name="chevron-right" size={18} color="#71809F" /></Pressable>
           <Pressable style={styles.linkRow} onPress={() => router.push('/business/offerings-saved')}><Text style={styles.rowLabel}>Saved listings</Text><Feather name="heart" size={18} color="#43DDF8" /></Pressable>
           <Pressable style={styles.linkRow} onPress={() => router.push('/business/offerings-mine')}><Text style={styles.rowLabel}>Manage listings</Text><Feather name="briefcase" size={18} color="#43DDF8" /></Pressable>

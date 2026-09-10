@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Linking, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import * as Location from "expo-location";
 import { Feather } from "@/components/Feather";
 import colors from "@/constants/colors";
@@ -30,6 +30,15 @@ type SearchResult = {
     state?: string;
   };
 };
+
+async function reverseGeocodeWeb(latitude: number, longitude: number): Promise<SelectedLocation> {
+  const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&lat=${encodeURIComponent(latitude)}&lon=${encodeURIComponent(longitude)}`, {
+    headers: { "Accept-Language": "en-IN,hi-IN;q=0.9,en;q=0.8" },
+  });
+  if (!response.ok) throw new Error(`Reverse geocoding returned ${response.status}`);
+  const result = await response.json() as SearchResult;
+  return normalize({ ...result, lat: String(latitude), lon: String(longitude) });
+}
 
 type Props = {
   value: string;
@@ -111,9 +120,30 @@ export function LocationAutocomplete({ value, error, onChangeText, onSelect }: P
     setLoading(true);
     setMessage("");
     try {
+      if (Platform.OS === "web") {
+        if (!globalThis.navigator?.geolocation) {
+          setMessage("This browser does not support current location. Search or enter the address manually.");
+          return;
+        }
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          globalThis.navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: false,
+            timeout: 15_000,
+            maximumAge: 60_000,
+          });
+        });
+        const selected = await reverseGeocodeWeb(position.coords.latitude, position.coords.longitude);
+        skipNextSearch.current = true;
+        setFocused(false);
+        setResults([]);
+        onSelect(selected);
+        return;
+      }
       const permission = await Location.requestForegroundPermissionsAsync();
       if (permission.status !== "granted") {
-        setMessage("Location permission was not granted. Search or enter the address manually.");
+        setMessage(permission.canAskAgain === false
+          ? "Location permission is blocked. Open app settings to allow access, or enter the address manually."
+          : "Location permission was not granted. Search or enter the address manually.");
         return;
       }
       const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
@@ -166,6 +196,9 @@ export function LocationAutocomplete({ value, error, onChangeText, onSelect }: P
       <Feather name="crosshair" size={16} color={colors.light.primary}/>
       <Text style={styles.currentText}>USE CURRENT LOCATION</Text>
     </Pressable>
+    {Platform.OS !== "web" && message.includes("Open app settings") ? <Pressable style={styles.settingsButton} onPress={() => void Linking.openSettings()}>
+      <Text style={styles.currentText}>OPEN APP SETTINGS</Text>
+    </Pressable> : null}
     {message ? <Text style={styles.message}>{message}</Text> : null}
     {focused && results.length ? <View style={styles.results}>
       {results.map(result => <Pressable key={result.place_id} style={styles.result} onPress={() => choose(result)}>
@@ -184,6 +217,7 @@ const styles = StyleSheet.create({
   inputError: { borderColor: colors.light.destructive, borderWidth: 2 },
   input: { flex: 1, color: colors.light.foreground, paddingVertical: 13 },
   currentButton: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 7, paddingVertical: 10 },
+  settingsButton: { alignSelf: "flex-start", paddingBottom: 8 },
   currentText: { color: colors.light.primary, fontSize: 12, fontWeight: "900" },
   results: { borderWidth: 1, borderColor: colors.light.border, borderRadius: 12, backgroundColor: colors.light.card, overflow: "hidden" },
   result: { flexDirection: "row", alignItems: "flex-start", gap: 9, padding: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.light.border },
