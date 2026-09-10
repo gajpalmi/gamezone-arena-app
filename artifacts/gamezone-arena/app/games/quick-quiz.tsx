@@ -1,11 +1,13 @@
 import { Feather } from '@/components/Feather';
 import * as Haptics from 'expo-haptics';
+import { Asset } from 'expo-asset';
+import { setAudioModeAsync, useAudioPlayer, type AudioPlayer } from 'expo-audio';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { QuizOption } from '@/components/QuizOption';
 import { Screen } from '@/components/Screen';
-import { quickQuizQuestions, type QuizReward } from '@/constants/quiz';
+import { createQuickQuizRound, type QuizReward } from '@/constants/quiz';
 import colors from '@/constants/colors';
 import { useAppSession } from '@/context/AppSessionContext';
 import { usePreferences } from '@/context/PreferencesContext';
@@ -15,7 +17,8 @@ type QuizPhase = 'playing' | 'feedback' | 'complete';
 export default function QuickQuizScreen() {
   const router = useRouter();
   const { progress, recordQuizResult } = useAppSession();
-  const { canUseGameHaptics } = usePreferences();
+  const { canUseGameHaptics, canPlayGameSound, preferences } = usePreferences();
+  const [questions, setQuestions] = useState(() => createQuickQuizRound());
   const [questionIndex, setQuestionIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [secondsLeft, setSecondsLeft] = useState(15);
@@ -23,8 +26,22 @@ export default function QuickQuizScreen() {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [reward, setReward] = useState<QuizReward | null>(null);
   const recordedResult = useRef(false);
+  const playedNativeSounds = useRef<Set<number>>(new Set());
+  const correctSound = useAudioPlayer(require('../../assets/quiz-correct.wav'), { keepAudioSessionActive: true });
+  const incorrectSound = useAudioPlayer(require('../../assets/quiz-incorrect.wav'), { keepAudioSessionActive: true });
 
-  const question = quickQuizQuestions[questionIndex];
+  const question = questions[questionIndex];
+
+  useEffect(() => {
+    void setAudioModeAsync({
+      playsInSilentMode: true,
+      interruptionMode: 'mixWithOthers',
+      shouldPlayInBackground: false,
+      shouldRouteThroughEarpiece: false,
+    }).catch((error) => {
+      if (__DEV__) console.warn('Quiz audio mode could not be prepared.', error);
+    });
+  }, []);
 
   useEffect(() => {
     if (phase !== 'playing') return;
@@ -39,7 +56,7 @@ export default function QuickQuizScreen() {
   useEffect(() => {
     if (phase !== 'feedback') return;
     const advance = setTimeout(() => {
-      if (questionIndex === quickQuizQuestions.length - 1) {
+      if (questionIndex === questions.length - 1) {
         setPhase('complete');
       } else {
         setQuestionIndex((value) => value + 1);
@@ -49,28 +66,58 @@ export default function QuickQuizScreen() {
       }
     }, 900);
     return () => clearTimeout(advance);
-  }, [phase, questionIndex]);
+  }, [phase, questionIndex, questions.length]);
 
   useEffect(() => {
     if (phase === 'complete' && !recordedResult.current) {
       recordedResult.current = true;
-      setReward(recordQuizResult(score, quickQuizQuestions.length));
+      setReward(recordQuizResult(score, questions.length));
     }
-  }, [phase, recordQuizResult, score]);
+  }, [phase, questions.length, recordQuizResult, score]);
+
+  function playAnswerSound(player: AudioPlayer, source: number) {
+    if (!canPlayGameSound) return;
+    if (Platform.OS === 'web') {
+      const sound = new window.Audio(Asset.fromModule(source).uri);
+      sound.volume = preferences.volume;
+      void sound.play().catch((error) => {
+        if (__DEV__) console.warn('Quiz web sound could not play.', error);
+      });
+      return;
+    }
+    if (!player.isLoaded) return;
+    void (async () => {
+      try {
+        if (playedNativeSounds.current.has(player.id)) {
+          player.pause();
+          await player.seekTo(0);
+        }
+        player.volume = preferences.volume;
+        player.muted = false;
+        player.play();
+        playedNativeSounds.current.add(player.id);
+      } catch (error) {
+        if (__DEV__) console.warn('Quiz native sound could not play.', error);
+      }
+    })();
+  }
 
   function submitAnswer(optionIndex: number | null) {
     if (phase !== 'playing') return;
     setSelectedIndex(optionIndex);
     if (optionIndex === question.correctIndex) {
       setScore((value) => value + 1);
+      playAnswerSound(correctSound, require('../../assets/quiz-correct.wav'));
       if (canUseGameHaptics) void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } else {
+      playAnswerSound(incorrectSound, require('../../assets/quiz-incorrect.wav'));
       if (canUseGameHaptics) void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
     setPhase('feedback');
   }
 
   function restartQuiz() {
+    setQuestions(createQuickQuizRound(5, questions[0]?.id));
     setQuestionIndex(0);
     setScore(0);
     setSecondsLeft(15);
@@ -94,11 +141,11 @@ export default function QuickQuizScreen() {
           <View style={styles.resultIcon}><Feather name="award" size={32} color={colors.light.primary} /></View>
           <Text style={styles.resultEyebrow}>RUN COMPLETE</Text>
           <Text style={styles.resultTitle}>{score >= 4 ? 'Excellent run.' : score >= 3 ? 'Solid showing.' : 'Keep sharpening.'}</Text>
-          <Text style={styles.resultCopy}>You finished the Quick Quiz with a {score}/{quickQuizQuestions.length} score.</Text>
+          <Text style={styles.resultCopy}>You finished the Quick Quiz with a {score}/{questions.length} score.</Text>
           <View style={styles.scoreCard}>
             <Text style={styles.scoreLabel}>FINAL SCORE</Text>
-            <Text style={styles.scoreValue}>{score}<Text style={styles.scoreTotal}>/{quickQuizQuestions.length}</Text></Text>
-            <View style={styles.scoreLine}><View style={[styles.scoreFill, { width: `${(score / quickQuizQuestions.length) * 100}%` }]} /></View>
+            <Text style={styles.scoreValue}>{score}<Text style={styles.scoreTotal}>/{questions.length}</Text></Text>
+            <View style={styles.scoreLine}><View style={[styles.scoreFill, { width: `${(score / questions.length) * 100}%` }]} /></View>
           </View>
           <View style={styles.rewardRow}>
             <Reward icon="zap" value={`+${reward?.xp ?? 0}`} label="XP EARNED" color={colors.light.primary} />
@@ -119,7 +166,7 @@ export default function QuickQuizScreen() {
     );
   }
 
-  const progressPercent = ((questionIndex + 1) / quickQuizQuestions.length) * 100;
+  const progressPercent = ((questionIndex + 1) / questions.length) * 100;
   const timerPercent = (secondsLeft / 15) * 100;
 
   return (
@@ -131,7 +178,7 @@ export default function QuickQuizScreen() {
         <View style={styles.gameHeaderCopy}><Text style={styles.eyebrow}>QUICK QUIZ</Text><Text style={styles.headerTitle}>Think fast</Text></View>
         <View style={styles.scorePill}><Feather name="zap" size={13} color={colors.light.primary} /><Text style={styles.scorePillText}>{score}</Text></View>
       </View>
-      <View style={styles.progressMeta}><Text style={styles.questionCount}>QUESTION {questionIndex + 1} OF {quickQuizQuestions.length}</Text><Text style={styles.category}>{question.category.toUpperCase()}</Text></View>
+      <View style={styles.progressMeta}><Text style={styles.questionCount}>QUESTION {questionIndex + 1} OF {questions.length}</Text><Text style={styles.category}>{question.category.toUpperCase()}</Text></View>
       <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${progressPercent}%` }]} /></View>
       <View style={styles.timerRow}><View style={styles.timerLabel}><Feather name="clock" size={15} color={secondsLeft <= 5 ? colors.light.destructive : colors.light.primary} /><Text style={[styles.timerText, secondsLeft <= 5 && styles.timerDanger]}>{secondsLeft}s</Text></View><View style={styles.timerTrack}><View style={[styles.timerFill, { width: `${timerPercent}%` }, secondsLeft <= 5 && styles.timerDangerFill]} /></View></View>
       <View style={styles.questionCard}>
