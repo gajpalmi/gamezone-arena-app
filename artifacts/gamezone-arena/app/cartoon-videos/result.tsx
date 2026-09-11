@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -33,7 +33,36 @@ export default function CartoonResultScreen() {
   const videoId = firstParam(params.id) ?? "cartoon";
   const [muted, setMuted] = useState(false);
   const [busyAction, setBusyAction] = useState<"save" | "share" | null>(null);
+  const [webMediaReady, setWebMediaReady] = useState(Platform.OS !== "web");
   const downloadedFile = useRef<string | null>(null);
+  const webVideoFile = useRef<File | null>(null);
+
+  async function getWebVideoFile() {
+    if (webVideoFile.current) return webVideoFile.current;
+    const response = await fetch(videoUrl);
+    if (!response.ok) {
+      throw new Error("Video download failed.");
+    }
+    const blob = await response.blob();
+    const file = new File([blob], `gamezone-${videoId}.mp4`, {
+      type: "video/mp4",
+    });
+    webVideoFile.current = file;
+    setWebMediaReady(true);
+    return file;
+  }
+
+  useEffect(() => {
+    if (Platform.OS !== "web" || !videoUrl) return;
+    let active = true;
+    void getWebVideoFile().catch(() => {
+      if (active) setWebMediaReady(false);
+    });
+    return () => {
+      active = false;
+      webVideoFile.current = null;
+    };
+  }, [videoId, videoUrl]);
 
   async function getDownloadedFile() {
     if (downloadedFile.current) return downloadedFile.current;
@@ -62,12 +91,16 @@ export default function CartoonResultScreen() {
     setBusyAction("save");
     try {
       if (Platform.OS === "web") {
+        const file = await getWebVideoFile();
+        const objectUrl = URL.createObjectURL(file);
         const link = document.createElement("a");
-        link.href = videoUrl;
-        link.download = `gamezone-${videoId}.mp4`;
-        link.target = "_blank";
-        link.rel = "noopener noreferrer";
+        link.href = objectUrl;
+        link.download = file.name;
+        document.body.appendChild(link);
         link.click();
+        link.remove();
+        URL.revokeObjectURL(objectUrl);
+        window.alert("Cartoon video downloaded. Check Downloads or Gallery on your phone.");
         return;
       }
       const permission = await MediaLibrary.requestPermissionsAsync(true, ["video"]);
@@ -93,7 +126,18 @@ export default function CartoonResultScreen() {
     setBusyAction("share");
     try {
       if (Platform.OS === "web") {
-        window.open(videoUrl, "_blank", "noopener,noreferrer");
+        const file = await getWebVideoFile();
+        const shareData = {
+          files: [file],
+          title: "My Gamezone cartoon",
+          text: "Watch my Gamezone cartoon video",
+        };
+        if (!navigator.share || (navigator.canShare && !navigator.canShare(shareData))) {
+          throw new Error(
+            "This browser cannot share video files. Open this page in Android Chrome.",
+          );
+        }
+        await navigator.share(shareData);
         return;
       }
       if (!(await Sharing.isAvailableAsync())) {
@@ -189,7 +233,7 @@ export default function CartoonResultScreen() {
             <Text style={styles.saveButtonText}>SAVE TO GALLERY</Text>
           </Pressable>
           <Pressable
-            disabled={Boolean(busyAction)}
+            disabled={Boolean(busyAction) || !webMediaReady}
             onPress={() => void shareCartoon()}
             style={({ pressed }) => [styles.shareButton, pressed && styles.pressed]}
           >
@@ -198,7 +242,9 @@ export default function CartoonResultScreen() {
             ) : (
               <Feather name="share-2" size={21} color={colors.light.foreground} />
             )}
-            <Text style={styles.shareButtonText}>SHARE VIDEO</Text>
+            <Text style={styles.shareButtonText}>
+              {webMediaReady ? "SHARE VIDEO" : "PREPARING SHARE..."}
+            </Text>
           </Pressable>
         </View>
 

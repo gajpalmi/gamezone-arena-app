@@ -158,8 +158,9 @@ async function processCartoonVideo(inputPath: string, outputPath: string) {
   }
   await runFile("ffmpeg", [
     "-hide_banner", "-loglevel", "error", "-y", "-i", inputPath,
-    "-map", "0:v:0", "-map", "0:a?", "-vf",
-    "scale='trunc(iw*min(1,min(720/iw,1280/ih))/2)*2':'trunc(ih*min(1,min(720/iw,1280/ih))/2)*2',fps=30,bilateral=sigmaS=4:sigmaR=0.12,hqdn3d=4:3:6:4,eq=saturation=1.85:contrast=1.12:brightness=0.05:gamma=1.08,lutrgb=r='floor(val/32)*32':g='floor(val/32)*32':b='floor(val/32)*32',unsharp=7:7:1.4:7:7:0,format=yuv420p",
+    "-filter_complex",
+    "scale='trunc(iw*min(1,min(720/iw,1280/ih))/2)*2':'trunc(ih*min(1,min(720/iw,1280/ih))/2)*2',fps=30,hqdn3d=5:4:8:6,split=3[base][edgesrc][inksrc];[base]bilateral=sigmaS=5:sigmaR=0.15,eq=saturation=2.0:contrast=1.15:brightness=0.07:gamma=1.1,lutrgb=r='floor(val/48)*48':g='floor(val/48)*48':b='floor(val/48)*48',format=rgba[colors];[edgesrc]edgedetect=low=0.045:high=0.15,dilation,format=gray[alpha];[inksrc]lutrgb=r=0:g=0:b=0,format=rgba[ink];[ink][alpha]alphamerge[outlined];[colors][outlined]overlay=format=auto,format=yuv420p[cartoon]",
+    "-map", "[cartoon]", "-map", "0:a?",
     "-c:v", "libx264", "-preset", "veryfast", "-crf", "24", "-profile:v", "main",
     "-level:v", "3.1", "-pix_fmt", "yuv420p", "-tag:v", "avc1",
     "-c:a", "aac", "-b:a", "128k", "-ar", "44100", "-ac", "2",
