@@ -44,6 +44,7 @@ export default function CartoonVideosScreen() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [sourceMuted, setSourceMuted] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const columns = width >= 700 ? 3 : 2;
   const query = useListCartoonVideos(undefined, {
     query: {
@@ -76,17 +77,45 @@ export default function CartoonVideosScreen() {
     try {
       const sourceResponse = await fetch(selectedVideo.uri);
       const videoBlob = await sourceResponse.blob();
-      const token = await getToken();
-      const response = await fetch(
-        resolveCartoonMediaUrl("/api/cartoon-videos/generate"),
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": selectedVideo.mimeType || "video/mp4",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      if (!videoBlob.size || videoBlob.size > 100 * 1024 * 1024) {
+        throw new Error("Video must be 100 MB or smaller.");
+      }
+      const authHeaders = async (): Promise<Record<string, string>> => {
+        const token = await getToken();
+        return token ? { Authorization: `Bearer ${token}` } : {};
+      };
+      const initResponse = await fetch(resolveCartoonMediaUrl("/api/cartoon-videos/upload/init"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(await authHeaders()) },
+        body: JSON.stringify({ size: videoBlob.size, mimeType: selectedVideo.mimeType || "video/mp4" }),
+      });
+      const initResult = await initResponse.json();
+      if (!initResponse.ok || !initResult.uploadId) {
+        throw new Error(initResult.error || "Unable to start the video upload.");
+      }
+      const chunkSize = Number(initResult.chunkSize) || 2 * 1024 * 1024;
+      for (let offset = 0, chunkIndex = 0; offset < videoBlob.size; offset += chunkSize, chunkIndex += 1) {
+        const chunk = videoBlob.slice(offset, Math.min(offset + chunkSize, videoBlob.size));
+        const chunkResponse = await fetch(
+          resolveCartoonMediaUrl(`/api/cartoon-videos/upload/${initResult.uploadId}/chunk`),
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/octet-stream",
+              "X-Chunk-Index": String(chunkIndex),
+              "X-Chunk-Offset": String(offset),
+              ...(await authHeaders()),
+            },
+            body: chunk,
           },
-          body: videoBlob,
-        },
+        );
+        const chunkResult = await chunkResponse.json();
+        if (!chunkResponse.ok) throw new Error(chunkResult.error || "The video upload failed.");
+        setUploadProgress(Math.round((Number(chunkResult.receivedBytes) / videoBlob.size) * 100));
+      }
+      const response = await fetch(
+        resolveCartoonMediaUrl(`/api/cartoon-videos/upload/${initResult.uploadId}/complete`),
+        { method: "POST", headers: { "Content-Type": "application/json", ...(await authHeaders()) }, body: "{}" },
       );
       const result = await response.json();
       if (!response.ok || !result.videoUrl) {
@@ -109,6 +138,7 @@ export default function CartoonVideosScreen() {
       );
     } finally {
       setIsGenerating(false);
+      setUploadProgress(0);
     }
   }
 
@@ -173,7 +203,9 @@ export default function CartoonVideosScreen() {
             </View>
             <Text style={styles.processingTitle}>MAKING YOUR CARTOON VIDEO</Text>
             <Text style={styles.processingText}>
-              Your video is uploading and changing to cartoon style. Keep this screen open. The finished video will open on a new result screen.
+               {uploadProgress > 0 && uploadProgress < 100
+                 ? `Uploading video… ${uploadProgress}% Keep this screen open.`
+                 : "Your video is changing to cartoon style. Keep this screen open. The finished video will open on a new result screen."}
             </Text>
             <View style={styles.processingFile}>
               <Feather name="film" size={17} color="#7CF2B2" />

@@ -12,3 +12,4 @@
 - [Orval and Zod compatibility](orval-zod-compatibility.md) — this workspace's generated validators cannot use Zod 4-only URL and integer helpers while Zod 3 remains installed.
 - [Cartoon local preview compatibility](cartoon-local-preview-compatibility.md) — unsupported local video codecs must not block server-side cartoon processing.
 - [FFmpeg mobile video dimensions](ffmpeg-mobile-video-dimensions.md) — constrain both dimensions to even values and cap frame rate before forcing an H.264 level.
+- [Cartoon mobile uploads](cartoon-mobile-uploads.md) — send large phone videos in small sequential chunks; single raw uploads can abort on slow mobile connections.
