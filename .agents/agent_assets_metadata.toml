@@ -100,3 +100,17 @@ mtime_ms = 1789104158075
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7b7691e1-7821-483d-8acd-32f06728811e/1f1085bf-524e-4201-ba1f-71432c9461a5/cadc7295-04e2-4611-895e-fb83c0354603"
 storage_version_token = "1789104189408691"
 content_type = "image/jpeg"
+
+[[outputs]]
+id = "jsXaDuYH4YJ-bSwIJZBzW"
+uri = "file://artifacts/gamezone-arena/store-assets/releases/GAMEZONE-ARENA-1.0.1-build-2.aab"
+type = "unspecified"
+title = "GAMEZONE ARENA 1.0.1 — Play Store AAB"
+description = "Signed Android App Bundle, version 1.0.1, version code 2. Upload this file to Google Play Internal testing after the API Server is republished as a Reserved VM."
+logical_id = "7908c747-e8e4-436d-861c-e8de0c694f98"
+content_hash = "sha256:dbc4288868b3ee3256919daf5b20c4972ce9d8a5eae0c98e82de8273f22553fc"
+size = 83640586
+mtime_ms = 1789105797268
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7b7691e1-7821-483d-8acd-32f06728811e/7908c747-e8e4-436d-861c-e8de0c694f98/72074bbc-0eef-4dd2-8a98-7ccfd3996060"
+storage_version_token = "1789105823411500"
+content_type = "application/octet-stream"

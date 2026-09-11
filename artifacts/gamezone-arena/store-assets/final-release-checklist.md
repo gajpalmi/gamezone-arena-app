@@ -18,10 +18,10 @@
 
 - [ ] Publish API Server as a Reserved VM, not Autoscale
 - [ ] Confirm the published `/privacy-policy` URL returns HTTP 200
-- [ ] Set the stable production API domain in the EAS production environment
-- [ ] Confirm client-safe Clerk and Supabase production variables are present
-- [ ] Generate signed production AAB version code 2
-- [ ] Download and retain the final AAB
+- [x] Set the stable production API domain in the EAS production environment
+- [x] Confirm client-safe Clerk and Supabase production variables are present
+- [x] Generate signed production AAB version code 2
+- [x] Download and retain the final AAB
 
 ## Required in Play Console
 
