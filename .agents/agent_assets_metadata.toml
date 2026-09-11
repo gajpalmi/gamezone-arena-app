@@ -49,6 +49,7 @@ uri = "file://artifacts/gamezone-arena/assets/quiz-wrong-voice.mp3"
 type = "audio"
 title = "quiz wrong answer"
 description = "Text-to-speech audio: Wrong answer!"
+logical_id = "4341549d-2207-4cf6-a500-e5d79b35d5e1"
 
 [[outputs]]
 id = "pIjpNEIN-DJFjffAXW1vU"
@@ -56,3 +57,4 @@ uri = "file://artifacts/gamezone-arena/assets/quiz-correct-voice.mp3"
 type = "audio"
 title = "quiz correct answer"
 description = "Text-to-speech audio: Correct answer!"
+logical_id = "2d90308a-8fdd-4a8c-af5a-a8b5f3112264"

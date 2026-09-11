@@ -3,8 +3,8 @@
 GAMEZONE ARENA is configured with:
 
 - Android package: `com.gamezonearena.app`
-- App version: `1.0.0`
-- Android version code: `1`
+- App version: `1.0.1`
+- Android version code: `2`
 - Internal artifact: Android App Bundle (`.aab`)
 - Internal ads: Google test inventory
 - Production ads: live inventory only in the `production` EAS profile

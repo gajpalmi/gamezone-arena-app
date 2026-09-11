@@ -6,8 +6,8 @@ Verified on September 10, 2026.
 
 - App name: GAMEZONE ARENA
 - Android package: `com.gamezonearena.app`
-- Version: `1.0.0`
-- Version code: `1` (valid only if this package has never uploaded version code 1)
+- Version: `1.0.1`
+- Version code: `2`
 - Linked Expo project: `4e9dc944-2a7b-4051-95be-b276401e6e06`
 - Output required by Google Play: signed Android App Bundle (`.aab`)
 
@@ -32,19 +32,20 @@ the version code for every later uploaded bundle.
 
 These steps cannot be truthfully completed by source-code checks:
 
-1. **Signed AAB:** Replit does not provide guided Google Play submission. Generate
+1. **Production API:** Publish the API Server as a **Reserved VM**, not
+   Autoscale. Cartoon conversion jobs and their one-hour output files currently
+   depend on one continuously running server instance.
+2. **Signed AAB:** Replit does not provide guided Google Play submission. Generate
    the signed Android App Bundle using the linked project's integrated Android
    build surface. Confirm any build quota or credit charge before starting.
-2. **Public privacy-policy URL:** Google Play requires a public HTTPS URL, not
-   only the policy screen inside the app. Publish the GAMEZONE ARENA policy on a
-   stable public website controlled by the developer.
-3. **Play Console account:** Create or select the Play Console app with package
-   `com.gamezonearena.app`, and confirm that version code 1 has not already been
-   used.
-4. **AdMob dashboard:** Confirm app verification, publish `app-ads.txt`, publish
+3. **Public privacy-policy URL:** Publish the API Server and use its stable
+   HTTPS `/privacy-policy` route in Google Play.
+4. **Play Console account:** Create or select the Play Console app with package
+   `com.gamezonearena.app`.
+5. **AdMob dashboard:** Confirm app verification, publish `app-ads.txt`, publish
    the required UMP consent message, and ensure target-age declarations match
    the Play Console declarations.
-5. **Physical Android test:** Install through Internal Testing and complete the
+6. **Physical Android test:** Install through Internal Testing and complete the
    checklist below before moving the same release to production.
 
 ## Internal Testing checklist

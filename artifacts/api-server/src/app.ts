@@ -5,6 +5,7 @@ import { publishableKeyFromHost } from "@clerk/shared/keys";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import privacyPolicyHtml from "../../gamezone-arena/store-assets/privacy-policy.html";
 import {
   CLERK_PROXY_PATH,
   clerkProxyMiddleware,
@@ -38,6 +39,10 @@ app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 app.use(cors({ credentials: true, origin: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+app.get("/privacy-policy", (_req, res) => {
+  res.type("html").send(privacyPolicyHtml);
+});
 
 app.use(
   clerkMiddleware((req) => ({
