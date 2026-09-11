@@ -179,7 +179,7 @@ export default function CartoonVideosScreen() {
           <Text style={styles.eyebrow}>CREATE & WATCH</Text>
           <Text style={styles.title}>Cartoon Videos</Text>
           <Text style={styles.subtitle}>
-            Record or choose a 5-second video and turn it into a cartoon.
+            Record or choose a video up to 1 minute and turn it into a cartoon.
           </Text>
         </View>
       </View>

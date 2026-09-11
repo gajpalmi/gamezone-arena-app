@@ -2,7 +2,7 @@ import { Alert, Linking, Platform } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
 
-const MAX_VIDEO_BYTES = 25 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
 
 export type PickedVideo = {
   uri: string;
@@ -17,10 +17,10 @@ function validate(video: PickedVideo) {
     throw new Error("Please choose a video file.");
   }
   if (video.size && video.size > MAX_VIDEO_BYTES) {
-    throw new Error("Video must be 25 MB or smaller.");
+    throw new Error("Video must be 100 MB or smaller.");
   }
-  if (video.durationMs && video.durationMs > 5_500) {
-    throw new Error("Video must be 5 seconds or shorter.");
+  if (video.durationMs && video.durationMs > 60_500) {
+    throw new Error("Video must be 1 minute or shorter.");
   }
   return video;
 }
@@ -53,7 +53,7 @@ export async function recordCartoonVideo() {
   }
   const result = await ImagePicker.launchCameraAsync({
     mediaTypes: ["videos"],
-    videoMaxDuration: 5,
+    videoMaxDuration: 60,
     videoQuality: ImagePicker.UIImagePickerControllerQualityType.Medium,
   });
   return result.canceled ? null : fromImagePicker(result.assets[0]);
@@ -67,7 +67,7 @@ export async function pickCartoonVideo() {
   }
   const result = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ["videos"],
-    videoMaxDuration: 5,
+    videoMaxDuration: 60,
     videoQuality: ImagePicker.UIImagePickerControllerQualityType.Medium,
   });
   return result.canceled ? null : fromImagePicker(result.assets[0]);

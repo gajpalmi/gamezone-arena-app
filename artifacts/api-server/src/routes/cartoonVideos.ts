@@ -45,7 +45,7 @@ router.use(
 
 router.post(
   "/cartoon-videos/generate",
-  express.raw({ type: "video/*", limit: "25mb" }),
+  express.raw({ type: "video/*", limit: "100mb" }),
   async (req, res) => {
     const input = req.body;
     if (!Buffer.isBuffer(input) || input.length === 0) {
@@ -80,8 +80,8 @@ router.post(
         inputPath,
       ]);
       const duration = Number.parseFloat(probe.stdout.trim());
-      if (!Number.isFinite(duration) || duration <= 0 || duration > 5.5) {
-        res.status(400).json({ error: "Video must be 5 seconds or shorter." });
+      if (!Number.isFinite(duration) || duration <= 0 || duration > 60.5) {
+        res.status(400).json({ error: "Video must be 1 minute or shorter." });
         return;
       }
 
@@ -93,7 +93,7 @@ router.post(
         "-c:v", "libx264", "-preset", "veryfast", "-crf", "24",
         "-c:a", "aac", "-b:a", "128k",
         "-movflags", "+faststart",
-        "-t", "5",
+        "-t", "60",
         outputPath,
       ]);
 
