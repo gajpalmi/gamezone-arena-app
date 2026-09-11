@@ -18,6 +18,7 @@ import { Slot } from 'expo-router';
 import {
   AppSessionProvider,
 } from '@/context/AppSessionContext';
+import { setBaseUrl } from '@workspace/api-client-react';
 import { BusinessQueryProvider } from '@/components/BusinessQueryProvider';
 import { AdService } from '@/services/AdService';
 import { PreferencesProvider } from '@/context/PreferencesContext';
@@ -30,6 +31,9 @@ const CLERK_PUBLISHABLE_KEY =
 
 const CLERK_PROXY_URL =
   process.env.EXPO_PUBLIC_CLERK_PROXY_URL || undefined;
+
+const API_DOMAIN = process.env.EXPO_PUBLIC_DOMAIN;
+setBaseUrl(API_DOMAIN ? `https://${API_DOMAIN.replace(/^https?:\/\//, '')}` : null);
 
 function SupabaseAuthBridge({
   children,

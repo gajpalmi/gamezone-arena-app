@@ -5,7 +5,8 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { CartoonVideo } from './cartoonVideo';
 
-export interface HealthStatus {
-  status: string;
-}
+export type ListCartoonVideos200 = {
+  videos: CartoonVideo[];
+};

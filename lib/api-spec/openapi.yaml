@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: cartoon-videos
+    description: Legally sourced cartoon video catalog
 paths:
   /healthz:
     get:
@@ -24,6 +26,59 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /cartoon-videos:
+    get:
+      operationId: listCartoonVideos
+      tags: [cartoon-videos]
+      summary: List cartoon videos
+      description: Returns the public, read-only catalog of licensed cartoon videos
+      parameters:
+        - in: query
+          name: category
+          required: false
+          schema:
+            type: string
+          description: Optional exact category filter
+      responses:
+        "200":
+          description: Cartoon video catalog
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  videos:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/CartoonVideo"
+                required:
+                  - videos
+  /cartoon-videos/{videoId}:
+    get:
+      operationId: getCartoonVideo
+      tags: [cartoon-videos]
+      summary: Get a cartoon video
+      description: Returns one licensed cartoon video by its stable ID
+      parameters:
+        - in: path
+          name: videoId
+          required: true
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        "200":
+          description: Cartoon video
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CartoonVideo"
+        "404":
+          description: Video not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +88,43 @@ components:
           type: string
       required:
         - status
+    CartoonVideo:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        thumbnailUrl:
+          type: string
+        videoUrl:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        durationSeconds:
+          type: number
+          minimum: 1
+        license:
+          type: string
+        sourceUrl:
+          type: string
+      required:
+        - id
+        - title
+        - thumbnailUrl
+        - videoUrl
+        - description
+        - category
+        - durationSeconds
+        - license
+        - sourceUrl
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
 

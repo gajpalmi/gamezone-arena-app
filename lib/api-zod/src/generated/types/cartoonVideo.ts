@@ -5,9 +5,6 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-export interface HealthStatus {
-  status: string;
-}
 
 export interface CartoonVideo {
   id: string;
@@ -21,18 +18,3 @@ export interface CartoonVideo {
   license: string;
   sourceUrl: string;
 }
-
-export interface ApiError {
-  error: string;
-}
-
-export type ListCartoonVideosParams = {
-/**
- * Optional exact category filter
- */
-category?: string;
-};
-
-export type ListCartoonVideos200 = {
-  videos: CartoonVideo[];
-};
