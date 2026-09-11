@@ -1,0 +1,79 @@
+GAMEZONE ARENA को Reserved VM के बिना और किसी भी paid service के बिना चलाना है।
+
+IMPORTANT:
+- Reserved VM activate मत करो।
+- कोई paid resource, upgrade, billing या paid capacity शुरू मत करो।
+- नया AAB build मत शुरू करो।
+- Existing AAB और existing production domain को preserve करो।
+- पहले free/included solution खोजो और लागू करो।
+
+GOAL:
+Existing game-zone-arena.replit.app domain पर:
+1. Mobile/web app पहले की तरह चले।
+2. API सही तरीके से उपलब्ध हो।
+3. /api/healthz सही response दे:
+   {"status":"ok"}
+4. /privacy-policy सही खुले।
+5. Existing AAB में configured API domain न बदले, ताकि नया AAB बनाने की जरूरत न पड़े।
+
+पहले production configuration और deployment routing को read-only तरीके से जाँचो।
+
+जाँचो:
+- कौन-सा artifact / service production में publish हो रहा है।
+- Mobile service और API service के बीच routing conflict कहाँ है।
+- /api और /privacy-policy routes production में क्यों attach नहीं हो रहे।
+- current Autoscale deployment में API को free/included configuration में चलाने का कोई तरीका है या नहीं।
+- Publishing screen पर actual estimated cost क्या है।
+
+यदि Replit Autoscale में यह काम $0 / included free resource से हो सकता है:
+- उसी existing deployment को ठीक करो।
+- API artifact सही तरीके से attach करो।
+- routing ठीक करो।
+- फिर health endpoint verify करो।
+
+यदि Autoscale के लिए कोई non-zero cost दिखती है:
+- कुछ भी activate मत करो।
+- कोई paid deployment मत शुरू करो।
+- मुझे बताओ कि free option क्यों संभव नहीं है।
+
+अगर Replit पर free में API reliably नहीं चल सकती:
+- Koyeb Free या Render Free जैसे उपलब्ध free backend विकल्पों की compatibility जाँचो।
+- विशेष रूप से देखो कि current Express API और Cartoon Video backend को वहाँ free में चलाने के लिए क्या code changes चाहिए।
+- कोई external service अपने आप create/connect मत करो।
+- पहले exact free architecture और implementation plan बताओ।
+
+CARTOON VIDEO BACKEND:
+Current architecture को Autoscale-safe बनाना जरूरी है:
+- process memory में upload/job state मत रखो।
+- temporary local files पर निर्भरता कम/समाप्त करो।
+- upload/job metadata को Supabase में persist करो।
+- uploaded/generated files को Supabase Storage में रखें जहाँ free limits के अंदर संभव हो।
+- daily limits को database में persist करो।
+- generated video का result persistent Storage URL से लौटाओ।
+- FFmpeg processing के लिए free resource की CPU/memory/time limitations पहले verify करो।
+- अगर 100 MB upload free limits में practical नहीं है तो सुरक्षित maximum upload size बताओ और app में वही limit लगाओ।
+- कोई paid video/API service मत जोड़ो।
+
+SECURITY:
+- Existing Clerk authentication preserve करो।
+- Existing Supabase configuration preserve करो।
+- Existing RLS/security rules को कमजोर मत करो।
+- कोई service key client app में expose मत करो।
+- Existing games, Ludo, profile, friends, leaderboard, coins, ads और navigation को मत हटाओ।
+
+FINAL RULE:
+जब तक cost = $0 / included free स्पष्ट रूप से confirm न हो:
+- Deploy मत करो।
+- Publish मत करो।
+- Reserved VM activate मत करो।
+- Paid upgrade मत करो।
+- AAB rebuild मत करो।
+
+पहले मुझे केवल यह report दो:
+1. Current problem
+2. Free solution
+3. Expected cost
+4. क्या नया AAB चाहिए या नहीं
+5. Implementation से पहले कोई approval चाहिए या नहीं
+
+फिर मेरी अनुमति के बाद ही changes लागू करना।
