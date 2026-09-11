@@ -175,8 +175,8 @@ export default function HomeScreen() {
 
       <LinearGradient
         colors={[
-          '#152C4D',
-          '#16162F',
+          '#1B4F85',
+          '#35215F',
         ]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -699,7 +699,7 @@ const styles = StyleSheet.create({
     backgroundColor:
       colors.light.card,
     borderRadius: 20,
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor:
       colors.light.border,
     paddingVertical: 15,
@@ -874,40 +874,42 @@ const styles = StyleSheet.create({
   },
 
   businessCard: {
-    width: 220,
-    backgroundColor: colors.light.card,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.light.border,
-    padding: 16,
+    width: 250,
+    minHeight: 160,
+    backgroundColor: '#30205B',
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: '#A878FF',
+    padding: 18,
     marginBottom: 20,
   },
 
   businessIcon: {
-    width: 48,
-    height: 48,
+    width: 56,
+    height: 56,
     borderRadius: 16,
-    backgroundColor: '#C66BFF20',
+    backgroundColor: '#C66BFF38',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
   },
 
   cartoonCard: {
-    width: 220,
-    backgroundColor: colors.light.card,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#EC489966',
-    padding: 16,
+    width: 250,
+    minHeight: 160,
+    backgroundColor: '#4A194F',
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: '#FF79C9',
+    padding: 18,
     marginBottom: 20,
   },
 
   cartoonIcon: {
-    width: 48,
-    height: 48,
+    width: 56,
+    height: 56,
     borderRadius: 16,
-    backgroundColor: '#EC489920',
+    backgroundColor: '#EC489940',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
@@ -915,14 +917,14 @@ const styles = StyleSheet.create({
 
   businessTitle: {
     color: colors.light.foreground,
-    fontSize: 16,
-    fontWeight: '800',
+    fontSize: 19,
+    fontWeight: '900',
     marginBottom: 4,
   },
 
   businessDesc: {
-    color: colors.light.mutedForeground,
-    fontSize: 12,
-    lineHeight: 18,
+    color: colors.light.secondaryForeground,
+    fontSize: 13,
+    lineHeight: 19,
   }
 });

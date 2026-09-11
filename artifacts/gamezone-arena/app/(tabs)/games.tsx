@@ -247,7 +247,7 @@ export default function GamesScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#070A12",
+    backgroundColor: "#0B1230",
   },
 
   content: {
@@ -301,15 +301,15 @@ const styles = StyleSheet.create({
   },
 
   featuredCard: {
-    minHeight: 190,
+    minHeight: 210,
     borderRadius: 24,
     padding: 20,
-    backgroundColor: "#173F78",
+    backgroundColor: "#18529A",
     flexDirection: "row",
     alignItems: "center",
     overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "#2B5D9D",
+    borderWidth: 2,
+    borderColor: "#5DA9FF",
   },
 
   featuredCardCompact: {
@@ -400,13 +400,13 @@ const styles = StyleSheet.create({
 
   gameCard: {
     width: "48.2%",
-    minHeight: 190,
-    backgroundColor: "#111827",
+    minHeight: 205,
+    backgroundColor: "#18264A",
     borderRadius: 20,
     padding: 15,
     marginBottom: 14,
-    borderWidth: 1,
-    borderColor: "#202A3E",
+    borderWidth: 2,
+    borderColor: "#45618F",
   },
 
   gameCardCompact: {
@@ -438,7 +438,7 @@ const styles = StyleSheet.create({
   },
 
   cardDescription: {
-    color: "#8994AD",
+    color: "#C5D2F2",
     fontSize: 12,
     lineHeight: 17,
     minHeight: 35,
@@ -475,12 +475,12 @@ const styles = StyleSheet.create({
 
   infoBox: {
     flexDirection: "row",
-    backgroundColor: "#0D1424",
+    backgroundColor: "#17284D",
     borderRadius: 18,
     padding: 16,
     marginTop: 10,
     borderWidth: 1,
-    borderColor: "#1D2A40",
+    borderColor: "#45618F",
   },
 
   infoIcon: {
