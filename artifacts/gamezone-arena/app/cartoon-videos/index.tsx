@@ -1,18 +1,15 @@
-import React, { useRef, useState } from "react";
+import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   FlatList,
   Image,
-  Platform,
   Pressable,
-  Share,
   StyleSheet,
   Text,
   View,
   useWindowDimensions,
 } from "react-native";
-import { ResizeMode, Video } from "expo-av";
 import { useRouter } from "expo-router";
 import { useAuth } from "@clerk/expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -22,6 +19,7 @@ import {
   useListCartoonVideos,
 } from "@workspace/api-client-react";
 import { Feather } from "@/components/Feather";
+import { CartoonVideoPlayer } from "@/components/CartoonVideoPlayer";
 import colors from "@/constants/colors";
 import { resolveCartoonMediaUrl } from "@/lib/cartoonVideos";
 import {
@@ -43,16 +41,9 @@ export default function CartoonVideosScreen() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const [selectedVideo, setSelectedVideo] = useState<PickedVideo | null>(null);
-  const [generatedUrl, setGeneratedUrl] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [sourceMuted, setSourceMuted] = useState(false);
-  const [resultMuted, setResultMuted] = useState(false);
-  const [sourcePreviewState, setSourcePreviewState] = useState<"loading" | "ready" | "error">("loading");
-  const [sourcePreviewError, setSourcePreviewError] = useState<string | null>(null);
-  const [resultPreviewState, setResultPreviewState] = useState<"loading" | "ready" | "error">("loading");
   const [generationError, setGenerationError] = useState<string | null>(null);
-  const sourceVideoRef = useRef<Video>(null);
-  const resultVideoRef = useRef<Video>(null);
   const columns = width >= 700 ? 3 : 2;
   const query = useListCartoonVideos(undefined, {
     query: {
@@ -67,12 +58,7 @@ export default function CartoonVideosScreen() {
       const picked = await picker();
       if (picked) {
         setSelectedVideo(picked);
-        setGeneratedUrl(null);
         setSourceMuted(false);
-        setResultMuted(false);
-        setSourcePreviewState("loading");
-        setSourcePreviewError(null);
-        setResultPreviewState("loading");
         setGenerationError(null);
       }
     } catch (error) {
@@ -107,9 +93,13 @@ export default function CartoonVideosScreen() {
         throw new Error(result.error || "Cartoon generation failed.");
       }
       const nextGeneratedUrl = resolveCartoonMediaUrl(result.videoUrl);
-      setGeneratedUrl(nextGeneratedUrl);
-      setResultMuted(false);
-      setResultPreviewState("loading");
+      router.push({
+        pathname: "/cartoon-videos/result",
+        params: {
+          id: String(result.id ?? "cartoon"),
+          url: nextGeneratedUrl,
+        },
+      } as any);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Please try another video.";
       setGenerationError(message);
@@ -124,45 +114,6 @@ export default function CartoonVideosScreen() {
 
   async function turnSourceSoundOn() {
     setSourceMuted(false);
-    await sourceVideoRef.current?.setIsMutedAsync(false);
-    await sourceVideoRef.current?.setVolumeAsync(1);
-  }
-
-  async function turnResultSoundOn() {
-    setResultMuted(false);
-    await resultVideoRef.current?.setIsMutedAsync(false);
-    await resultVideoRef.current?.setVolumeAsync(1);
-  }
-
-  async function shareCartoon() {
-    if (!generatedUrl) return;
-    try {
-      if (Platform.OS === "web") {
-        window.open(generatedUrl, "_blank", "noopener,noreferrer");
-        return;
-      }
-      await Share.share({
-        title: "My Gamezone cartoon",
-        message: `My Gamezone cartoon video: ${generatedUrl}`,
-        url: generatedUrl,
-      });
-    } catch (error) {
-      Alert.alert(
-        "Unable to share cartoon",
-        error instanceof Error ? error.message : "Please try again.",
-      );
-    }
-  }
-
-  function createAnother() {
-    setSelectedVideo(null);
-    setGeneratedUrl(null);
-    setSourceMuted(false);
-    setResultMuted(false);
-    setSourcePreviewState("loading");
-    setSourcePreviewError(null);
-    setResultPreviewState("loading");
-    setGenerationError(null);
   }
 
   const header = (
@@ -220,83 +171,13 @@ export default function CartoonVideosScreen() {
             </View>
             <Text style={styles.processingTitle}>MAKING YOUR CARTOON VIDEO</Text>
             <Text style={styles.processingText}>
-              Your video is uploading and changing to cartoon style. Keep this screen open—your finished video will appear right here.
+              Your video is uploading and changing to cartoon style. Keep this screen open. The finished video will open on a new result screen.
             </Text>
             <View style={styles.processingFile}>
               <Feather name="film" size={17} color="#7CF2B2" />
               <Text numberOfLines={1} style={styles.processingFileText}>
                 {selectedVideo?.name}
               </Text>
-            </View>
-          </View>
-        ) : generatedUrl ? (
-          <View style={styles.resultWrap}>
-            <Text style={styles.resultTitle}>YOUR CARTOON VIDEO IS HERE</Text>
-            <Text style={styles.resultIntro}>
-              This is your original video in cartoon style—no avatar has been added.
-            </Text>
-            <View style={styles.playerFrame}>
-              <Video
-                key={generatedUrl}
-                ref={resultVideoRef}
-                source={{ uri: generatedUrl }}
-                useNativeControls
-                shouldPlay
-                isLooping
-                isMuted={resultMuted}
-                volume={1}
-                onLoadStart={() => setResultPreviewState("loading")}
-                onLoad={() => setResultPreviewState("ready")}
-                onReadyForDisplay={() => setResultPreviewState("ready")}
-                onError={() => setResultPreviewState("error")}
-                resizeMode={ResizeMode.CONTAIN}
-                style={styles.resultVideo}
-              />
-              {resultPreviewState === "loading" ? (
-                <View pointerEvents="none" style={styles.playerStatus}>
-                  <ActivityIndicator color="#7CF2B2" />
-                  <Text style={styles.playerStatusText}>Loading your cartoon…</Text>
-                </View>
-              ) : null}
-              {resultPreviewState === "error" ? (
-                <View style={styles.playerStatus}>
-                  <Feather name="alert-circle" size={24} color="#FF8A9B" />
-                  <Text style={styles.playerErrorText}>This result could not play on this phone.</Text>
-                  <Text style={styles.playerHelpText}>Use Save / Share to open it in another video app.</Text>
-                </View>
-              ) : null}
-            </View>
-            <Pressable
-              accessibilityLabel="Turn cartoon sound on"
-              onPress={() => void turnResultSoundOn()}
-              style={({ pressed }) => [styles.soundButton, styles.resultSoundButton, pressed && styles.pressed]}
-            >
-              <Feather name="volume-2" size={17} color="#7CF2B2" />
-              <Text style={styles.soundButtonText}>TURN CARTOON SOUND ON</Text>
-            </Pressable>
-            <View style={styles.temporaryNote}>
-              <Feather name="clock" size={16} color="#FFD56A" />
-              <Text style={styles.temporaryText}>
-                Your video is here temporarily. Save or share it within 1 hour.
-              </Text>
-            </View>
-            <View style={styles.resultActions}>
-              <Pressable
-                accessibilityLabel="Save or share cartoon"
-                onPress={() => void shareCartoon()}
-                style={({ pressed }) => [styles.shareButton, pressed && styles.pressed]}
-              >
-                <Feather name="share-2" size={18} color="#07101F" />
-                <Text style={styles.shareButtonText}>SAVE / SHARE</Text>
-              </Pressable>
-              <Pressable
-                accessibilityLabel="Create another cartoon"
-                onPress={createAnother}
-                style={({ pressed }) => [styles.anotherButton, pressed && styles.pressed]}
-              >
-                <Feather name="refresh-cw" size={17} color="#FFFFFF" />
-                <Text style={styles.anotherButtonText}>CHOOSE ANOTHER</Text>
-              </Pressable>
             </View>
           </View>
         ) : selectedVideo ? (
@@ -310,46 +191,12 @@ export default function CartoonVideosScreen() {
               </View>
               <Feather name="check-circle" size={20} color="#7CF2B2" />
             </View>
-            <Video
+            <CartoonVideoPlayer
               key={selectedVideo.uri}
-              ref={sourceVideoRef}
-              source={{ uri: selectedVideo.uri }}
-              useNativeControls
-              shouldPlay
-              isLooping
-              isMuted={sourceMuted}
-              volume={1}
-              onLoadStart={() => {
-                setSourcePreviewState("loading");
-                setSourcePreviewError(null);
-              }}
-              onLoad={() => setSourcePreviewState("ready")}
-              onReadyForDisplay={() => setSourcePreviewState("ready")}
-              onError={(message) => {
-                setSourcePreviewState("error");
-                setSourcePreviewError(message || "This video format cannot be previewed on this phone.");
-              }}
-              resizeMode={ResizeMode.CONTAIN}
+              uri={selectedVideo.uri}
+              muted={sourceMuted}
               style={styles.sourceVideo}
             />
-            {sourcePreviewState === "loading" ? (
-              <View pointerEvents="none" style={styles.playerStatus}>
-                <ActivityIndicator color="#7CF2B2" />
-                <Text style={styles.playerStatusText}>Preparing video preview…</Text>
-              </View>
-            ) : null}
-            {sourcePreviewState === "error" ? (
-              <View style={styles.previewError}>
-                <Feather name="alert-circle" size={24} color="#FF8A9B" />
-                <Text style={styles.previewErrorTitle}>VIDEO PREVIEW NOT AVAILABLE</Text>
-                <Text style={styles.previewErrorText}>
-                  {sourcePreviewError || "This phone could not show the preview, but the video is selected."}
-                </Text>
-                <Text style={styles.previewErrorHelp}>
-                  You can still tap Make Cartoon, or choose another MP4/MOV video.
-                </Text>
-              </View>
-            ) : null}
             <Pressable
               accessibilityLabel="Turn original video sound on"
               onPress={() => void turnSourceSoundOn()}
@@ -361,7 +208,7 @@ export default function CartoonVideosScreen() {
           </View>
         ) : null}
 
-        {!generatedUrl && !isGenerating ? (
+        {!isGenerating ? (
           <>
             {generationError ? (
               <View style={styles.generationError}>

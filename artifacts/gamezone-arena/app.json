@@ -50,6 +50,17 @@
       ],
       "expo-asset",
       [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow GAMEZONE ARENA to save your finished cartoon video.",
+          "savePhotosPermission": "Allow GAMEZONE ARENA to save your finished cartoon video.",
+          "isAccessMediaLocationEnabled": false,
+          "granularPermissions": [
+            "video"
+          ]
+        }
+      ],
+      [
         "expo-image-picker",
         {
           "cameraPermission": "Camera permission is required to take a photo.",

@@ -11,3 +11,4 @@
 - [Durable account deletion](durable-account-deletion.md) — preserve media paths server-side until Storage confirms deletion; new user-owned tables and media must join the cleanup contract.
 - [Orval and Zod compatibility](orval-zod-compatibility.md) — this workspace's generated validators cannot use Zod 4-only URL and integer helpers while Zod 3 remains installed.
 - [Cartoon local preview compatibility](cartoon-local-preview-compatibility.md) — unsupported local video codecs must not block server-side cartoon processing.
+- [FFmpeg mobile video dimensions](ffmpeg-mobile-video-dimensions.md) — constrain both dimensions to even values and cap frame rate before forcing an H.264 level.

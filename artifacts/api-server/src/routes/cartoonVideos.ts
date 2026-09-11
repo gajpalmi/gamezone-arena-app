@@ -2,7 +2,7 @@ import express, { Router, type IRouter } from "express";
 import { getAuth } from "@clerk/express";
 import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, readdir, rm, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -18,6 +18,7 @@ import { cartoonVideos } from "../data/cartoonVideos";
 const router: IRouter = Router();
 const runFile = promisify(execFile);
 const generatedDirectory = path.join(os.tmpdir(), "gamezone-cartoon-videos");
+const generatedLifetimeMs = 60 * 60 * 1000;
 const dailyGenerations = new Map<string, string>();
 const mediaDirectory = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -35,13 +36,42 @@ router.use(
   }),
 );
 
-router.use(
-  "/cartoon-videos/generated",
-  express.static(generatedDirectory, {
-    fallthrough: false,
-    maxAge: "1h",
-  }),
-);
+async function removeExpiredGeneratedVideos() {
+  await mkdir(generatedDirectory, { recursive: true });
+  const names = await readdir(generatedDirectory);
+  await Promise.all(
+    names
+      .filter((name) => name.endsWith(".mp4"))
+      .map(async (name) => {
+        const filePath = path.join(generatedDirectory, name);
+        const details = await stat(filePath);
+        if (Date.now() - details.mtimeMs >= generatedLifetimeMs) {
+          await rm(filePath, { force: true });
+        }
+      }),
+  );
+}
+
+router.get("/cartoon-videos/generated/:fileName", async (req, res) => {
+  const { fileName } = req.params;
+  if (!/^[0-9a-f-]+\.mp4$/i.test(fileName)) {
+    res.status(404).json({ error: "Cartoon video not found." });
+    return;
+  }
+  const filePath = path.join(generatedDirectory, fileName);
+  try {
+    const details = await stat(filePath);
+    if (Date.now() - details.mtimeMs >= generatedLifetimeMs) {
+      await rm(filePath, { force: true });
+      res.status(410).json({ error: "This cartoon video has expired." });
+      return;
+    }
+    res.set("Cache-Control", "private, max-age=300");
+    res.sendFile(filePath);
+  } catch {
+    res.status(404).json({ error: "Cartoon video not found." });
+  }
+});
 
 router.post(
   "/cartoon-videos/generate",
@@ -67,6 +97,7 @@ router.post(
     }
 
     await mkdir(generatedDirectory, { recursive: true });
+    await removeExpiredGeneratedVideos();
     const id = randomUUID();
     const inputPath = path.join(generatedDirectory, `${id}-input`);
     const outputPath = path.join(generatedDirectory, `${id}.mp4`);
@@ -88,19 +119,62 @@ router.post(
       await runFile("ffmpeg", [
         "-hide_banner", "-loglevel", "error", "-y",
         "-i", inputPath,
+        "-map", "0:v:0",
+        "-map", "0:a?",
         "-vf",
-        "scale='min(720,iw)':-2:force_original_aspect_ratio=decrease,hqdn3d=3:3:6:6,eq=saturation=1.55:contrast=1.12,unsharp=5:5:1.2:5:5:0,lutrgb=r='floor(val/32)*32':g='floor(val/32)*32':b='floor(val/32)*32'",
+        "scale='trunc(iw*min(1,min(720/iw,1280/ih))/2)*2':'trunc(ih*min(1,min(720/iw,1280/ih))/2)*2',fps=30,hqdn3d=3:3:6:6,eq=saturation=1.55:contrast=1.12,unsharp=5:5:1.2:5:5:0,lutrgb=r='floor(val/32)*32':g='floor(val/32)*32':b='floor(val/32)*32',format=yuv420p",
         "-c:v", "libx264", "-preset", "veryfast", "-crf", "24",
-        "-c:a", "aac", "-b:a", "128k",
+        "-profile:v", "main", "-level:v", "3.1", "-pix_fmt", "yuv420p",
+        "-tag:v", "avc1",
+        "-c:a", "aac", "-b:a", "128k", "-ar", "44100", "-ac", "2",
         "-movflags", "+faststart",
+        "-avoid_negative_ts", "make_zero",
         "-t", "60",
         outputPath,
       ]);
 
+      const outputProbe = await runFile("ffprobe", [
+        "-v", "error",
+        "-select_streams", "v:0",
+        "-show_entries", "stream=codec_name,profile,level,pix_fmt,width,height,avg_frame_rate",
+        "-of", "json",
+        outputPath,
+      ]);
+      const outputMetadata = JSON.parse(outputProbe.stdout) as {
+        streams?: Array<{
+          codec_name?: string;
+          profile?: string;
+          level?: number;
+          pix_fmt?: string;
+          width?: number;
+          height?: number;
+          avg_frame_rate?: string;
+        }>;
+      };
+      const videoStream = outputMetadata.streams?.[0];
+      const [frameRateNumerator, frameRateDenominator] = (
+        videoStream?.avg_frame_rate ?? "0/1"
+      ).split("/").map(Number);
+      const frameRate = frameRateNumerator / frameRateDenominator;
+      if (
+        videoStream?.codec_name !== "h264"
+        || videoStream.profile !== "Main"
+        || videoStream.level !== 31
+        || videoStream.pix_fmt !== "yuv420p"
+        || !videoStream.width
+        || !videoStream.height
+        || videoStream.width > 720
+        || videoStream.height > 1280
+        || !Number.isFinite(frameRate)
+        || frameRate > 30.1
+      ) {
+        throw new Error("Generated video is not mobile compatible.");
+      }
+
       dailyGenerations.set(clientKey, today);
       const cleanupTimer = setTimeout(
         () => void rm(outputPath, { force: true }),
-        60 * 60 * 1000,
+        generatedLifetimeMs,
       );
       cleanupTimer.unref();
       res.status(201).json({
