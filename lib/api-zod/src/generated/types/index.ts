@@ -7,7 +7,4 @@
  */
 
 export * from './apiError';
-export * from './cartoonVideo';
 export * from './healthStatus';
-export * from './listCartoonVideos200';
-export * from './listCartoonVideosParams';

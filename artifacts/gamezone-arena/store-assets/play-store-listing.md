@@ -44,7 +44,8 @@ and public listings may vary by region and service availability.
 - Contact details: Enter the developer's monitored support email in Play Console
 - Privacy policy: Use the published API Server URL followed by `/privacy-policy`
 
-## Release notes for 1.0.2
+## Release notes for 1.0.3
 
-- Improved games, business, services, products, and jobs features
-- Improved app stability and Android compatibility
+- Fixed Android startup reliability
+- Removed the Cartoon Video feature and related unused media components
+- Improved games, business, services, products, and jobs stability

@@ -9,30 +9,6 @@ export interface HealthStatus {
   status: string;
 }
 
-export interface CartoonVideo {
-  id: string;
-  title: string;
-  thumbnailUrl: string;
-  videoUrl: string;
-  description: string;
-  category: string;
-  /** @minimum 1 */
-  durationSeconds: number;
-  license: string;
-  sourceUrl: string;
-}
-
 export interface ApiError {
   error: string;
 }
-
-export type ListCartoonVideosParams = {
-/**
- * Optional exact category filter
- */
-category?: string;
-};
-
-export type ListCartoonVideos200 = {
-  videos: CartoonVideo[];
-};

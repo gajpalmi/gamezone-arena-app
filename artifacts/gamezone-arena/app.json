@@ -2,12 +2,12 @@
   "expo": {
     "name": "GAMEZONE ARENA",
     "slug": "gamezone-arena",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "gamezone-arena",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/images/icon.png",
       "resizeMode": "contain",
@@ -18,7 +18,7 @@
     },
     "android": {
       "package": "com.gamezonearena.app",
-      "versionCode": 3,
+      "versionCode": 4,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#070A13"

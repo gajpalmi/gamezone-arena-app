@@ -3,8 +3,8 @@
 ## Prepared in the project
 
 - [x] Android package is `com.gamezonearena.app`
-- [x] Release version is `1.0.2`
-- [x] Android version code is `3`
+- [x] Release version is `1.0.3`
+- [x] Android version code is `4`
 - [x] 1024 × 1024 app icon is configured
 - [x] Android adaptive icon is configured
 - [x] Production EAS profile creates an Android App Bundle
@@ -18,7 +18,7 @@
 
 - [ ] Host the privacy policy at a stable public HTTPS URL
 - [x] Confirm client-safe Clerk and Supabase production variables are present
-- [x] Generate and retain a new signed AAB without the removed Cartoon feature
+- [ ] Generate and retain the replacement signed AAB without the removed Cartoon feature
 
 ## Required in Play Console
 

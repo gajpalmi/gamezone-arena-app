@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { AdService } from "@/services/AdService";
@@ -8,24 +8,41 @@ type AdBannerPlaceholderProps = {
   placement: "home" | "games" | "ludo";
 };
 
+const AD_START_DELAY_MS = 350;
+
 export function AdBannerPlaceholder({
   placement,
 }: AdBannerPlaceholderProps) {
-  const ads = useMemo(() => getNativeAdsModule(), []);
+  const [ads, setAds] = useState<ReturnType<typeof getNativeAdsModule>>(null);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     let active = true;
-    void AdService.showBanner(placement).then((initialized) => {
-      if (active) setReady(initialized);
-    });
+    const timer = setTimeout(() => {
+      const nativeAds = getNativeAdsModule();
+      if (!active) return;
+
+      setAds(nativeAds);
+      if (!nativeAds) return;
+
+      void AdService.showBanner(placement)
+        .then((initialized) => {
+          if (active) setReady(initialized);
+        })
+        .catch((error) => {
+          console.warn(`Banner ad initialization failed at ${placement}.`, error);
+          if (active) setFailed(true);
+        });
+    }, AD_START_DELAY_MS);
+
     return () => {
       active = false;
+      clearTimeout(timer);
     };
   }, [placement]);
 
-  const unitId = AdService.getBannerUnitId();
+  const unitId = ads ? AdService.getBannerUnitId() : null;
   if (ads && ready && unitId && !failed) {
     return (
       <View

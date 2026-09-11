@@ -16,11 +16,7 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
-  ApiError,
-  CartoonVideo,
-  HealthStatus,
-  ListCartoonVideos200,
-  ListCartoonVideosParams
+  HealthStatus
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -57,6 +53,7 @@ export const getHealthCheckUrl = () => {
 
   return `/api/healthz`
 }
+
 /**
  * Returns server health status
  * @summary Health check
@@ -126,162 +123,4 @@ export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, 
 
 
 
-export const getListCartoonVideosUrl = (params?: ListCartoonVideosParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/api/cartoon-videos?${stringifiedParams}` : `/api/cartoon-videos`
-}
-
-/**
- * Returns the public, read-only catalog of licensed cartoon videos
- * @summary List cartoon videos
- */
-export const listCartoonVideos = async (params?: ListCartoonVideosParams, options?: Parameters<typeof customFetch>[1]): Promise<ListCartoonVideos200> => {
-
-  return customFetch<ListCartoonVideos200>(getListCartoonVideosUrl(params),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getListCartoonVideosQueryKey = (params?: ListCartoonVideosParams,) => {
-    return [
-    `/api/cartoon-videos`, ...(params ? [params] : [])
-    ] as const;
-    }
-
-
-export const getListCartoonVideosQueryOptions = <TData = Awaited<ReturnType<typeof listCartoonVideos>>, TError = ErrorType<unknown>>(params?: ListCartoonVideosParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listCartoonVideos>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getListCartoonVideosQueryKey(params);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listCartoonVideos>>> = ({ signal }) => listCartoonVideos(params, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listCartoonVideos>>, TError, TData> & { queryKey: QueryKey }
-}
-
-export type ListCartoonVideosQueryResult = NonNullable<Awaited<ReturnType<typeof listCartoonVideos>>>
-export type ListCartoonVideosQueryError = ErrorType<unknown>
-
-
-/**
- * @summary List cartoon videos
- */
-
-export function useListCartoonVideos<TData = Awaited<ReturnType<typeof listCartoonVideos>>, TError = ErrorType<unknown>>(
- params?: ListCartoonVideosParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listCartoonVideos>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
-
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-
-  const queryOptions = getListCartoonVideosQueryOptions(params,options)
-
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
-
-
-
-
-
-
-export const getGetCartoonVideoUrl = (videoId: string,) => {
-
-
-
-
-  return `/api/cartoon-videos/${videoId}`
-}
-
-/**
- * Returns one licensed cartoon video by its stable ID
- * @summary Get a cartoon video
- */
-export const getCartoonVideo = async (videoId: string, options?: Parameters<typeof customFetch>[1]): Promise<CartoonVideo> => {
-
-  return customFetch<CartoonVideo>(getGetCartoonVideoUrl(videoId),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getGetCartoonVideoQueryKey = (videoId: string,) => {
-    return [
-    `/api/cartoon-videos/${videoId}`
-    ] as const;
-    }
-
-
-export const getGetCartoonVideoQueryOptions = <TData = Awaited<ReturnType<typeof getCartoonVideo>>, TError = ErrorType<ApiError>>(videoId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCartoonVideo>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetCartoonVideoQueryKey(videoId);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCartoonVideo>>> = ({ signal }) => getCartoonVideo(videoId, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, enabled: videoId !== null && videoId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCartoonVideo>>, TError, TData> & { queryKey: QueryKey }
-}
-
-export type GetCartoonVideoQueryResult = NonNullable<Awaited<ReturnType<typeof getCartoonVideo>>>
-export type GetCartoonVideoQueryError = ErrorType<ApiError>
-
-
-/**
- * @summary Get a cartoon video
- */
-
-export function useGetCartoonVideo<TData = Awaited<ReturnType<typeof getCartoonVideo>>, TError = ErrorType<ApiError>>(
- videoId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCartoonVideo>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
-
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-
-  const queryOptions = getGetCartoonVideoQueryOptions(videoId,options)
-
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
-// End of generated API client.
 

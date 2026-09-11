@@ -20,7 +20,6 @@ import {
 } from '@/context/AppSessionContext';
 import { setBaseUrl } from '@workspace/api-client-react';
 import { BusinessQueryProvider } from '@/components/BusinessQueryProvider';
-import { AdService } from '@/services/AdService';
 import { PreferencesProvider } from '@/context/PreferencesContext';
 import {
   setSupabaseAccessTokenGetter,
@@ -83,10 +82,6 @@ function SupabaseAuthBridge({
 }
 
 export default function RootLayout() {
-  React.useEffect(() => {
-    void AdService.initialize();
-  }, []);
-
   if (!CLERK_PUBLISHABLE_KEY) {
     return (
       <View style={styles.error}>

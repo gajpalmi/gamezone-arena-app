@@ -15,3 +15,4 @@
 - [Cartoon mobile uploads](cartoon-mobile-uploads.md) — send large phone videos in small sequential chunks; single raw uploads can abort on slow mobile connections.
 - [Cartoon ink compositing](cartoon-ink-compositing.md) — composite FFmpeg edge ink through an alpha mask; direct grayscale blending can strip video color.
 - [Mobile web video sharing](mobile-web-video-sharing.md) — preload the generated MP4 before a tap so Web Share can send the file while user activation is still valid.
+- [Expo SDK 54 maps compatibility](expo-sdk-54-maps-compatibility.md) — keep Maps on Expo’s checked SDK-compatible version, even when generic Expo Go advice differs.
