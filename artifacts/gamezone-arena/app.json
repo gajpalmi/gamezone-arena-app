@@ -2,7 +2,7 @@
   "expo": {
     "name": "GAMEZONE ARENA",
     "slug": "gamezone-arena",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "gamezone-arena",
@@ -18,7 +18,7 @@
     },
     "android": {
       "package": "com.gamezonearena.app",
-      "versionCode": 2,
+      "versionCode": 3,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#070A13"

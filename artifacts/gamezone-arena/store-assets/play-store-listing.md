@@ -44,7 +44,7 @@ and public listings may vary by region and service availability.
 - Contact details: Enter the developer's monitored support email in Play Console
 - Privacy policy: Use the published API Server URL followed by `/privacy-policy`
 
-## Release notes for 1.0.1
+## Release notes for 1.0.2
 
 - Improved games, business, services, products, and jobs features
 - Improved app stability and Android compatibility

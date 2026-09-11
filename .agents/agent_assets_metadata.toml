@@ -114,3 +114,17 @@ mtime_ms = 1789105797268
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7b7691e1-7821-483d-8acd-32f06728811e/7908c747-e8e4-436d-861c-e8de0c694f98/72074bbc-0eef-4dd2-8a98-7ccfd3996060"
 storage_version_token = "1789105823411500"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "JKBfNp_7ihZUtLR6eBGI_"
+uri = "file://artifacts/gamezone-arena/store-assets/releases/GAMEZONE-ARENA-1.0.2-build-3.aab"
+type = "unspecified"
+title = "GAMEZONE ARENA 1.0.2 — Cartoon-Free Play Store AAB"
+description = "Signed production Android App Bundle, version 1.0.2, version code 3. Cartoon Video has been removed. Built using included Expo Free-plan quota."
+logical_id = "4a466c85-b981-4c79-a3a7-fd063c2ce289"
+content_hash = "sha256:c81913a9965429ccb0f51559d0aa22ff3945c94751e91363bfae123dddbd0b8e"
+size = 83594534
+mtime_ms = 1789112484507
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7b7691e1-7821-483d-8acd-32f06728811e/4a466c85-b981-4c79-a3a7-fd063c2ce289/ff836ef6-40ca-4cd8-8dad-aab8af6c85cb"
+storage_version_token = "1789112525826362"
+content_type = "application/octet-stream"
