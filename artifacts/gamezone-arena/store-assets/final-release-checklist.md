@@ -18,7 +18,7 @@
 
 - [ ] Host the privacy policy at a stable public HTTPS URL
 - [x] Confirm client-safe Clerk and Supabase production variables are present
-- [ ] Generate and retain the replacement signed AAB
+- [x] Generate and retain the replacement signed AAB (`GAMEZONE-ARENA-1.0.3-build-4.aab`)
 
 ## Required in Play Console
 

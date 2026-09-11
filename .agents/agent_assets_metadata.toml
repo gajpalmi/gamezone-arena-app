@@ -135,3 +135,18 @@ uri = "file://artifacts/gamezone-arena-project-video/public/audio/bg_music.mp3"
 type = "audio"
 title = "gaming video background music"
 description = "Generated music: Driving electronic synthwave instrumental background music scoring a competitive mobile gaming project video. Punchy electronic drums, warm analog bass, energetic arpeggiated synths,…"
+logical_id = "b3655178-8fa8-4eca-a944-523f0e682005"
+
+[[outputs]]
+id = "U0FpSXifbZWAO9HV2-usa"
+uri = "file://artifacts/gamezone-arena/store-assets/releases/GAMEZONE-ARENA-1.0.3-build-4.aab"
+type = "unspecified"
+title = "GAMEZONE ARENA 1.0.3 — Android App Bundle"
+description = "Signed production AAB verified as com.gamezonearena.app, version 1.0.3, versionCode 4. SHA-256: bab4a44b1688f407ff065275b62e97b2b351db10b3ba33398cbf5d5a5b29c53f."
+logical_id = "9ed45cab-7374-4f6c-a330-ec427e74ea90"
+content_hash = "sha256:bab4a44b1688f407ff065275b62e97b2b351db10b3ba33398cbf5d5a5b29c53f"
+size = 82070707
+mtime_ms = 1789142695748
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7b7691e1-7821-483d-8acd-32f06728811e/9ed45cab-7374-4f6c-a330-ec427e74ea90/a88153f7-4776-4813-91e6-074cc681cb32"
+storage_version_token = "1789142826985958"
+content_type = "application/octet-stream"

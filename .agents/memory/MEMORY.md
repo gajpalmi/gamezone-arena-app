@@ -12,4 +12,5 @@
 - [Orval and Zod compatibility](orval-zod-compatibility.md) — this workspace's generated validators cannot use Zod 4-only URL and integer helpers while Zod 3 remains installed.
 - [Expo SDK 54 maps compatibility](expo-sdk-54-maps-compatibility.md) — keep Maps on Expo’s checked SDK-compatible version, even when generic Expo Go advice differs.
 - [Deferred native ads startup](deferred-native-ads-startup.md) — defer native ad setup beyond initial UI render; retain diagnostics and retry availability failures.
+- [Expo SDK 54 Android architecture](expo-sdk54-android-architecture.md) — current Reanimated and Google Mobile Ads releases require New Architecture for production Android builds.
 - [Video aspect-ratio persistence](video-artifact-ratio.md) — preserve the complete artifact manifest when adding a video aspect ratio; a minimal replacement removes preview workflows.
