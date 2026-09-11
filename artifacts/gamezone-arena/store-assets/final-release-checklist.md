@@ -18,7 +18,7 @@
 
 - [ ] Host the privacy policy at a stable public HTTPS URL
 - [x] Confirm client-safe Clerk and Supabase production variables are present
-- [ ] Generate and retain the replacement signed AAB without the removed Cartoon feature
+- [ ] Generate and retain the replacement signed AAB
 
 ## Required in Play Console
 

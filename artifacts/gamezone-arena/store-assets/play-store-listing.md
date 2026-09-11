@@ -47,5 +47,4 @@ and public listings may vary by region and service availability.
 ## Release notes for 1.0.3
 
 - Fixed Android startup reliability
-- Removed the Cartoon Video feature and related unused media components
 - Improved games, business, services, products, and jobs stability

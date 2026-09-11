@@ -1,19 +1,40 @@
 import {
   getNativeAdsModule,
+  getLatestNativeAdsModuleDiagnostic,
   usesProductionAdInventory,
 } from "@/services/NativeAds";
 
 export type AdPlacement = "home" | "games" | "ludo";
 
+export type AdInitializationDiagnostic = {
+  stage: "module" | "consent" | "configuration" | "sdk";
+  message: string;
+};
+
 const PRODUCTION_BANNER_ID = "ca-app-pub-5348301935438016/9640212483";
 
 let initialization: Promise<boolean> | null = null;
 let consentAllowsAds = false;
+let latestInitializationDiagnostic: AdInitializationDiagnostic | null = null;
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
 
 async function initializeAds(): Promise<boolean> {
   const ads = getNativeAdsModule();
-  if (!ads) return false;
+  if (!ads) {
+    const moduleDiagnostic = getLatestNativeAdsModuleDiagnostic();
+    if (moduleDiagnostic) {
+      latestInitializationDiagnostic = {
+        stage: "module",
+        message: moduleDiagnostic.message,
+      };
+    }
+    return false;
+  }
 
+  let stage: AdInitializationDiagnostic["stage"] = "consent";
   try {
     const consentInfo = await ads.AdsConsent.requestInfoUpdate();
     const resolvedConsent = consentInfo.isConsentFormAvailable
@@ -22,14 +43,25 @@ async function initializeAds(): Promise<boolean> {
     consentAllowsAds = resolvedConsent.canRequestAds;
     if (!consentAllowsAds) return false;
 
+    stage = "configuration";
     await ads.default().setRequestConfiguration({
       maxAdContentRating: ads.MaxAdContentRating.G,
       testDeviceIdentifiers: usesProductionAdInventory() ? [] : ["EMULATOR"],
     });
+    stage = "sdk";
     await ads.default().initialize();
+    latestInitializationDiagnostic = null;
     return true;
   } catch (error) {
-    console.warn("Google Mobile Ads initialization failed.", error);
+    latestInitializationDiagnostic = {
+      stage,
+      message: getErrorMessage(error),
+    };
+    console.warn(
+      "Google Mobile Ads initialization failed.",
+      latestInitializationDiagnostic,
+      error,
+    );
     consentAllowsAds = false;
     return false;
   }
@@ -37,7 +69,10 @@ async function initializeAds(): Promise<boolean> {
 
 export const AdService = {
   initialize(): Promise<boolean> {
-    initialization ??= initializeAds();
+    initialization ??= initializeAds().then((initialized) => {
+      if (!initialized) initialization = null;
+      return initialized;
+    });
     return initialization;
   },
 
@@ -47,6 +82,10 @@ export const AdService = {
 
   canRequestAds(): boolean {
     return consentAllowsAds;
+  },
+
+  getLatestInitializationDiagnostic(): AdInitializationDiagnostic | null {
+    return latestInitializationDiagnostic;
   },
 
   getBannerUnitId(): string | null {

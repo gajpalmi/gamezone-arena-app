@@ -10,9 +10,5 @@
 - [Applied migration corrections](applied-migration-corrections.md) — once production applies a staged migration, correct its behavior with a new forward migration rather than editing history.
 - [Durable account deletion](durable-account-deletion.md) — preserve media paths server-side until Storage confirms deletion; new user-owned tables and media must join the cleanup contract.
 - [Orval and Zod compatibility](orval-zod-compatibility.md) — this workspace's generated validators cannot use Zod 4-only URL and integer helpers while Zod 3 remains installed.
-- [Cartoon local preview compatibility](cartoon-local-preview-compatibility.md) — unsupported local video codecs must not block server-side cartoon processing.
-- [FFmpeg mobile video dimensions](ffmpeg-mobile-video-dimensions.md) — constrain both dimensions to even values and cap frame rate before forcing an H.264 level.
-- [Cartoon mobile uploads](cartoon-mobile-uploads.md) — send large phone videos in small sequential chunks; single raw uploads can abort on slow mobile connections.
-- [Cartoon ink compositing](cartoon-ink-compositing.md) — composite FFmpeg edge ink through an alpha mask; direct grayscale blending can strip video color.
-- [Mobile web video sharing](mobile-web-video-sharing.md) — preload the generated MP4 before a tap so Web Share can send the file while user activation is still valid.
 - [Expo SDK 54 maps compatibility](expo-sdk-54-maps-compatibility.md) — keep Maps on Expo’s checked SDK-compatible version, even when generic Expo Go advice differs.
+- [Deferred native ads startup](deferred-native-ads-startup.md) — defer native ad setup beyond initial UI render; retain diagnostics and retry availability failures.

@@ -4,7 +4,12 @@ import { Platform } from "react-native";
 export type GoogleMobileAdsModule =
   typeof import("react-native-google-mobile-ads");
 
+export type NativeAdsModuleDiagnostic = {
+  message: string;
+};
+
 let cachedModule: GoogleMobileAdsModule | null | undefined;
+let latestModuleDiagnostic: NativeAdsModuleDiagnostic | null = null;
 
 export function getNativeAdsModule(): GoogleMobileAdsModule | null {
   if (cachedModule !== undefined) return cachedModule;
@@ -19,13 +24,21 @@ export function getNativeAdsModule(): GoogleMobileAdsModule | null {
   try {
     cachedModule = require("react-native-google-mobile-ads");
   } catch (error) {
+    latestModuleDiagnostic = {
+      message: error instanceof Error ? error.message : String(error),
+    };
     console.info(
       "Google Mobile Ads is unavailable in this runtime. Use a native development build.",
+      latestModuleDiagnostic,
       error,
     );
     cachedModule = null;
   }
   return cachedModule ?? null;
+}
+
+export function getLatestNativeAdsModuleDiagnostic(): NativeAdsModuleDiagnostic | null {
+  return latestModuleDiagnostic;
 }
 
 export function usesProductionAdInventory(): boolean {
