@@ -117,8 +117,27 @@ export default function CartoonVideosScreen() {
         resolveCartoonMediaUrl(`/api/cartoon-videos/upload/${initResult.uploadId}/complete`),
         { method: "POST", headers: { "Content-Type": "application/json", ...(await authHeaders()) }, body: "{}" },
       );
-      const result = await response.json();
-      if (!response.ok || !result.videoUrl) {
+      let result = await response.json();
+      if (!response.ok && response.status !== 202) {
+        throw new Error(result.error || "Cartoon generation failed.");
+      }
+      // Completion only queues FFmpeg work. Poll short requests so a mobile
+      // browser never has to keep the long-running completion request open.
+      for (let attempt = 0; result.status === "processing" && attempt < 300; attempt += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        const statusResponse = await fetch(
+          resolveCartoonMediaUrl(`/api/cartoon-videos/upload/${initResult.uploadId}/status`),
+          { headers: await authHeaders() },
+        );
+        result = await statusResponse.json();
+        if (!statusResponse.ok && statusResponse.status !== 202) {
+          throw new Error(result.error || "Cartoon processing status was unavailable.");
+        }
+      }
+      if (result.status === "processing") {
+        throw new Error("Cartoon processing is taking too long. Please try again.");
+      }
+      if (!result.videoUrl) {
         throw new Error(result.error || "Cartoon generation failed.");
       }
       const nextGeneratedUrl = resolveCartoonMediaUrl(result.videoUrl);

@@ -40,6 +40,17 @@ type UploadSession = {
   timer: NodeJS.Timeout;
 };
 const uploads = new Map<string, UploadSession>();
+type CartoonJob = {
+  id: string;
+  inputPath: string;
+  clientKey: string;
+  userId: string | null;
+  status: "processing" | "ready" | "failed";
+  videoUrl?: string;
+  error?: string;
+  timer: NodeJS.Timeout;
+};
+const jobs = new Map<string, CartoonJob>();
 
 router.use(
   "/cartoon-videos/media",
@@ -203,6 +214,53 @@ async function finishGeneration(req: Request, res: express.Response, inputPath: 
   }
 }
 
+function jobResponse(job: CartoonJob) {
+  return {
+    jobId: job.id,
+    status: job.status,
+    ...(job.status === "ready" ? { id: job.id, videoUrl: job.videoUrl, expiresInSeconds: 3600 } : {}),
+    ...(job.status === "failed" ? { error: job.error } : {}),
+  };
+}
+
+function expireJob(job: CartoonJob) {
+  clearTimeout(job.timer);
+  jobs.delete(job.id);
+  void rm(job.inputPath, { force: true });
+}
+
+async function runCartoonJob(job: CartoonJob) {
+  const today = new Date().toISOString().slice(0, 10);
+  removeOldGenerationLimits(today);
+  if (!reserveGenerationSlot(job.clientKey, today)) {
+    job.status = "failed";
+    job.error = job.userId
+      ? "You have reached the daily limit of 10 cartoon videos. Try again tomorrow."
+      : "This network has reached the daily guest limit of 10 cartoon videos. Try again tomorrow or sign in with another eligible account.";
+    await rm(job.inputPath, { force: true });
+    return;
+  }
+  const outputPath = path.join(generatedDirectory, `${job.id}.mp4`);
+  let succeeded = false;
+  try {
+    await processCartoonVideo(job.inputPath, outputPath);
+    succeeded = true;
+    job.status = "ready";
+    job.videoUrl = `/api/cartoon-videos/generated/${job.id}.mp4`;
+    const outputTimer = setTimeout(() => void rm(outputPath, { force: true }), generatedLifetimeMs);
+    outputTimer.unref();
+  } catch (error) {
+    console.error("Cartoon generation failed", error);
+    await rm(outputPath, { force: true });
+    job.status = "failed";
+    job.error = error instanceof Error && error.message === "Video must be 1 minute or shorter."
+      ? error.message : "This video could not be processed. Try another MP4 or MOV file.";
+  } finally {
+    if (!succeeded) releaseGenerationSlot(job.clientKey, today);
+    await rm(job.inputPath, { force: true });
+  }
+}
+
 router.get("/cartoon-videos/generated/:fileName", async (req, res) => {
   const { fileName } = req.params;
   if (!/^[0-9a-f-]+\.mp4$/i.test(fileName)) {
@@ -270,8 +328,17 @@ router.post(
 );
 
 router.post("/cartoon-videos/upload/:uploadId/complete", express.json({ limit: "10kb" }), async (req, res) => {
-  const session = uploads.get(req.params.uploadId);
   const { clientKey } = getAuthClientKey(req);
+  const existingJob = jobs.get(req.params.uploadId);
+  if (existingJob) {
+    if (existingJob.clientKey !== clientKey) {
+      res.status(404).json({ error: "Upload session not found or expired. Please start again." });
+      return;
+    }
+    res.status(existingJob.status === "processing" ? 202 : 200).json(jobResponse(existingJob));
+    return;
+  }
+  const session = uploads.get(req.params.uploadId);
   if (!session || session.clientKey !== clientKey) {
     res.status(404).json({ error: "Upload session not found or expired. Please start again." });
     return;
@@ -283,7 +350,33 @@ router.post("/cartoon-videos/upload/:uploadId/complete", express.json({ limit: "
   }
   await removeUpload(session, false);
   const inputPath = path.join(generatedDirectory, `${session.id}-input`);
-  await finishGeneration(req, res, inputPath, clientKey);
+  const { userId } = getAuth(req);
+  const timer = setTimeout(() => {
+    const current = jobs.get(session.id);
+    if (current) expireJob(current);
+  }, generatedLifetimeMs + uploadLifetimeMs);
+  timer.unref();
+  const job: CartoonJob = {
+    id: session.id,
+    inputPath,
+    clientKey,
+    userId: userId ?? null,
+    status: "processing",
+    timer,
+  };
+  jobs.set(job.id, job);
+  res.status(202).json(jobResponse(job));
+  void runCartoonJob(job);
+});
+
+router.get("/cartoon-videos/upload/:uploadId/status", async (req, res) => {
+  const job = jobs.get(req.params.uploadId);
+  const { clientKey } = getAuthClientKey(req);
+  if (!job || job.clientKey !== clientKey) {
+    res.status(404).json({ error: "Cartoon processing job not found or expired." });
+    return;
+  }
+  res.status(job.status === "processing" ? 202 : 200).json(jobResponse(job));
 });
 
 router.post("/cartoon-videos/generate", express.raw({ type: "video/*", limit: "100mb" }), async (req, res) => {
