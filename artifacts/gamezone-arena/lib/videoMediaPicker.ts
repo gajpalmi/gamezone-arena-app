@@ -80,8 +80,12 @@ export async function pickCartoonVideoFile() {
   });
   if (result.canceled) return null;
   const asset = result.assets[0];
+  const previewUri =
+    Platform.OS === "web" && asset.file
+      ? URL.createObjectURL(asset.file)
+      : asset.uri;
   return validate({
-    uri: asset.uri,
+    uri: previewUri,
     name: asset.name,
     mimeType: asset.mimeType || "video/mp4",
     size: asset.size,
