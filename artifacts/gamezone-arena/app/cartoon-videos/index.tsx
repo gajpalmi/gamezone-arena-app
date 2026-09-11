@@ -1,10 +1,12 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   FlatList,
   Image,
+  Platform,
   Pressable,
+  Share,
   StyleSheet,
   Text,
   View,
@@ -43,6 +45,11 @@ export default function CartoonVideosScreen() {
   const [selectedVideo, setSelectedVideo] = useState<PickedVideo | null>(null);
   const [generatedUrl, setGeneratedUrl] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [sourceMuted, setSourceMuted] = useState(false);
+  const [resultMuted, setResultMuted] = useState(false);
+  const listRef = useRef<FlatList<CartoonVideo>>(null);
+  const sourceVideoRef = useRef<Video>(null);
+  const resultVideoRef = useRef<Video>(null);
   const columns = width >= 700 ? 3 : 2;
   const query = useListCartoonVideos(undefined, {
     query: {
@@ -58,6 +65,8 @@ export default function CartoonVideosScreen() {
       if (picked) {
         setSelectedVideo(picked);
         setGeneratedUrl(null);
+        setSourceMuted(false);
+        setResultMuted(false);
       }
     } catch (error) {
       Alert.alert(
@@ -89,7 +98,12 @@ export default function CartoonVideosScreen() {
       if (!response.ok || !result.videoUrl) {
         throw new Error(result.error || "Cartoon generation failed.");
       }
-      setGeneratedUrl(resolveCartoonMediaUrl(result.videoUrl));
+      const nextGeneratedUrl = resolveCartoonMediaUrl(result.videoUrl);
+      setGeneratedUrl(nextGeneratedUrl);
+      setResultMuted(false);
+      setTimeout(() => {
+        listRef.current?.scrollToOffset({ offset: 680, animated: true });
+      }, 350);
     } catch (error) {
       Alert.alert(
         "Unable to make cartoon",
@@ -98,6 +112,46 @@ export default function CartoonVideosScreen() {
     } finally {
       setIsGenerating(false);
     }
+  }
+
+  async function turnSourceSoundOn() {
+    setSourceMuted(false);
+    await sourceVideoRef.current?.setIsMutedAsync(false);
+    await sourceVideoRef.current?.setVolumeAsync(1);
+  }
+
+  async function turnResultSoundOn() {
+    setResultMuted(false);
+    await resultVideoRef.current?.setIsMutedAsync(false);
+    await resultVideoRef.current?.setVolumeAsync(1);
+  }
+
+  async function shareCartoon() {
+    if (!generatedUrl) return;
+    try {
+      if (Platform.OS === "web") {
+        window.open(generatedUrl, "_blank", "noopener,noreferrer");
+        return;
+      }
+      await Share.share({
+        title: "My Gamezone cartoon",
+        message: `My Gamezone cartoon video: ${generatedUrl}`,
+        url: generatedUrl,
+      });
+    } catch (error) {
+      Alert.alert(
+        "Unable to share cartoon",
+        error instanceof Error ? error.message : "Please try again.",
+      );
+    }
+  }
+
+  function createAnother() {
+    setSelectedVideo(null);
+    setGeneratedUrl(null);
+    setSourceMuted(false);
+    setResultMuted(false);
+    listRef.current?.scrollToOffset({ offset: 130, animated: true });
   }
 
   const header = (
@@ -149,11 +203,33 @@ export default function CartoonVideosScreen() {
         </View>
 
         {selectedVideo ? (
-          <View style={styles.selection}>
-            <Feather name="check-circle" size={18} color="#7CF2B2" />
-            <Text numberOfLines={1} style={styles.selectionText}>
-              {selectedVideo.name}
-            </Text>
+          <View style={styles.sourcePreviewWrap}>
+            <View style={styles.previewHeadingRow}>
+              <View>
+                <Text style={styles.previewEyebrow}>1. YOUR ORIGINAL VIDEO</Text>
+                <Text numberOfLines={1} style={styles.selectionText}>
+                  {selectedVideo.name}
+                </Text>
+              </View>
+              <Feather name="check-circle" size={20} color="#7CF2B2" />
+            </View>
+            <Video
+              ref={sourceVideoRef}
+              source={{ uri: selectedVideo.uri }}
+              useNativeControls
+              isMuted={sourceMuted}
+              volume={1}
+              resizeMode={ResizeMode.CONTAIN}
+              style={styles.sourceVideo}
+            />
+            <Pressable
+              accessibilityLabel="Turn original video sound on"
+              onPress={() => void turnSourceSoundOn()}
+              style={({ pressed }) => [styles.soundButton, pressed && styles.pressed]}
+            >
+              <Feather name="volume-2" size={17} color="#7CF2B2" />
+              <Text style={styles.soundButtonText}>SOUND ON · ORIGINAL VOICE WILL STAY</Text>
+            </Pressable>
           </View>
         ) : null}
 
@@ -167,7 +243,13 @@ export default function CartoonVideosScreen() {
           ]}
         >
           {isGenerating ? (
-            <ActivityIndicator color={colors.light.primaryForeground} />
+            <View style={styles.generatingContent}>
+              <ActivityIndicator color={colors.light.primaryForeground} />
+              <View>
+                <Text style={styles.generateText}>MAKING YOUR CARTOON…</Text>
+                <Text style={styles.generatingNote}>Uploading video and keeping its sound</Text>
+              </View>
+            </View>
           ) : (
             <>
               <Feather name="zap" size={18} color={colors.light.primaryForeground} />
@@ -178,14 +260,52 @@ export default function CartoonVideosScreen() {
 
         {generatedUrl ? (
           <View style={styles.resultWrap}>
-            <Text style={styles.resultTitle}>YOUR CARTOON IS READY</Text>
+            <Text style={styles.resultTitle}>2. YOUR CARTOON IS READY</Text>
+            <Text style={styles.resultIntro}>
+              Play it here with sound. Use Save / Share before it expires.
+            </Text>
             <Video
+              ref={resultVideoRef}
               source={{ uri: generatedUrl }}
               useNativeControls
               shouldPlay
+              isMuted={resultMuted}
+              volume={1}
               resizeMode={ResizeMode.CONTAIN}
               style={styles.resultVideo}
             />
+            <Pressable
+              accessibilityLabel="Turn cartoon sound on"
+              onPress={() => void turnResultSoundOn()}
+              style={({ pressed }) => [styles.soundButton, styles.resultSoundButton, pressed && styles.pressed]}
+            >
+              <Feather name="volume-2" size={17} color="#7CF2B2" />
+              <Text style={styles.soundButtonText}>TURN CARTOON SOUND ON</Text>
+            </Pressable>
+            <View style={styles.temporaryNote}>
+              <Feather name="clock" size={16} color="#FFD56A" />
+              <Text style={styles.temporaryText}>
+                Temporary result: save or share it within 1 hour.
+              </Text>
+            </View>
+            <View style={styles.resultActions}>
+              <Pressable
+                accessibilityLabel="Save or share cartoon"
+                onPress={() => void shareCartoon()}
+                style={({ pressed }) => [styles.shareButton, pressed && styles.pressed]}
+              >
+                <Feather name="share-2" size={18} color="#07101F" />
+                <Text style={styles.shareButtonText}>SAVE / SHARE</Text>
+              </Pressable>
+              <Pressable
+                accessibilityLabel="Create another cartoon"
+                onPress={createAnother}
+                style={({ pressed }) => [styles.anotherButton, pressed && styles.pressed]}
+              >
+                <Feather name="refresh-cw" size={17} color="#FFFFFF" />
+                <Text style={styles.anotherButtonText}>CREATE ANOTHER</Text>
+              </Pressable>
+            </View>
           </View>
         ) : null}
       </View>
@@ -225,6 +345,7 @@ export default function CartoonVideosScreen() {
   return (
     <View style={styles.screen}>
       <FlatList
+        ref={listRef}
         key={columns}
         data={videos}
         numColumns={columns}
@@ -410,20 +531,54 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginTop: 7,
   },
-  selection: {
+  sourcePreviewWrap: {
+    marginTop: 14,
+    padding: 12,
+    borderRadius: 16,
+    backgroundColor: "#111B3E",
+    borderWidth: 1,
+    borderColor: "#617AB2",
+  },
+  previewHeadingRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 14,
-    paddingHorizontal: 11,
-    minHeight: 42,
-    borderRadius: 12,
-    backgroundColor: "#7CF2B214",
+    justifyContent: "space-between",
+    marginBottom: 10,
+  },
+  previewEyebrow: {
+    color: "#7CF2B2",
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 0.8,
   },
   selectionText: {
-    flex: 1,
+    maxWidth: 245,
     color: colors.light.secondaryForeground,
     fontSize: 12,
-    marginLeft: 8,
+    marginTop: 3,
+  },
+  sourceVideo: {
+    width: "100%",
+    aspectRatio: 16 / 9,
+    borderRadius: 13,
+    backgroundColor: "#000000",
+  },
+  soundButton: {
+    minHeight: 43,
+    marginTop: 10,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#173D41",
+    borderWidth: 1,
+    borderColor: "#47A985",
+  },
+  soundButtonText: {
+    color: "#E7FFF2",
+    fontSize: 10,
+    fontWeight: "900",
+    marginLeft: 7,
   },
   generateButton: {
     minHeight: 58,
@@ -435,6 +590,11 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
   disabledButton: { opacity: 0.42 },
+  generatingContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
   generateText: {
     color: colors.light.primaryForeground,
     fontSize: 12,
@@ -442,19 +602,92 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
     marginLeft: 8,
   },
-  resultWrap: { marginTop: 18 },
+  generatingNote: {
+    color: "#07101F",
+    fontSize: 10,
+    fontWeight: "700",
+    marginLeft: 8,
+    marginTop: 2,
+  },
+  resultWrap: {
+    marginTop: 20,
+    padding: 13,
+    borderRadius: 18,
+    backgroundColor: "#12294A",
+    borderWidth: 2,
+    borderColor: "#58D99C",
+  },
   resultTitle: {
     color: "#7CF2B2",
     fontSize: 11,
     fontWeight: "900",
     letterSpacing: 1,
-    marginBottom: 9,
+    marginBottom: 5,
+  },
+  resultIntro: {
+    color: "#D6E2FF",
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 10,
   },
   resultVideo: {
     width: "100%",
     aspectRatio: 16 / 9,
     borderRadius: 14,
     backgroundColor: "#000000",
+  },
+  resultSoundButton: { marginTop: 10 },
+  temporaryNote: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 11,
+    padding: 10,
+    borderRadius: 11,
+    backgroundColor: "#FFD56A18",
+  },
+  temporaryText: {
+    flex: 1,
+    color: "#FFE6A7",
+    fontSize: 11,
+    lineHeight: 16,
+    marginLeft: 8,
+  },
+  resultActions: {
+    flexDirection: "row",
+    gap: 9,
+    marginTop: 12,
+  },
+  shareButton: {
+    flex: 1,
+    minHeight: 50,
+    borderRadius: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#58D99C",
+  },
+  shareButtonText: {
+    color: "#07101F",
+    fontSize: 10,
+    fontWeight: "900",
+    marginLeft: 7,
+  },
+  anotherButton: {
+    flex: 1,
+    minHeight: 50,
+    borderRadius: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#3B4E80",
+    borderWidth: 1,
+    borderColor: "#708DCA",
+  },
+  anotherButtonText: {
+    color: "#FFFFFF",
+    fontSize: 9,
+    fontWeight: "900",
+    marginLeft: 7,
   },
   catalogHeading: {
     color: "#D6E0FF",
