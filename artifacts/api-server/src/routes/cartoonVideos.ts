@@ -19,7 +19,8 @@ const router: IRouter = Router();
 const runFile = promisify(execFile);
 const generatedDirectory = path.join(os.tmpdir(), "gamezone-cartoon-videos");
 const generatedLifetimeMs = 60 * 60 * 1000;
-const dailyGenerations = new Map<string, string>();
+const dailyGenerationLimit = 10;
+const dailyGenerations = new Map<string, { date: string; count: number }>();
 const mediaDirectory = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "..",
@@ -61,9 +62,27 @@ function getDailyClientKey(req: Request, userId?: string | null) {
 }
 
 function removeOldGenerationLimits(today: string) {
-  for (const [clientKey, date] of dailyGenerations) {
-    if (date !== today) dailyGenerations.delete(clientKey);
+  for (const [clientKey, usage] of dailyGenerations) {
+    if (usage.date !== today) dailyGenerations.delete(clientKey);
   }
+}
+
+function reserveGenerationSlot(clientKey: string, today: string) {
+  const usage = dailyGenerations.get(clientKey);
+  const count = usage?.date === today ? usage.count : 0;
+  if (count >= dailyGenerationLimit) return false;
+  dailyGenerations.set(clientKey, { date: today, count: count + 1 });
+  return true;
+}
+
+function releaseGenerationSlot(clientKey: string, today: string) {
+  const usage = dailyGenerations.get(clientKey);
+  if (!usage || usage.date !== today) return;
+  if (usage.count <= 1) {
+    dailyGenerations.delete(clientKey);
+    return;
+  }
+  dailyGenerations.set(clientKey, { date: today, count: usage.count - 1 });
 }
 
 router.get("/cartoon-videos/generated/:fileName", async (req, res) => {
@@ -101,11 +120,11 @@ router.post(
     const clientKey = getDailyClientKey(req, userId);
     const today = new Date().toISOString().slice(0, 10);
     removeOldGenerationLimits(today);
-    if (dailyGenerations.get(clientKey) === today) {
+    if (!reserveGenerationSlot(clientKey, today)) {
       res.status(429).json({
         error: userId
-          ? "Daily cartoon limit reached. Try again tomorrow."
-          : "Daily guest cartoon limit reached for this network. Try again tomorrow or sign in with another eligible account.",
+          ? "You have reached the daily limit of 10 cartoon videos. Try again tomorrow."
+          : "This network has reached the daily guest limit of 10 cartoon videos. Try again tomorrow or sign in with another eligible account.",
       });
       return;
     }
@@ -115,6 +134,7 @@ router.post(
     const id = randomUUID();
     const inputPath = path.join(generatedDirectory, `${id}-input`);
     const outputPath = path.join(generatedDirectory, `${id}.mp4`);
+    let generationSucceeded = false;
 
     try {
       await writeFile(inputPath, input);
@@ -185,7 +205,7 @@ router.post(
         throw new Error("Generated video is not mobile compatible.");
       }
 
-      dailyGenerations.set(clientKey, today);
+      generationSucceeded = true;
       const cleanupTimer = setTimeout(
         () => void rm(outputPath, { force: true }),
         generatedLifetimeMs,
@@ -201,6 +221,7 @@ router.post(
       await rm(outputPath, { force: true });
       res.status(422).json({ error: "This video could not be processed. Try another MP4 or MOV file." });
     } finally {
+      if (!generationSucceeded) releaseGenerationSlot(clientKey, today);
       await rm(inputPath, { force: true });
     }
   },
