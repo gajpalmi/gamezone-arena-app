@@ -1,7 +1,7 @@
-import express, { Router, type IRouter } from "express";
+import express, { Router, type IRouter, type Request } from "express";
 import { getAuth } from "@clerk/express";
 import { execFile } from "node:child_process";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { mkdir, readdir, rm, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
@@ -52,6 +52,20 @@ async function removeExpiredGeneratedVideos() {
   );
 }
 
+function getDailyClientKey(req: Request, userId?: string | null) {
+  if (userId) return `user:${userId}`;
+
+  const guestNetwork = req.ip || req.socket.remoteAddress || "unknown";
+  const guestHash = createHash("sha256").update(guestNetwork).digest("hex");
+  return `guest:${guestHash}`;
+}
+
+function removeOldGenerationLimits(today: string) {
+  for (const [clientKey, date] of dailyGenerations) {
+    if (date !== today) dailyGenerations.delete(clientKey);
+  }
+}
+
 router.get("/cartoon-videos/generated/:fileName", async (req, res) => {
   const { fileName } = req.params;
   if (!/^[0-9a-f-]+\.mp4$/i.test(fileName)) {
@@ -84,15 +98,15 @@ router.post(
     }
 
     const { userId } = getAuth(req);
-    if (!userId) {
-      res.status(401).json({ error: "Sign in to create a cartoon video." });
-      return;
-    }
-
-    const clientKey = userId;
+    const clientKey = getDailyClientKey(req, userId);
     const today = new Date().toISOString().slice(0, 10);
+    removeOldGenerationLimits(today);
     if (dailyGenerations.get(clientKey) === today) {
-      res.status(429).json({ error: "Daily cartoon limit reached. Try again tomorrow." });
+      res.status(429).json({
+        error: userId
+          ? "Daily cartoon limit reached. Try again tomorrow."
+          : "Daily guest cartoon limit reached for this network. Try again tomorrow or sign in with another eligible account.",
+      });
       return;
     }
 

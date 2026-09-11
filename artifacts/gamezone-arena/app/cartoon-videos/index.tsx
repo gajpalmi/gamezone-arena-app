@@ -142,7 +142,9 @@ export default function CartoonVideosScreen() {
           </View>
           <View style={styles.creatorCopy}>
             <Text style={styles.creatorTitle}>Make My Video Cartoon</Text>
-            <Text style={styles.creatorNote}>No avatar · your video gets a cartoon style</Text>
+            <Text style={styles.creatorNote}>
+              No sign-in needed · no avatar · your video gets a cartoon style
+            </Text>
           </View>
         </View>
 
