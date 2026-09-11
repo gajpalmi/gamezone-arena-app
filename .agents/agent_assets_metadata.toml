@@ -58,3 +58,45 @@ type = "audio"
 title = "quiz correct answer"
 description = "Text-to-speech audio: Correct answer!"
 logical_id = "2d90308a-8fdd-4a8c-af5a-a8b5f3112264"
+
+[[outputs]]
+id = "tUA0u7MN3pfS_WAeLsQ6-"
+uri = "file://artifacts/gamezone-arena/store-assets/feature-graphic-1024x500.png"
+type = "image"
+title = "GAMEZONE ARENA Feature Graphic"
+description = "Play Store-ready 1024×500 feature graphic."
+logical_id = "a65bfd11-df06-47ae-9a99-39ee3e4a2948"
+content_hash = "sha256:060669d7aaa49370b6e3107d316b990354b70c1d2a16a2850c8e73f1b660f322"
+size = 231318
+mtime_ms = 1789104157757
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7b7691e1-7821-483d-8acd-32f06728811e/a65bfd11-df06-47ae-9a99-39ee3e4a2948/cbb419e1-6b71-4f37-b255-eed1a48f6eff"
+storage_version_token = "1789104186775096"
+content_type = "image/png"
+
+[[outputs]]
+id = "khwFK-8eXxYGwLyQYLE-L"
+uri = "file://artifacts/gamezone-arena/store-assets/screenshots/play-store-login-1080x2348.jpg"
+type = "image"
+title = "Login Store Screenshot"
+description = "Play Store phone screenshot at 1080×2348."
+logical_id = "dcf200d8-1df8-40ad-979a-516897ae3a9d"
+content_hash = "sha256:bd275da67b4d081ff6e917418fc1ecd9d658101d0089395c1a057844b727ba74"
+size = 120107
+mtime_ms = 1789104157921
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7b7691e1-7821-483d-8acd-32f06728811e/dcf200d8-1df8-40ad-979a-516897ae3a9d/790b4623-0f14-49a2-a4e7-8789bb35b661"
+storage_version_token = "1789104188111463"
+content_type = "image/jpeg"
+
+[[outputs]]
+id = "qblDMF118jswWwvHuahMu"
+uri = "file://artifacts/gamezone-arena/store-assets/screenshots/play-store-cartoon-1080x2348.jpg"
+type = "image"
+title = "Cartoon Creator Store Screenshot"
+description = "Play Store phone screenshot at 1080×2348."
+logical_id = "1f1085bf-524e-4201-ba1f-71432c9461a5"
+content_hash = "sha256:855032be2c7632056d0245eabf7d90af9d15d5bd5fb1a5c52edb222c4de3049f"
+size = 170838
+mtime_ms = 1789104158075
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7b7691e1-7821-483d-8acd-32f06728811e/1f1085bf-524e-4201-ba1f-71432c9461a5/cadc7295-04e2-4611-895e-fb83c0354603"
+storage_version_token = "1789104189408691"
+content_type = "image/jpeg"
