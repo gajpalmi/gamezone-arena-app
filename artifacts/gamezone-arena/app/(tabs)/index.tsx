@@ -273,30 +273,6 @@ export default function HomeScreen() {
         </Pressable>
       </ScrollView>
 
-      <SectionHeader
-        title="Cartoon Videos"
-        action="Watch now"
-      />
-
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.horizontal}
-      >
-        <Pressable
-          style={styles.cartoonCard}
-          onPress={() => router.push('/cartoon-videos' as Href)}
-        >
-          <View style={styles.cartoonIcon}>
-            <Feather name="video" size={24} color="#EC4899" />
-          </View>
-          <Text style={styles.businessTitle}>Cartoon Videos</Text>
-          <Text style={styles.businessDesc}>
-            Watch original and licensed cartoon stories
-          </Text>
-        </Pressable>
-      </ScrollView>
-
       {/* =================================================
           CONTINUE PLAYING
       ================================================= */}
@@ -889,27 +865,6 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 16,
     backgroundColor: '#C66BFF38',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-
-  cartoonCard: {
-    width: 250,
-    minHeight: 160,
-    backgroundColor: '#4A194F',
-    borderRadius: 22,
-    borderWidth: 2,
-    borderColor: '#FF79C9',
-    padding: 18,
-    marginBottom: 20,
-  },
-
-  cartoonIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    backgroundColor: '#EC489940',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,

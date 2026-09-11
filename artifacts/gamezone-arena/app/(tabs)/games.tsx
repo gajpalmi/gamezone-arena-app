@@ -43,15 +43,6 @@ const GAME_LIST: GameItem[] = [
     available: true,
   },
   {
-    id: "cartoon-videos",
-    title: "CARTOON VIDEOS",
-    description: "Watch licensed cartoon stories",
-    icon: "video",
-    color: "#EC4899",
-    route: "/cartoon-videos",
-    available: true,
-  },
-  {
     id: "memory",
     title: "MEMORY MATCH",
     description: "Train your memory",

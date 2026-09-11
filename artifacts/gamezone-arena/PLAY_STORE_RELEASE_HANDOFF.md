@@ -32,20 +32,17 @@ the version code for every later uploaded bundle.
 
 These steps cannot be truthfully completed by source-code checks:
 
-1. **Production API:** Publish the API Server as a **Reserved VM**, not
-   Autoscale. Cartoon conversion jobs and their one-hour output files currently
-   depend on one continuously running server instance.
-2. **Signed AAB:** Replit does not provide guided Google Play submission. Generate
+1. **Signed AAB:** Replit does not provide guided Google Play submission. Generate
    the signed Android App Bundle using the linked project's integrated Android
    build surface. Confirm any build quota or credit charge before starting.
-3. **Public privacy-policy URL:** Publish the API Server and use its stable
-   HTTPS `/privacy-policy` route in Google Play.
-4. **Play Console account:** Create or select the Play Console app with package
+2. **Public privacy-policy URL:** Host the privacy policy at a stable public
+   HTTPS URL and enter it in Google Play.
+3. **Play Console account:** Create or select the Play Console app with package
    `com.gamezonearena.app`.
-5. **AdMob dashboard:** Confirm app verification, publish `app-ads.txt`, publish
+4. **AdMob dashboard:** Confirm app verification, publish `app-ads.txt`, publish
    the required UMP consent message, and ensure target-age declarations match
    the Play Console declarations.
-6. **Physical Android test:** Install through Internal Testing and complete the
+5. **Physical Android test:** Install through Internal Testing and complete the
    checklist below before moving the same release to production.
 
 ## Internal Testing checklist

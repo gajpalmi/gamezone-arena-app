@@ -14,14 +14,11 @@
 - [x] Play Store listing copy is drafted
 - [x] Data Safety and App Access guidance is drafted
 
-## Required after API publishing
+## Required before release
 
-- [ ] Publish API Server as a Reserved VM, not Autoscale
-- [ ] Confirm the published `/privacy-policy` URL returns HTTP 200
-- [x] Set the stable production API domain in the EAS production environment
+- [ ] Host the privacy policy at a stable public HTTPS URL
 - [x] Confirm client-safe Clerk and Supabase production variables are present
-- [x] Generate signed production AAB version code 2
-- [x] Download and retain the final AAB
+- [ ] Generate and retain a new signed AAB without the removed Cartoon feature
 
 ## Required in Play Console
 
@@ -40,8 +37,6 @@
 - [ ] Test account deletion
 - [ ] Test offline games and online Ludo create/join/reconnect
 - [ ] Test game sound, vibration, and denied permissions
-- [ ] Record/select a video and create a cartoon
-- [ ] Confirm cartoon voice, playback, Gallery save, and WhatsApp share
 - [ ] Test business, product/service, jobs, worker, maps, and file uploads
 - [ ] Confirm test ads and Ad Privacy controls without clicking live ads
 - [ ] Promote to Production only after all checks pass
