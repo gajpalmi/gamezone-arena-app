@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Image,
   Pressable,
@@ -9,7 +10,9 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
+import { ResizeMode, Video } from "expo-av";
 import { useRouter } from "expo-router";
+import { useAuth } from "@clerk/expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   type CartoonVideo,
@@ -19,6 +22,12 @@ import {
 import { Feather } from "@/components/Feather";
 import colors from "@/constants/colors";
 import { resolveCartoonMediaUrl } from "@/lib/cartoonVideos";
+import {
+  type PickedVideo,
+  pickCartoonVideo,
+  pickCartoonVideoFile,
+  recordCartoonVideo,
+} from "@/lib/videoMediaPicker";
 
 function formatDuration(totalSeconds: number) {
   const minutes = Math.floor(totalSeconds / 60);
@@ -28,8 +37,12 @@ function formatDuration(totalSeconds: number) {
 
 export default function CartoonVideosScreen() {
   const router = useRouter();
+  const { getToken } = useAuth();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+  const [selectedVideo, setSelectedVideo] = useState<PickedVideo | null>(null);
+  const [generatedUrl, setGeneratedUrl] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
   const columns = width >= 700 ? 3 : 2;
   const query = useListCartoonVideos(undefined, {
     query: {
@@ -39,22 +52,145 @@ export default function CartoonVideosScreen() {
   });
   const videos = query.data?.videos ?? [];
 
+  async function chooseVideo(picker: () => Promise<PickedVideo | null>) {
+    try {
+      const picked = await picker();
+      if (picked) {
+        setSelectedVideo(picked);
+        setGeneratedUrl(null);
+      }
+    } catch (error) {
+      Alert.alert(
+        "Unable to choose video",
+        error instanceof Error ? error.message : "Please try another video.",
+      );
+    }
+  }
+
+  async function generateCartoon() {
+    if (!selectedVideo || isGenerating) return;
+    setIsGenerating(true);
+    try {
+      const sourceResponse = await fetch(selectedVideo.uri);
+      const videoBlob = await sourceResponse.blob();
+      const token = await getToken();
+      const response = await fetch(
+        resolveCartoonMediaUrl("/api/cartoon-videos/generate"),
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": selectedVideo.mimeType || "video/mp4",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: videoBlob,
+        },
+      );
+      const result = await response.json();
+      if (!response.ok || !result.videoUrl) {
+        throw new Error(result.error || "Cartoon generation failed.");
+      }
+      setGeneratedUrl(resolveCartoonMediaUrl(result.videoUrl));
+    } catch (error) {
+      Alert.alert(
+        "Unable to make cartoon",
+        error instanceof Error ? error.message : "Please try another video.",
+      );
+    } finally {
+      setIsGenerating(false);
+    }
+  }
+
   const header = (
-    <View style={styles.header}>
-      <Pressable
-        accessibilityLabel="Go back"
-        onPress={() => router.back()}
-        style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
-      >
-        <Feather name="arrow-left" size={20} color={colors.light.foreground} />
-      </Pressable>
-      <View style={styles.headerText}>
-        <Text style={styles.eyebrow}>WATCH & ENJOY</Text>
-        <Text style={styles.title}>Cartoon Videos</Text>
-        <Text style={styles.subtitle}>
-          Legally licensed stories selected for GAMEZONE ARENA.
-        </Text>
+    <View style={styles.headerBlock}>
+      <View style={styles.header}>
+        <Pressable
+          accessibilityLabel="Go back"
+          onPress={() => router.back()}
+          style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
+        >
+          <Feather name="arrow-left" size={20} color={colors.light.foreground} />
+        </Pressable>
+        <View style={styles.headerText}>
+          <Text style={styles.eyebrow}>CREATE & WATCH</Text>
+          <Text style={styles.title}>Cartoon Videos</Text>
+          <Text style={styles.subtitle}>
+            Record or choose a 5-second video and turn it into a cartoon.
+          </Text>
+        </View>
       </View>
+
+      <View style={styles.creatorCard}>
+        <View style={styles.creatorHeading}>
+          <View style={styles.creatorIcon}>
+            <Feather name="video" size={22} color="#EC4899" />
+          </View>
+          <View style={styles.creatorCopy}>
+            <Text style={styles.creatorTitle}>Make My Cartoon</Text>
+            <Text style={styles.creatorNote}>Up to 5 seconds · voice stays in video</Text>
+          </View>
+        </View>
+
+        <View style={styles.sourceRow}>
+          <SourceButton
+            icon="camera"
+            label="CAMERA"
+            onPress={() => void chooseVideo(recordCartoonVideo)}
+          />
+          <SourceButton
+            icon="image"
+            label="GALLERY"
+            onPress={() => void chooseVideo(pickCartoonVideo)}
+          />
+          <SourceButton
+            icon="folder"
+            label="FILE"
+            onPress={() => void chooseVideo(pickCartoonVideoFile)}
+          />
+        </View>
+
+        {selectedVideo ? (
+          <View style={styles.selection}>
+            <Feather name="check-circle" size={18} color="#7CF2B2" />
+            <Text numberOfLines={1} style={styles.selectionText}>
+              {selectedVideo.name}
+            </Text>
+          </View>
+        ) : null}
+
+        <Pressable
+          disabled={!selectedVideo || isGenerating}
+          onPress={() => void generateCartoon()}
+          style={({ pressed }) => [
+            styles.generateButton,
+            (!selectedVideo || isGenerating) && styles.disabledButton,
+            pressed && styles.pressed,
+          ]}
+        >
+          {isGenerating ? (
+            <ActivityIndicator color={colors.light.primaryForeground} />
+          ) : (
+            <>
+              <Feather name="zap" size={18} color={colors.light.primaryForeground} />
+              <Text style={styles.generateText}>MAKE CARTOON</Text>
+            </>
+          )}
+        </Pressable>
+
+        {generatedUrl ? (
+          <View style={styles.resultWrap}>
+            <Text style={styles.resultTitle}>YOUR CARTOON IS READY</Text>
+            <Video
+              source={{ uri: generatedUrl }}
+              useNativeControls
+              shouldPlay
+              resizeMode={ResizeMode.CONTAIN}
+              style={styles.resultVideo}
+            />
+          </View>
+        ) : null}
+      </View>
+
+      <Text style={styles.catalogHeading}>CARTOON LIBRARY</Text>
     </View>
   );
 
@@ -169,10 +305,31 @@ function VideoCard({
   );
 }
 
+function SourceButton({
+  icon,
+  label,
+  onPress,
+}: {
+  icon: "camera" | "image" | "folder";
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.sourceButton, pressed && styles.pressed]}
+    >
+      <Feather name={icon} size={20} color={colors.light.primary} />
+      <Text style={styles.sourceLabel}>{label}</Text>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.light.background },
   content: { paddingHorizontal: 16 },
   emptyContent: { flexGrow: 1 },
+  headerBlock: { marginBottom: 8 },
   header: { flexDirection: "row", alignItems: "flex-start", marginBottom: 24 },
   headerText: { flex: 1, paddingLeft: 13 },
   backButton: {
@@ -202,6 +359,109 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 19,
     marginTop: 5,
+  },
+  creatorCard: {
+    borderRadius: 20,
+    padding: 16,
+    backgroundColor: colors.light.card,
+    borderWidth: 1,
+    borderColor: "#EC489966",
+    marginBottom: 24,
+  },
+  creatorHeading: { flexDirection: "row", alignItems: "center" },
+  creatorIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#EC489920",
+  },
+  creatorCopy: { flex: 1, marginLeft: 12 },
+  creatorTitle: {
+    color: colors.light.foreground,
+    fontSize: 17,
+    fontWeight: "900",
+  },
+  creatorNote: {
+    color: colors.light.mutedForeground,
+    fontSize: 11,
+    marginTop: 3,
+  },
+  sourceRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 16,
+  },
+  sourceButton: {
+    width: "31.5%",
+    minHeight: 70,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.light.secondary,
+    borderWidth: 1,
+    borderColor: colors.light.border,
+  },
+  sourceLabel: {
+    color: colors.light.secondaryForeground,
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 0.5,
+    marginTop: 7,
+  },
+  selection: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 14,
+    paddingHorizontal: 11,
+    minHeight: 42,
+    borderRadius: 12,
+    backgroundColor: "#7CF2B214",
+  },
+  selectionText: {
+    flex: 1,
+    color: colors.light.secondaryForeground,
+    fontSize: 12,
+    marginLeft: 8,
+  },
+  generateButton: {
+    minHeight: 50,
+    borderRadius: 15,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.light.primary,
+    marginTop: 14,
+  },
+  disabledButton: { opacity: 0.42 },
+  generateText: {
+    color: colors.light.primaryForeground,
+    fontSize: 12,
+    fontWeight: "900",
+    letterSpacing: 0.8,
+    marginLeft: 8,
+  },
+  resultWrap: { marginTop: 18 },
+  resultTitle: {
+    color: "#7CF2B2",
+    fontSize: 11,
+    fontWeight: "900",
+    letterSpacing: 1,
+    marginBottom: 9,
+  },
+  resultVideo: {
+    width: "100%",
+    aspectRatio: 16 / 9,
+    borderRadius: 14,
+    backgroundColor: "#000000",
+  },
+  catalogHeading: {
+    color: colors.light.mutedForeground,
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 1.5,
+    marginBottom: 12,
   },
   row: { justifyContent: "space-between" },
   card: {
