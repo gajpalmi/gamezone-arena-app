@@ -1,0 +1,17 @@
+kind = "video"
+previewPath = "/gamezone-arena-project-video/"
+title = "GAMEZONE ARENA Project Video"
+description = "An animated promotional overview of GAMEZONE ARENA, highlighting its games, social features, rewards, and Android release improvements."
+videoAspectRatio = "16:9"
+
+[[services]]
+name = "web"
+paths = ["/gamezone-arena-project-video/"]
+localPort = 21231
+
+[services.development]
+run = "pnpm --filter @workspace/gamezone-arena-project-video run dev"
+
+[services.env]
+PORT = "21231"
+BASE_PATH = "/gamezone-arena-project-video/"

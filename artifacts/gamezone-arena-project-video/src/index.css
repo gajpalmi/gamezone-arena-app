@@ -1,0 +1,51 @@
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Rajdhani:wght@500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Chakra Petch', sans-serif;
+  --font-display: 'Rajdhani', sans-serif;
+
+  --color-brand-bg: #070A13;
+  --color-brand-cyan: #00f2fe;
+  --color-brand-pink: #ff0844;
+  --color-brand-gold: #ffd700;
+  
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #a0aec0;
+}
+
+:root {
+  --color-bg-light: #070A13;
+  --color-bg-dark: #000000;
+  --font-display: 'Rajdhani', sans-serif;
+  --font-sans: 'Chakra Petch', sans-serif;
+  font-family: var(--font-sans);
+  background-color: var(--color-bg-light);
+  color: #ffffff;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--color-bg-light);
+}
+
+.glow-cyan {
+  box-shadow: 0 0 20px rgba(0, 242, 254, 0.5);
+}
+
+.glow-pink {
+  box-shadow: 0 0 20px rgba(255, 8, 68, 0.5);
+}
+
+.text-glow {
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.text-glow-cyan {
+  text-shadow: 0 0 15px rgba(0, 242, 254, 0.8);
+}
+
+.text-glow-pink {
+  text-shadow: 0 0 15px rgba(255, 8, 68, 0.8);
+}

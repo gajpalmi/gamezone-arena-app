@@ -128,3 +128,10 @@ mtime_ms = 1789112484507
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7b7691e1-7821-483d-8acd-32f06728811e/4a466c85-b981-4c79-a3a7-fd063c2ce289/ff836ef6-40ca-4cd8-8dad-aab8af6c85cb"
 storage_version_token = "1789112525826362"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "VYpX4nEORJ-70vQeWOW4x"
+uri = "file://artifacts/gamezone-arena-project-video/public/audio/bg_music.mp3"
+type = "audio"
+title = "gaming video background music"
+description = "Generated music: Driving electronic synthwave instrumental background music scoring a competitive mobile gaming project video. Punchy electronic drums, warm analog bass, energetic arpeggiated synths,…"
