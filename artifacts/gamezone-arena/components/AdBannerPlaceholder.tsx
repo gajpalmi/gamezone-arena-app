@@ -8,7 +8,7 @@ type AdBannerPlaceholderProps = {
   placement: "home" | "games" | "ludo";
 };
 
-// Let the root layout complete its deferred native initialization first.
+// Let the login/home UI render before lazily initializing native ads.
 const AD_START_DELAY_MS = 1600;
 
 export function AdBannerPlaceholder({

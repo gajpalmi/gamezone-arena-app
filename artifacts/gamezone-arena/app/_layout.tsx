@@ -21,7 +21,6 @@ import {
 import { setBaseUrl } from '@workspace/api-client-react';
 import { BusinessQueryProvider } from '@/components/BusinessQueryProvider';
 import { PreferencesProvider } from '@/context/PreferencesContext';
-import { AdService } from '@/services/AdService';
 import {
   setSupabaseAccessTokenGetter,
 } from '@/lib/supabase';
@@ -82,26 +81,6 @@ function SupabaseAuthBridge({
   return <>{children}</>;
 }
 
-function OptionalNativeStartup() {
-  React.useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | null = null;
-    const frame = requestAnimationFrame(() => {
-      timer = setTimeout(() => {
-        void AdService.initialize().catch((error: unknown) => {
-          console.warn('Deferred Google Mobile Ads startup failed.', error);
-        });
-      }, 1200);
-    });
-
-    return () => {
-      cancelAnimationFrame(frame);
-      if (timer) clearTimeout(timer);
-    };
-  }, []);
-
-  return null;
-}
-
 export default function RootLayout() {
   if (!CLERK_PUBLISHABLE_KEY) {
     return (
@@ -130,7 +109,6 @@ export default function RootLayout() {
       </ClerkLoading>
 
       <ClerkLoaded>
-        <OptionalNativeStartup />
         <SupabaseAuthBridge>
           <AppSessionProvider>
             <PreferencesProvider>
