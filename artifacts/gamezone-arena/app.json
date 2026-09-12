@@ -18,7 +18,7 @@
     },
     "android": {
       "package": "com.gamezonearena.app",
-      "versionCode": 4,
+      "versionCode": 5,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#070A13"

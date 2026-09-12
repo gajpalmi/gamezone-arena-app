@@ -2,3 +2,4 @@ lib/api-client-react/src/generated/api.ts whitespace=-blank-at-eof
 artifacts/gamezone-arena/store-assets/releases/GAMEZONE-ARENA-1.0.1-build-2.aab filter=lfs diff=lfs merge=lfs -text
 artifacts/gamezone-arena/store-assets/releases/GAMEZONE-ARENA-1.0.2-build-3.aab filter=lfs diff=lfs merge=lfs -text
 artifacts/gamezone-arena/store-assets/releases/GAMEZONE-ARENA-1.0.3-build-4.aab filter=lfs diff=lfs merge=lfs -text
+artifacts/gamezone-arena/store-assets/releases/GAMEZONE-ARENA-1.0.3-build-5.aab filter=lfs diff=lfs merge=lfs -text
