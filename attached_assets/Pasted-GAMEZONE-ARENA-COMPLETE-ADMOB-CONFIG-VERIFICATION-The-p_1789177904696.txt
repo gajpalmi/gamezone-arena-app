@@ -1,0 +1,116 @@
+GAMEZONE ARENA — COMPLETE ADMOB CONFIG VERIFICATION
+
+The previous instruction was truncated. Continue ONLY with the following complete verification.
+
+IMPORTANT:
+- Do NOT install Android SDK.
+- Do NOT install any package/tool.
+- Do NOT create Build 5.
+- Do NOT start EAS.
+- Do NOT use any paid service.
+- Do NOT change source code.
+- Do NOT modify the app.
+- Do NOT perform another broad filesystem scan.
+- This is verification only.
+
+STEP 1 — LOCATE THE CONFIG PLUGIN
+
+Locate the existing custom Expo Android config plugin responsible for disabling/removing the Google Mobile Ads automatic startup provider.
+
+Identify:
+- exact plugin file path
+- plugin name
+- where it is referenced from app.json/app.config or the Expo config chain
+
+STEP 2 — INSPECT THE PLUGIN LOGIC
+
+Read the plugin implementation and determine exactly what it does to:
+
+com.google.android.gms.ads.MobileAdsInitProvider
+
+Determine whether it:
+- removes the provider
+- disables the provider
+- changes its enabled state
+- performs some other manifest modification
+- or does nothing
+
+Do not infer. Report what the actual code does.
+
+STEP 3 — VERIFY EXPO CONFIG APPLICATION
+
+Use the already available Expo prebuild/config evaluation output if possible.
+
+Verify that the custom plugin is actually included in the resolved Expo configuration.
+
+Confirm:
+- plugin is loaded
+- plugin executes during Android prebuild/config resolution
+- Android manifest modification is part of the generated configuration
+
+Do not generate or commit a permanent Android project.
+
+STEP 4 — VERIFY ADMOB PRESERVATION
+
+Confirm that the targeted fix does NOT remove:
+
+- react-native-google-mobile-ads dependency
+- AdMob App ID
+- existing Banner ad units
+- existing Rewarded ad units
+- consent handling
+- lazy AdService initialization
+
+STEP 5 — VERIFY INITIALIZATION PATH
+
+Inspect the current startup code and AdService.
+
+Confirm:
+- root layout no longer automatically initializes AdMob at app startup
+- actual ad paths still initialize AdMob lazily when needed
+- no duplicate Mobile Ads initialization exists
+- no second custom initialization was introduced
+
+STEP 6 — MANIFEST LIMITATION
+
+If the actual merged AndroidManifest cannot be inspected because Gradle/Android SDK tooling is unavailable, DO NOT claim that MobileAdsInitProvider is definitely absent.
+
+Report:
+
+MobileAdsInitProvider merged-manifest status:
+NOT VERIFIED — Android SDK/Gradle unavailable
+
+However, separately report whether the Expo config plugin code is verified to remove/disable that provider.
+
+STEP 7 — FINAL OUTPUT
+
+Return ONLY this report:
+
+1. Config plugin found: YES/NO
+2. Plugin file:
+3. Plugin referenced by Expo config: YES/NO
+4. Plugin execution during Expo prebuild/config resolution: VERIFIED/NOT VERIFIED
+5. MobileAdsInitProvider modification in plugin: YES/NO
+6. Modification action: REMOVE / DISABLE / OTHER / NONE
+7. Actual merged AndroidManifest inspected: YES/NO
+8. MobileAdsInitProvider merged-manifest status: PRESENT / ABSENT / NOT VERIFIED
+9. AdMob App ID preserved: YES/NO
+10. Banner ad units preserved: YES/NO
+11. Rewarded ad units preserved: YES/NO
+12. Consent flow preserved: YES/NO
+13. Lazy AdService initialization verified: YES/NO
+14. Duplicate AdMob initialization: YES/NO
+15. Source changed during this verification: YES/NO
+16. Build 5 created: YES/NO
+
+FINAL DECISION:
+
+If the config plugin is verified to remove/disable MobileAdsInitProvider and all other checks pass, say:
+
+"TARGETED ADMOB FIX VERIFIED AT EXPO CONFIG LEVEL — BUILD 5 NOT YET CREATED."
+
+If the plugin cannot be verified, say:
+
+"ADMOB FIX NOT FULLY VERIFIED — DO NOT CREATE BUILD 5."
+
+Do not create Build 5 under any circumstance during this task.
