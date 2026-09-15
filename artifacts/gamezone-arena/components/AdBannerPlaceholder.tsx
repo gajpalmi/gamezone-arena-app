@@ -1,93 +1,26 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import { AdService } from "@/services/AdService";
-import { getNativeAdsModule } from "@/services/NativeAds";
-
 type AdBannerPlaceholderProps = {
-  placement: "home" | "games" | "ludo";
+  placement?: string;
 };
 
-// Let the login/home UI render before lazily initializing native ads.
-const AD_START_DELAY_MS = 1600;
-
-export function AdBannerPlaceholder({
-  placement,
-}: AdBannerPlaceholderProps) {
-  const [ads, setAds] = useState<ReturnType<typeof getNativeAdsModule>>(null);
-  const [ready, setReady] = useState(false);
-  const [failed, setFailed] = useState(false);
-
-  useEffect(() => {
-    let active = true;
-    const timer = setTimeout(() => {
-      const nativeAds = getNativeAdsModule();
-      if (!active) return;
-
-      setAds(nativeAds);
-      if (!nativeAds) return;
-
-      void AdService.showBanner(placement)
-        .then((initialized) => {
-          if (active) setReady(initialized);
-        })
-        .catch((error) => {
-          console.warn(`Banner ad initialization failed at ${placement}.`, error);
-          if (active) setFailed(true);
-        });
-    }, AD_START_DELAY_MS);
-
-    return () => {
-      active = false;
-      clearTimeout(timer);
-    };
-  }, [placement]);
-
-  const unitId = ads ? AdService.getBannerUnitId() : null;
-  if (ads && ready && unitId && !failed) {
-    return (
-      <View
-        accessibilityLabel={`Advertisement on ${placement}`}
-        style={styles.adContainer}
-      >
-        <ads.BannerAd
-          unitId={unitId}
-          size={ads.BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-          requestOptions={{ requestNonPersonalizedAdsOnly: true }}
-          onAdFailedToLoad={(error) => {
-            console.warn(`Banner ad failed at ${placement}.`, error);
-            setFailed(true);
-          }}
-        />
-      </View>
-    );
-  }
-
+export function AdBannerPlaceholder(
+  _props: AdBannerPlaceholderProps
+) {
   return (
-    <View
-      accessibilityLabel={`Advertisement area on ${placement}`}
-      style={styles.container}
-    >
+    <View style={styles.container}>
       <Text style={styles.label}>ADVERTISEMENT</Text>
       <Text style={styles.caption}>
-        {ads
-          ? failed
-            ? "Ad unavailable"
-            : "Loading ad…"
-          : "Native ads appear in Android development and release builds"}
+        Ads temporarily unavailable during Android startup testing.
       </Text>
     </View>
   );
 }
 
+export default AdBannerPlaceholder;
+
 const styles = StyleSheet.create({
-  adContainer: {
-    minHeight: 54,
-    marginVertical: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-  },
   container: {
     minHeight: 54,
     marginVertical: 10,
@@ -100,15 +33,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   label: {
-    color: "#687895",
-    fontSize: 8,
-    fontWeight: "900",
-    letterSpacing: 1.4,
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#6B7A99",
+    marginBottom: 4,
   },
   caption: {
-    color: "#465570",
-    fontSize: 7,
-    marginTop: 3,
+    fontSize: 12,
+    color: "#7F8BA3",
     textAlign: "center",
   },
 });

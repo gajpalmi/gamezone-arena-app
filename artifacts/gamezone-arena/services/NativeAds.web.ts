@@ -1,14 +1,15 @@
-import type {
-  GoogleMobileAdsModule,
-  NativeAdsModuleDiagnostic,
-} from "./NativeAds";
+export type NativeAdsModuleDiagnostic = {
+  message: string;
+};
 
-export function getNativeAdsModule(): GoogleMobileAdsModule | null {
+export function getNativeAdsModule(): null {
   return null;
 }
 
 export function getLatestNativeAdsModuleDiagnostic(): NativeAdsModuleDiagnostic | null {
-  return null;
+  return {
+    message: "Google Mobile Ads is temporarily disabled for Android startup-crash isolation.",
+  };
 }
 
 export function usesProductionAdInventory(): boolean {

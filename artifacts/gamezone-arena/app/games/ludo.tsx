@@ -578,12 +578,12 @@ export default function Ludo() {
     void Promise.all([
       SubscriptionService.initialize(),
       SubscriptionService.isPremium(),
-      AdService.showBanner("ludo"),
+      Promise.resolve(false),
       RewardedAdService.loadRewardedAd(),
     ])
       .then(([, premium, , rewardedReady]) => {
         setPremiumActive(premium);
-        setRewardedAdReady(rewardedReady);
+        setRewardedAdReady(Boolean(rewardedReady));
       })
       .catch((error) => {
         if (__DEV__) console.warn("Ludo settings could not be loaded.", error);
